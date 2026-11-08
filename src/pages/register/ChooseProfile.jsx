@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { FiArrowRight, FiUser } from 'react-icons/fi';
 import { LuPawPrint } from 'react-icons/lu';
 import { Link, useNavigate } from 'react-router-dom';
@@ -26,16 +25,12 @@ const profiles = [
 ];
 
 export default function ChooseProfile() {
-  const [feedback, setFeedback] = useState('');
   const navigate = useNavigate();
 
   function handleSubmit(event) {
     event.preventDefault();
-    if (new FormData(event.currentTarget).get('profile') === 'tutor') {
-      navigate('/cadastro/tutor');
-      return;
-    }
-    setFeedback('O cadastro de ONG estará disponível em breve.');
+    const profile = new FormData(event.currentTarget).get('profile');
+    navigate(profile === 'ong' ? '/cadastro/ong' : '/cadastro/tutor');
   }
 
   return (
@@ -64,7 +59,6 @@ export default function ChooseProfile() {
                   defaultChecked={value === 'tutor'}
                   aria-labelledby={`profile-${value}-title`}
                   aria-describedby={`profile-${value}-description`}
-                  onChange={() => setFeedback('')}
                 />
                 <span className="profile-icon"><Icon aria-hidden="true" /></span>
                 <span id={`profile-${value}-title`} className="profile-title">{title}</span>
@@ -80,7 +74,6 @@ export default function ChooseProfile() {
         <p className="auth-switch">
           Já tem conta? <Link to="/login" className="auth-action">Entrar</Link>
         </p>
-        <p className="auth-feedback" role="status">{feedback}</p>
       </div>
     </AuthLayout>
   );
