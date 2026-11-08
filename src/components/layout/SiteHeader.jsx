@@ -20,7 +20,10 @@ export default function SiteHeader() {
             <Nav.Link href="/#quem-somos" onClick={closeMenu}>Quem somos</Nav.Link>
             <Nav.Link href="/#como-funciona" onClick={closeMenu}>Como funciona</Nav.Link>
           </Nav>
-          <Button href="/#para-ongs" onClick={closeMenu} className="ms-lg-4 mt-2 mt-lg-0">Para ONGs <FiArrowUpRight aria-hidden="true" /></Button>
+          <div className="d-flex flex-wrap gap-3 ms-lg-4 mt-3 mt-lg-0">
+            <Button href="/#para-ongs" onClick={closeMenu}>Para ONGs <FiArrowUpRight aria-hidden="true" /></Button>
+            <Button as={Link} to="/login" onClick={closeMenu}>Login</Button>
+          </div>
         </Navbar.Collapse>
       </Container>
     </Navbar>
