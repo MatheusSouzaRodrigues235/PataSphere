@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FiArrowRight, FiUser } from 'react-icons/fi';
 import { LuPawPrint } from 'react-icons/lu';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AuthLayout from '@/layouts/AuthLayout';
 
 const benefits = [
@@ -27,10 +27,15 @@ const profiles = [
 
 export default function ChooseProfile() {
   const [feedback, setFeedback] = useState('');
+  const navigate = useNavigate();
 
   function handleSubmit(event) {
     event.preventDefault();
-    setFeedback('A próxima etapa do cadastro estará disponível em breve.');
+    if (new FormData(event.currentTarget).get('profile') === 'tutor') {
+      navigate('/cadastro/tutor');
+      return;
+    }
+    setFeedback('O cadastro de ONG estará disponível em breve.');
   }
 
   return (
