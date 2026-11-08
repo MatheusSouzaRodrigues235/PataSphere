@@ -1,0 +1,80 @@
+.register-content {
+  width: 100%;
+  max-width: 35rem;
+
+  h1 {
+    margin-bottom: 0.625rem;
+    font-size: clamp(1.75rem, 2.3vw, 2.5rem);
+    letter-spacing: -0.035em;
+  }
+}
+
+.register-form {
+  display: grid;
+  gap: 1.75rem;
+}
+
+.profile-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: 1rem;
+}
+
+.profile-option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.75rem 1.5rem;
+  border: 2px solid #e4d9d2;
+  border-radius: 1.5rem;
+  background: #fff;
+  cursor: pointer;
+
+  &:has(.profile-radio:checked) {
+    border-color: $pata-rosa;
+    background: #fcf3f3;
+  }
+
+  &:has(.profile-radio:focus-visible) {
+    outline: 2px solid $pata-petroleo;
+    outline-offset: 3px;
+  }
+}
+
+.profile-radio {
+  position: absolute;
+  inset: 1rem 1rem auto auto;
+  width: 1.375rem;
+  height: 1.375rem;
+  accent-color: #b94655;
+  cursor: pointer;
+}
+
+.profile-icon {
+  display: grid;
+  width: 3.5rem;
+  height: 3.5rem;
+  place-items: center;
+  border-radius: 1rem;
+  background: #ede6fa;
+  color: #5d30a7;
+  font-size: 1.625rem;
+}
+
+.profile-option--ong .profile-icon {
+  background: #daefe2;
+  color: $pata-verde;
+}
+
+.profile-title {
+  color: $pata-petroleo;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.profile-description {
+  color: $pata-texto-suave;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
