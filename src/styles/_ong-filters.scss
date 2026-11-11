@@ -1,0 +1,171 @@
+.ong-filter-backdrop {
+  --bs-backdrop-bg: #202931;
+  --bs-backdrop-opacity: .56;
+  backdrop-filter: blur(3px);
+  background: rgb(32 41 49 / 56%);
+
+  &.show { opacity: 1; }
+}
+
+.ong-filter-modal {
+  --bs-modal-width: 44.5rem;
+  --bs-modal-margin: clamp(.75rem, 5.8vh, 4rem);
+  --bs-modal-border-width: 0;
+  --bs-modal-border-radius: 1.875rem;
+  --bs-modal-bg: #fff;
+  --bs-modal-color: #2b3440;
+  --filter-padding: clamp(1rem, 3.2vw, 2.25rem);
+  --filter-border: #e8dcd5;
+  --filter-muted: #5b6875;
+  --filter-selected: #fcf2f3;
+  --filter-accent: #bc4656;
+  --filter-close: #f2eeeb;
+
+  &[data-bs-theme='dark'] {
+    --bs-modal-bg: #29323e;
+    --bs-modal-color: #f4f5f7;
+    --filter-border: #475364;
+    --filter-muted: #c3cdd7;
+    --filter-selected: #4b303d;
+    --filter-close: #1d242d;
+  }
+
+  .modal-content { box-shadow: 0 1.5rem 4rem #17202945; }
+
+  .modal-header {
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: var(--filter-padding) var(--filter-padding) 0;
+    border: 0;
+
+    h2 {
+      color: inherit;
+      font-size: clamp(1.6rem, 3vw, 2rem);
+      line-height: 1.15;
+      letter-spacing: -.04em;
+    }
+
+    p { margin: .375rem 0 0; color: var(--filter-muted); }
+  }
+
+  .modal-body {
+    padding: 1.5rem var(--filter-padding) .25rem;
+    overscroll-behavior: contain;
+  }
+
+  .modal-footer {
+    justify-content: space-between;
+    gap: .75rem;
+    margin: 1rem var(--filter-padding) 0;
+    padding: 1.25rem 0 var(--filter-padding);
+    border-color: var(--filter-border);
+
+    > * { margin: 0; }
+    .ong-primary { --ong-accent: var(--filter-accent); }
+  }
+}
+
+.ong-filter-close {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border: 0;
+  border-radius: .875rem;
+  background: var(--filter-close);
+  color: inherit;
+  font-size: 1.25rem;
+}
+
+.ong-filter-group {
+  + .ong-filter-group { margin-top: 1.625rem; }
+
+  h3 {
+    margin-bottom: .75rem;
+    color: var(--filter-muted);
+    font-size: .875rem;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+
+  &[data-color='purple'] { --filter-icon-bg: #ede5fa; --filter-icon-ink: #6535a6; }
+  &[data-color='orange'] { --filter-icon-bg: #fbe9db; --filter-icon-ink: #98440c; }
+  &[data-color='green'] { --filter-icon-bg: #d9efe2; --filter-icon-ink: #226d45; }
+}
+
+.ong-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .75rem;
+}
+
+.ong-filter-tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: .45rem;
+  min-height: 6.75rem;
+  padding: .75rem .375rem;
+  border: 1px solid var(--filter-border);
+  border-radius: 1.125rem;
+  background: var(--bs-modal-bg);
+  color: inherit;
+  font-size: .875rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+
+  &:hover, &[aria-expanded='true'], &[data-selected='true'] { border-color: var(--filter-accent); }
+  &[data-selected='true'] { background: var(--filter-selected); }
+}
+
+.ong-filter-icon, .ong-filter-check {
+  display: grid;
+  place-items: center;
+}
+
+.ong-filter-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: .875rem;
+  background: var(--filter-icon-bg);
+  color: var(--filter-icon-ink);
+  font-size: 1.35rem;
+}
+
+.ong-filter-check {
+  position: absolute;
+  top: .5rem;
+  right: .5rem;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: 50%;
+  background: var(--filter-accent);
+  color: white;
+}
+
+.ong-filter-options {
+  display: grid;
+  gap: .35rem;
+  margin: .75rem .25rem .25rem;
+  font-weight: 700;
+}
+
+.ong-filter-clear {
+  padding: .625rem .5rem;
+  border: 0;
+  background: transparent;
+  color: var(--filter-muted);
+  font-weight: 700;
+  text-decoration: underline;
+  &:hover { color: var(--bs-modal-color); }
+}
+
+@media (max-width: 575.98px) {
+  .ong-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ong-filter-tile { min-height: 5.5rem; }
+  .ong-filter-modal .modal-footer { margin-top: .625rem; padding-top: .75rem; }
+}

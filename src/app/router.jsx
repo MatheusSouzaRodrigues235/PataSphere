@@ -5,9 +5,11 @@ import Login from '@/pages/login/Login';
 import ChooseProfile from '@/pages/register/ChooseProfile';
 import RegisterTutor from '@/pages/register/RegisterTutor';
 import RegisterOng from '@/pages/register/RegisterOng';
+import OngDashboard from '@/pages/dashboard/OngDashboard';
 import NotFound from '@/pages/NotFound';
 
 export const router = createBrowserRouter([
+  { path: '/dashboard/ong', element: <OngDashboard /> },
   { path: '/login', element: <Login /> },
   { path: '/cadastro', element: <ChooseProfile /> },
   { path: '/cadastro/tutor', element: <RegisterTutor /> },
