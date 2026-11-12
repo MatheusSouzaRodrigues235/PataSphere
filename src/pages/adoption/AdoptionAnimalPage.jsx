@@ -5,6 +5,7 @@ import { Link, useLocation, useOutletContext, useParams } from 'react-router-dom
 import AnimalGallery from './AnimalGallery';
 import AdoptionDetailModal from './AdoptionDetailModal';
 import AdoptionRequestModal from './AdoptionRequestModal';
+import { ongProfiles, ongProfilePath } from '@/pages/ongs/ongProfiles';
 import { adoptionAnimals, adoptionDetails, adoptionPath } from './adoptionData';
 import '@/styles/_adoption-detail.scss';
 
@@ -19,6 +20,7 @@ function AnimalProfile({ animal, boardSearch }) {
   const [modal, setModal] = useState(null);
   const [copied, setCopied] = useState(false);
   const detail = adoptionDetails[animal.name] ?? {};
+  const organization = ongProfiles.find(({ name }) => name === animal.organization);
   const animalCode = detail.code ?? String(100245 + animal.id);
   const shareUrl = new URL(adoptionPath(animal), window.location.origin).href;
   const boardUrl = { pathname: '/adocao', search: boardSearch ? '?' + boardSearch : '' };
@@ -116,7 +118,7 @@ function AnimalProfile({ animal, boardSearch }) {
           <div><strong>{animal.organization}</strong><p><FiMapPin aria-hidden="true" /> São José dos Campos – SP</p></div>
         </div>
         <div className="adoption-organization-links">
-          <button type="button" className="adoption-control" onClick={() => setModal('organization')}>Ver perfil da ONG</button>
+          {organization && <Link className="adoption-control" to={ongProfilePath(organization)}>Ver perfil da ONG</Link>}
           <Link className="adoption-control" to={{ pathname: '/adocao', search: '?' + new URLSearchParams({ ong: animal.organization }) }}>
             Ver todos os animais desta ONG
           </Link>
@@ -135,7 +137,7 @@ function AnimalProfile({ animal, boardSearch }) {
         </div>
       </section>
       {modal === 'request' && <AdoptionRequestModal animal={animal} animalCode={animalCode} onClose={() => setModal(null)} />}
-      {(modal === 'organization' || modal === 'share') && <AdoptionDetailModal kind={modal} animal={animal} shareUrl={shareUrl} onClose={() => setModal(null)} />}
+      {modal === 'share' && <AdoptionDetailModal shareUrl={shareUrl} onClose={() => setModal(null)} />}
     </div>
   );
 }

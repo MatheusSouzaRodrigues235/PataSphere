@@ -10,6 +10,7 @@ export function AdoptionHeader() {
         <Link to="/">Home</Link>
         <NavLink to="/animais-perdidos">Animais perdidos</NavLink>
         <NavLink to="/adocao">Adotar um animal</NavLink>
+        <NavLink to="/ongs">Visualizar ONGs</NavLink>
         <Link className="adoption-control" to="/login" aria-label="Acessar conta"><FiUser aria-hidden="true" /></Link>
       </nav>
     </header>
@@ -39,6 +40,7 @@ export function AdoptionFooter() {
           <div>
             <h2>ONGs</h2>
             <Link to="/cadastro/ong">Cadastrar ONG</Link>
+            <Link to="/ongs">Ver ONGs</Link>
           </div>
         </div>
         <div className="adoption-footer-bottom">

@@ -13,9 +13,18 @@ import ChooseProfile from '@/pages/register/ChooseProfile';
 import RegisterTutor from '@/pages/register/RegisterTutor';
 import RegisterOng from '@/pages/register/RegisterOng';
 import OngDashboard from '@/pages/dashboard/OngDashboard';
+import { OngDirectory, OngProfile, OngPublicLayout } from '@/pages/ongs/OngPublic';
 import NotFound from '@/pages/NotFound';
 
 export const router = createBrowserRouter([
+  {
+    path: '/ongs',
+    element: <OngPublicLayout />,
+    children: [
+      { index: true, element: <OngDirectory /> },
+      { path: ':ongSlug', element: <OngProfile /> },
+    ],
+  },
   {
     path: '/dashboard/ong',
     element: <OngDashboard />,
