@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import { Dropdown } from 'react-bootstrap';
 import { FiChevronLeft, FiChevronRight, FiFilter, FiMoreHorizontal, FiPlus, FiSearch } from 'react-icons/fi';
-import { currency, formatAmount, formatDate, initialDonations, quantity, searchable, types } from './donationData';
+import { currency, formatAmount, formatDate, quantity, searchable, types } from './donationData';
 import DonationModal from './DonationModal';
 import '@/styles/_ong-donations.scss';
 
 const categories = { all: 'Todas', money: 'Financeiras', food: 'Ração', medicine: 'Medicamentos' };
 
-export default function Donations({ dark }) {
-  const [records, setRecords] = useState(initialDonations);
+export default function Donations({ records, setRecords, dark }) {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
   const [filters, setFilters] = useState({});

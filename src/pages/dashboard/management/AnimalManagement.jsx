@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { FiChevronLeft, FiChevronRight, FiFilter, FiPlus, FiSearch, FiTrash2 } from 'react-icons/fi';
 import { LuArrowLeftRight, LuPawPrint, LuPencil } from 'react-icons/lu';
 import { statuses } from '../animals';
@@ -11,11 +12,14 @@ const urgencyTones = { Alta: 'red', Média: 'orange', Baixa: 'muted' };
 const normalize = (value) => value.trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/\p{M}/gu, '');
 
 export default function AnimalManagement({ animals, setAnimals, dark }) {
+  const [params, setParams] = useSearchParams();
+  const registering = params.get('cadastrar') === '1';
   const [query, setQuery] = useState('');
-  const [filters, setFilters] = useState({});
+  const [filters, setFilters] = useState(() => params.get('urgencia') === 'alta' ? { urgency: 'Alta' } : {});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
-  const [dialog, setDialog] = useState(null);
+  const [localDialog, setDialog] = useState(null);
+  const dialog = registering ? { type: 'add' } : localDialog;
   const [message, setMessage] = useState('');
 
   const search = normalize(query);
@@ -26,7 +30,14 @@ export default function AnimalManagement({ animals, setAnimals, dark }) {
   const pageCount = Math.max(1, Math.ceil(results.length / pageSize));
   const currentPage = Math.min(page, pageCount);
   const start = (currentPage - 1) * pageSize;
-  const closeDialog = () => setDialog(null);
+  function closeDialog() {
+    if (registering) {
+      const next = new URLSearchParams(params);
+      next.delete('cadastrar');
+      setParams(next, { replace: true });
+    }
+    setDialog(null);
+  }
 
   function applyFilters(nextFilters) {
     setFilters(nextFilters);
