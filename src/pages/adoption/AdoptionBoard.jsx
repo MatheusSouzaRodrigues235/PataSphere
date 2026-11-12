@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import { FiChevronLeft, FiChevronRight, FiChevronsLeft, FiChevronsRight, FiFilter, FiHeart, FiMapPin, FiSearch } from 'react-icons/fi';
 import { Link, Navigate, useOutletContext, useSearchParams } from 'react-router-dom';
-import AdoptionFilterModal from './AdoptionFilterModal';
-import { adoptionAnimals, adoptionPath, filterFields, quickFilters } from './adoptionData';
+import AdoptionBoardFilterModal from './AdoptionBoardFilterModal';
+import { adoptionAnimals, adoptionPath, filterGroups, neighborhoods, quickFilters } from './adoptionData';
 
 const pageSize = 8;
 function normalize(value) {
@@ -67,21 +67,24 @@ export default function AdoptionBoard() {
 
   const heading = useRef(null);
 
-  const filters = Object.fromEntries(filterFields.flatMap(([key, , options]) => {
+  const filters = Object.fromEntries([...filterGroups, ['neighborhood', 'Local', neighborhoods]].flatMap(([key, , options]) => {
     const value = params.get(key);
     return options.includes(value) ? [[key, value]] : [];
   }));
   const organization = params.get('ong');
 
-  if (params.has('urgent')) filters.urgent = true;
+  if (!filters.urgency && params.has('urgent')) filters.urgency = 'Alta';
   if (params.has('puppy')) filters.puppy = true;
 
   const searchTerm = normalize(search.trim());
-  const filtered = adoptionAnimals.filter((animal) =>
+  const matchingSearch = adoptionAnimals.filter((animal) =>
     normalize(animal.name).includes(searchTerm) &&
-    (!organization || animal.organization === organization) &&
-    Object.entries(filters).every(([key, value]) => animal[key] === value),
+    (!organization || animal.organization === organization),
   );
+  const matchingFilters = (criteria) => matchingSearch.filter((animal) =>
+    Object.entries(criteria).every(([key, value]) => animal[key] === value),
+  );
+  const filtered = matchingFilters(filters);
   const pageCount = Math.ceil(filtered.length / pageSize);
   const requestedPage = Number.parseInt(params.get('pagina'), 10) || 1;
   const page = Math.max(1, Math.min(requestedPage, pageCount));
@@ -140,7 +143,7 @@ export default function AdoptionBoard() {
               onChange={({ target }) => changeSearch(target.value)}
             />
           </label>
-          <button type="button" className="adoption-control" onClick={() => setFilterOpen(true)}>
+          <button type="button" className="adoption-control" aria-haspopup="dialog" onClick={() => setFilterOpen(true)}>
             <FiFilter aria-hidden="true" /> Filtros
           </button>
         </div>
@@ -151,7 +154,7 @@ export default function AdoptionBoard() {
             </button>
           ))}
         </div>
-        <p className="visually-hidden" role="status">{filtered.length} animais encontrados</p>
+        <p className="visually-hidden" role="status">{filtered.length === 1 ? '1 animal encontrado' : filtered.length + ' animais encontrados'}</p>
         {currentAnimals.length > 0 ? (
           <div className="adoption-grid">
             {currentAnimals.map((animal) => (
@@ -181,7 +184,12 @@ export default function AdoptionBoard() {
           </nav>
         )}
       </div>
-      {filterOpen && <AdoptionFilterModal filters={filters} onApply={applyFilters} onClose={() => setFilterOpen(false)} />}
+      {filterOpen && <AdoptionBoardFilterModal
+        filters={filters}
+        countMatches={(criteria) => matchingFilters(criteria).length}
+        onApply={applyFilters}
+        onClose={() => setFilterOpen(false)}
+      />}
 
     </section>
   );

@@ -1,4 +1,4 @@
-import { initialAnimals } from '@/pages/dashboard/animals';
+import { initialAnimals, sizes, species, urgencies } from '@/pages/dashboard/animals';
 
 const listings = {
   Thor: ['Jd. Satélite', 'Brincalhão e muito carinhoso. Já é vacinado e castrado.'],
@@ -16,7 +16,7 @@ const listings = {
 export const adoptionAnimals = initialAnimals
   .filter(({ name }) => Object.hasOwn(listings, name))
   .map(({ id, name, species, sex, ageLabel, size, urgency, photo, breed, color, photos }) => ({
-    id, name, species, sex, ageLabel, size, photo, breed, color,
+    id, name, species, sex, ageLabel, size, urgency, photo, breed, color,
     photos: [...new Set([photo, ...(photos ?? [])])],
     urgent: urgency === 'Alta',
     puppy: ageLabel.endsWith('meses'),
@@ -43,16 +43,19 @@ export const quickFilters = [
   ['Todos', {}],
   ['Cães', { species: 'Cão' }],
   ['Gatos', { species: 'Gato' }],
-  ['Urgência alta', { urgent: true }],
+  ['Urgência alta', { urgency: 'Alta' }],
   ['Filhotes', { puppy: true }],
   ['Porte pequeno', { size: 'Pequeno' }],
   ['Porte médio', { size: 'Médio' }],
   ['Porte grande', { size: 'Grande' }],
 ];
 
-export const filterFields = [
-  ['species', 'Espécie', ['Cão', 'Gato']],
-  ['size', 'Porte', ['Pequeno', 'Médio', 'Grande']],
-  ['sex', 'Sexo', ['Fêmea', 'Macho']],
-  ['neighborhood', 'Bairro', adoptionAnimals.map(({ neighborhood }) => neighborhood).sort((a, b) => a.localeCompare(b, 'pt-BR'))],
+export const filterGroups = [
+  ['species', 'Espécie', species],
+  ['size', 'Porte', sizes],
+  ['sex', 'Sexo', ['Macho', 'Fêmea']],
+  ['urgency', 'Urgência', urgencies],
 ];
+
+export const neighborhoods = [...new Set(adoptionAnimals.map(({ neighborhood }) => neighborhood))]
+  .sort((first, second) => first.localeCompare(second, 'pt-BR'));

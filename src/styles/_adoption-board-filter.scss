@@ -1,0 +1,95 @@
+@use 'tokens' as *;
+
+.adoption-board-filter-backdrop {
+  background: rgba(40, 49, 61, .56);
+  backdrop-filter: blur(3px);
+
+  &.show { opacity: 1; }
+}
+
+.adoption-board-filter {
+  --bs-modal-width: 600px;
+  --bs-modal-margin: clamp(.75rem, (100dvh - 650px) / 2, 3rem);
+  --filter-padding: 2rem;
+  color: $pata-petroleo;
+
+  .modal-content {
+    background: white;
+    border: 0;
+    border-radius: 1.75rem;
+    box-shadow: 0 20px 48px rgba(31, 41, 51, .2);
+  }
+
+  .modal-header {
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: var(--filter-padding) var(--filter-padding) 0;
+    border: 0;
+  }
+
+  .modal-title { font-size: 1.6rem; letter-spacing: -.035em; }
+  .modal-header p { margin: .25rem 0 0; color: $pata-texto-suave; }
+  .modal-body { display: grid; gap: .95rem; padding: 1rem var(--filter-padding); }
+  .modal-footer {
+    gap: .75rem;
+    padding: 1rem 0 min(1.5rem, var(--filter-padding));
+    margin-inline: var(--filter-padding);
+    border-top: 1px solid #eee5df;
+  }
+
+  .modal-footer button { margin: 0; padding-inline: 1.35rem; border-radius: 999px; font-size: .95rem; }
+  legend { float: none; margin: 0 0 .5rem; color: $pata-texto-suave; font-size: .875rem; font-weight: 800; text-transform: uppercase; }
+}
+
+.adoption-board-filter-close {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: .75rem;
+  background: #f1ece9;
+  color: $pata-petroleo;
+  font-size: 1.2rem;
+
+  &:hover { background: #e8dbd5; }
+}
+
+.adoption-board-filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+
+  .adoption-control { border-radius: 999px; color: $pata-texto-suave; }
+  .adoption-control[aria-pressed='true'],
+  .adoption-control[aria-pressed='true']:hover { background: #fcf1f2; border-color: $pata-rosa; color: #a3263a; }
+}
+
+.adoption-board-filter-location {
+  display: grid;
+  gap: .35rem;
+  font-weight: 700;
+
+  .form-select { min-height: 48px; background-color: white; border-color: #e2d5ce; font-weight: 500; }
+}
+
+.adoption-board-filter-puppy {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  font-size: .875rem;
+
+  .form-check-input { margin: 0; }
+}
+
+@media (max-width: 575.98px) {
+  .adoption-board-filter {
+    --bs-modal-margin: .75rem;
+    --filter-padding: 1rem;
+
+    .modal-content { border-radius: 1.25rem; }
+    .modal-footer button { padding-inline: .85rem; }
+  }
+}

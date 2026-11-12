@@ -1,10 +1,7 @@
 import { useState } from 'react';
 import Modal from 'react-bootstrap/Modal';
-import { filterFields } from './adoptionData';
 
-const adoptionToggles = [['urgent', 'Somente casos urgentes'], ['puppy', 'Somente filhotes']];
-
-export default function AdoptionFilterModal({ filters, onApply, onClose, fields = filterFields, toggles = adoptionToggles }) {
+export default function AdoptionFilterModal({ filters, onApply, onClose, fields, toggles = [] }) {
   const [draft, setDraft] = useState(filters);
 
   return (
