@@ -11,14 +11,14 @@
   --bs-modal-width: 44.5rem;
   --bs-modal-margin: clamp(.75rem, 5.8vh, 4rem);
   --bs-modal-border-width: 0;
-  --bs-modal-border-radius: 1.875rem;
+  --bs-modal-border-radius: var(--pata-raio-modal);
   --bs-modal-bg: #fff;
   --bs-modal-color: #2b3440;
   --filter-padding: clamp(1rem, 3.2vw, 2.25rem);
   --filter-border: #e8dcd5;
   --filter-muted: #5b6875;
   --filter-selected: #fcf2f3;
-  --filter-accent: #bc4656;
+  --filter-accent: var(--pata-rosa);
   --filter-close: #f2eeeb;
 
   &[data-bs-theme='dark'] {

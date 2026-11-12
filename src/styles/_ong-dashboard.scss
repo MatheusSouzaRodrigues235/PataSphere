@@ -1,13 +1,13 @@
 .ong-dashboard,
 .ong-animal-modal,
 .donation-modal {
-  --ong-bg: #f8f5f2;
+  --ong-bg: var(--pata-fundo);
   --ong-surface: #fff;
   --ong-input: #f2eeeb;
   --ong-ink: #2b3440;
   --ong-muted: #5b6875;
-  --ong-border: #e8dcd5;
-  --ong-accent: #bc4656;
+  --ong-border: var(--pata-borda);
+  --ong-accent: var(--pata-rosa);
   --ong-female: #a93445;
   --ong-male: #18599e;
   &[data-bs-theme='dark'] {
@@ -33,7 +33,7 @@
 }
 
 .ong-sidebar {
-  background: #28313d;
+  background: var(--pata-petroleo);
   color: #d8e0e9;
   padding: 1.625rem 1.1rem;
   ul { list-style: none; margin: 0; padding: 0; }
@@ -61,7 +61,7 @@
     svg { flex: none; }
   }
 
-  [aria-current='page'] { background: #bc4656; color: white; }
+  [aria-current='page'] { background: var(--pata-rosa); color: white; }
 }
 
 .ong-brand {
@@ -80,7 +80,7 @@
     width: 2.75rem;
     height: 2.75rem;
     border-radius: .875rem;
-    background: #bc4656;
+    background: var(--pata-rosa);
   }
 }
 
@@ -159,7 +159,7 @@
   display: flex;
   align-items: center;
   gap: .875rem;
-  min-height: 3.625rem;
+  min-height: var(--pata-altura-controle);
   padding: 0 1.2rem;
   border: 1px solid var(--ong-border);
   border-radius: 1rem;
@@ -198,7 +198,7 @@
   min-height: 3rem;
   padding: .65rem 1.25rem;
   border: 1px solid var(--ong-border);
-  border-radius: .875rem;
+  border-radius: 50rem;
   background: var(--ong-surface);
   color: var(--ong-ink);
   font-weight: 700;
@@ -206,13 +206,13 @@
 }
 
 .ong-primary {
-  min-height: 3.25rem;
+  min-height: var(--pata-altura-controle);
   padding-inline: 1.5rem;
   border-color: transparent;
   border-radius: 3rem;
   background: var(--ong-accent);
   color: white;
-  &:hover { background: #a63848; }
+  &:hover { background: var(--pata-rosa-escuro); }
 }
 
 .ong-animal-grid {

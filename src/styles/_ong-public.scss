@@ -3,7 +3,7 @@
 .ong-public {
   min-height: 65vh;
   padding: 1.75rem 0 4rem;
-  background: #f8f5f3;
+  background: $pata-fundo;
   color: $pata-petroleo;
 
   h1, h2, h3 { letter-spacing: -.035em; }
@@ -58,7 +58,7 @@
   margin-top: -2.25rem;
   border: 5px solid #fff;
   border-radius: 1.75rem;
-  background: #bf4858;
+  background: $pata-rosa;
   box-shadow: 0 8px 18px #29323e2b;
   color: #fff;
   font-size: clamp(2rem, 5vw, 3rem);
@@ -182,7 +182,7 @@
 }
 
 .ong-animal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
-.ong-animal-card { overflow: hidden; background: #f8f5f3; border-radius: 1rem; }
+.ong-animal-card { overflow: hidden; background: white; border-radius: 1.25rem; box-shadow: var(--pata-sombra); }
 .ong-animal-photo {
   position: relative;
   img { display: block; width: 100%; aspect-ratio: 2 / 1; object-fit: cover; }
@@ -203,7 +203,7 @@
   padding: 1rem;
   border: 0;
   border-radius: 1rem;
-  background: #f8f5f3;
+  background: $pata-fundo;
   color: inherit;
   text-decoration: none;
   text-align: left;
@@ -213,7 +213,7 @@
   .ong-help-description { color: $pata-texto-suave; font-size: .875rem; }
   .ong-public-icon { background: #fbe6e9; color: #a83848; }
   &:nth-child(2) .ong-public-icon { background: #dcefe3; color: $pata-verde; }
-  &:nth-child(3) .ong-public-icon { background: #fbe9dc; color: #904417; }
+  &:nth-child(3) .ong-public-icon { background: #fbe9dc; color: $pata-laranja; }
 }
 
 .ong-supplies {
@@ -224,7 +224,7 @@
   padding: 0;
   margin: 1rem 0 0;
 
-  li { padding: .25rem .625rem; border-radius: .5rem; background: #fbe9dc; color: #904417; font-size: .8125rem; font-weight: 700; }
+  li { padding: .25rem .625rem; border-radius: .5rem; background: #fbe9dc; color: $pata-laranja; font-size: .8125rem; font-weight: 700; }
 }
 
 .ong-directory-page {
@@ -328,7 +328,7 @@
 
   .modal-content {
     border: 0;
-    border-radius: 1.5rem;
+    border-radius: $pata-raio-modal;
     background: #fff;
     box-shadow: 0 20px 60px #202a3540;
   }
@@ -361,7 +361,7 @@
 .ong-donation-pix {
   padding: 1rem;
   border-radius: 1rem;
-  background: #f8f5f3;
+  background: $pata-fundo;
 
   label { color: $pata-texto-suave; font-size: .75rem; font-weight: 700; text-transform: uppercase; }
   [role='status'] { display: block; color: $pata-texto-suave; font-size: .8125rem; }

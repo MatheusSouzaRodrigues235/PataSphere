@@ -14,7 +14,7 @@
 
   .modal-content {
     border: 0;
-    border-radius: 1.75rem;
+    border-radius: $pata-raio-modal;
     background: #fff;
     box-shadow: 0 20px 48px rgba(31, 41, 51, .2);
   }
@@ -76,7 +76,7 @@
   gap: .75rem;
   padding: .9rem;
   border-radius: .875rem;
-  background: #f8f5f3;
+  background: $pata-fundo;
   font-size: .875rem;
 
   .form-check-input {
@@ -99,7 +99,7 @@
   justify-content: center;
   align-items: center;
   gap: .55rem;
-  min-height: 52px;
+  min-height: $pata-altura-controle;
   padding: .65rem 1rem;
   border: 0;
   border-radius: 999px;
@@ -138,7 +138,6 @@
   .adoption-request-modal {
     --bs-modal-margin: .75rem;
 
-    .modal-content { border-radius: 1.25rem; }
     .modal-header { padding: 1.25rem 1.25rem 0; }
     .modal-body { padding: 1.15rem 1.25rem 1.25rem; }
   }

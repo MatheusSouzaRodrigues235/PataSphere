@@ -108,8 +108,10 @@ export function TutorPreferences({ options, values, onSave }) {
       {options.map(([name, label, hint]) => (
         <label className="tutor-setting" key={name}>
           <span><strong>{label}</strong><small>{hint}</small></span>
-          <input className="form-check-input" type="checkbox" checked={draft[name]}
-            onChange={(event) => setDraft({ ...draft, [name]: event.target.checked })} />
+          <span className="form-switch">
+            <input className="form-check-input" type="checkbox" role="switch" checked={draft[name]}
+              onChange={(event) => setDraft({ ...draft, [name]: event.target.checked })} />
+          </span>
         </label>
       ))}
       <button className="btn btn-primary" type="submit">Salvar preferências</button>

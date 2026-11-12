@@ -21,7 +21,7 @@ function AnimalCard({ animal, onAction }) {
         <img src={animal.photos?.[0] ?? animal.photo} alt="" loading="lazy" />
         <div>
           <div className="tutor-animal-badges">
-            <span data-tone={found ? 'green' : 'red'}>{found ? 'Encontrei' : 'Perdido'}</span>
+            <span data-tone={found ? 'blue' : 'red'}>{found ? 'Encontrei' : 'Perdido'}</span>
             <span data-tone={animal.closed ? 'gray' : 'green'}>
               {animal.closed ? (found ? 'Encerrado' : 'Reencontrado') : 'Aberto'}
             </span>

@@ -2,7 +2,7 @@
   display: grid;
   grid-template-columns: 5fr 6fr;
   min-height: 100vh;
-  background: #f8f5f2;
+  background: $pata-fundo;
 }
 
 .auth-intro {
@@ -11,7 +11,7 @@
   justify-content: space-between;
   gap: 2rem;
   padding: clamp(2rem, 3.9vw, 4.5rem);
-  background: #28313d;
+  background: $pata-petroleo;
   color: #fff;
 
   h2 {
@@ -101,7 +101,7 @@
   .form-control {
     min-height: 3rem;
     padding: 0.625rem 0.875rem;
-    border-color: #dacdc5;
+    border-color: $pata-borda;
     background: #fff;
 
     &::placeholder {
@@ -146,19 +146,19 @@
 
 .auth-submit {
   display: flex;
-  min-height: 3.25rem;
+  min-height: $pata-altura-controle;
   align-items: center;
   justify-content: center;
   gap: 0.625rem;
   padding: 0.625rem 1rem;
   border: 0;
   border-radius: 50rem;
-  background: #b94655;
+  background: $pata-rosa;
   color: #fff;
   font-weight: 700;
 
   &:hover {
-    background: #a23949;
+    background: $pata-rosa-escuro;
   }
 }
 

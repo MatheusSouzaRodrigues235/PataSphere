@@ -21,12 +21,12 @@
 .lost-status {
   display: inline-flex;
   width: fit-content;
-  border-radius: 999px;
-  background: #fce8e8;
+  border-radius: .5rem;
+  background: var(--pata-status-vermelho);
   color: #a3263a;
-  padding: .3rem .75rem;
-  font-size: .75rem;
-  font-weight: 750;
+  padding: .25rem .625rem;
+  font-size: .8125rem;
+  font-weight: 700;
 }
 
 .lost-card {
@@ -47,7 +47,7 @@
   }
 }
 
-.lost-detail-background { background: #f8f5f3; }
+.lost-detail-background { background: $pata-fundo; }
 
 .lost-detail {
   .adoption-detail-panel { overflow-wrap: anywhere; }
@@ -109,5 +109,9 @@
   font-size: 1.15rem;
 }
 
-.lost-status[data-found='true'] { background: #dcefe3; color: $pata-verde; }
+.lost-status[data-found='true'] { background: var(--pata-status-azul); color: var(--pata-status-azul-texto); }
+.lost-whatsapp {
+  background: $pata-verde;
+  &:hover { background: #15542d; }
+}
 .lost-type-link { border-radius: 999px; font-size: .875rem; }

@@ -51,7 +51,7 @@
   inset: 1rem 1rem auto auto;
   width: 1.375rem;
   height: 1.375rem;
-  accent-color: #b94655;
+  accent-color: $pata-rosa;
   cursor: pointer;
 }
 
@@ -161,7 +161,7 @@
   input {
     width: 1.375rem;
     height: 1.375rem;
-    accent-color: #b94655;
+    accent-color: $pata-rosa;
   }
 }
 
@@ -201,7 +201,7 @@
   overflow: hidden;
   border-radius: 0.875rem;
   background: #fff;
-  color: #b94655;
+  color: $pata-rosa;
   font-size: 1.25rem;
 
   img {

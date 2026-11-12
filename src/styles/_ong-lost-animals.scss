@@ -90,7 +90,8 @@
   }
 
   [data-tone='lost'] { background: #fae6e8; color: #a72c3f; }
-  [data-tone='found'], [data-tone='open'] { background: #daf0e3; color: #216940; }
+  [data-tone='found'] { background: var(--pata-status-azul); color: var(--pata-status-azul-texto); }
+  [data-tone='open'] { background: var(--pata-status-verde); color: var(--pata-verde); }
 }
 
 .ong-alert-kind { text-transform: uppercase; }

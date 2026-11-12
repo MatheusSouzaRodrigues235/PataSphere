@@ -81,12 +81,12 @@
   font-weight: 800;
   white-space: nowrap;
 
-  &[data-tone='green'] { background: #dbf0e3; color: #1a6c40; }
-  &[data-tone='yellow'] { background: #fbefd4; color: #775700; }
-  &[data-tone='purple'] { background: #ede5fa; color: #5f339e; }
-  &[data-tone='neutral'] { background: #ebebeb; color: #46525e; }
-  &[data-tone='red'] { background: #fbe7e7; color: #9a2637; }
-  &[data-tone='orange'] { background: #fbe9db; color: #91400f; }
+  &[data-tone='green'] { background: var(--pata-status-verde); color: var(--pata-verde); }
+  &[data-tone='yellow'] { background: var(--pata-status-amarelo); color: #775700; }
+  &[data-tone='purple'] { background: var(--pata-status-violeta); color: var(--pata-violeta); }
+  &[data-tone='neutral'] { background: var(--pata-status-neutro); color: #46525e; }
+  &[data-tone='red'] { background: var(--pata-status-vermelho); color: #9a2637; }
+  &[data-tone='orange'] { background: #fbe9db; color: var(--pata-laranja); }
   &[data-tone='muted'] { background: #f1ece8; color: #414e5a; }
 }
 
@@ -131,7 +131,7 @@
 
 .modal.ong-animal-modal {
   --bs-modal-padding: clamp(1.125rem, 3vw, 2.125rem);
-  --bs-modal-border-radius: 1.875rem;
+  --bs-modal-border-radius: var(--pata-raio-modal);
   --bs-modal-border-width: 0;
   --bs-modal-bg: var(--ong-surface);
   --bs-modal-color: var(--ong-ink);
@@ -258,7 +258,7 @@
   height: 4.25rem;
   margin: 0 auto 1.35rem;
   border-radius: 50%;
-  background: #fbe7e7;
+  background: var(--pata-status-vermelho);
   color: #b32218;
   font-size: 1.85rem;
 }
@@ -269,7 +269,7 @@
   justify-content: center;
   gap: .75rem;
   margin-top: 1.65rem;
-  .ong-animal-danger { background: #b32218; }
+  .ong-animal-danger { background: var(--pata-erro); }
   .ong-animal-danger:hover { background: #922018; }
 }
 

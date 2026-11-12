@@ -62,7 +62,7 @@ function LostAnimalProfile({ animal, boardUrl, published, returnToTutor }) {
             {animal.example && !animal.closed && (
               <div className="adoption-share" role="group" aria-label="Compartilhar alerta">
                 <strong>Compartilhar</strong>
-                <a className="adoption-control" href={'https://wa.me/?text=' + encodeURIComponent(shareUrl)} target="_blank" rel="noreferrer" aria-label="Compartilhar no WhatsApp"><FaWhatsapp aria-hidden="true" /></a>
+                <a className="adoption-action lost-whatsapp" href={'https://wa.me/?text=' + encodeURIComponent(shareUrl)} target="_blank" rel="noreferrer" aria-label="Compartilhar no WhatsApp"><FaWhatsapp aria-hidden="true" /></a>
                 <a className="adoption-control" href={'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(shareUrl)} target="_blank" rel="noreferrer" aria-label="Compartilhar no Facebook"><FiFacebook aria-hidden="true" /></a>
                 <button type="button" className="adoption-control" onClick={copyLink} aria-label="Copiar link"><FiLink aria-hidden="true" /></button>
                 <span className="adoption-share-status" role="status">{copied ? 'Link copiado' : ''}</span>

@@ -130,7 +130,7 @@
   --bs-modal-bg: var(--ong-surface);
   --bs-modal-color: var(--ong-ink);
   --bs-modal-border-width: 0;
-  --bs-modal-border-radius: 1.9rem;
+  --bs-modal-border-radius: var(--pata-raio-modal);
   --bs-modal-margin: clamp(.75rem, 2.8vw, 2.75rem);
   --donation-modal-padding: clamp(1rem, 3vw, 2.125rem);
 
@@ -170,7 +170,7 @@
   font-size: 1.875rem;
 }
 .donation-confirm { display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem; }
-.donation-danger { background: #b32318; &:hover { background: #952016; } }
+.donation-danger { background: var(--pata-erro); &:hover { background: #952016; } }
 
 .donation-details,
 .donation-form-grid {

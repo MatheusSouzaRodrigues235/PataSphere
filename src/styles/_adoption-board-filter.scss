@@ -16,7 +16,7 @@
   .modal-content {
     background: white;
     border: 0;
-    border-radius: 1.75rem;
+    border-radius: $pata-raio-modal;
     box-shadow: 0 20px 48px rgba(31, 41, 51, .2);
   }
 
@@ -89,7 +89,6 @@
     --bs-modal-margin: .75rem;
     --filter-padding: 1rem;
 
-    .modal-content { border-radius: 1.25rem; }
     .modal-footer button { padding-inline: .85rem; }
   }
 }
