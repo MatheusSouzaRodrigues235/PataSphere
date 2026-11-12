@@ -8,10 +8,11 @@ import { Link, useLocation, useOutletContext, useParams } from 'react-router-dom
 import SightingModal from './SightingModal';
 import { formatAlertDate, lostAnimalsPath } from './lostAnimalsData';
 
-function LostAnimalProfile({ animal, boardUrl }) {
+function LostAnimalProfile({ animal, boardUrl, published }) {
+  const found = animal.kind === 'found';
   const [modal, setModal] = useState(null);
   const [copied, setCopied] = useState(false);
-  const queryLink = (filters) => ({ pathname: lostAnimalsPath, search: new URLSearchParams(filters).toString() });
+  const queryLink = (filters) => ({ pathname: lostAnimalsPath, search: new URLSearchParams(found ? { ...filters, tipo: 'encontrados' } : filters).toString() });
   const shareUrl = new URL(lostAnimalsPath + '/' + animal.id, window.location.origin).href;
 
   async function copyLink() {
@@ -29,15 +30,17 @@ function LostAnimalProfile({ animal, boardUrl }) {
         <nav aria-label="Localização na página">
           <ol className="adoption-breadcrumb">
             <li><Link to="/">Home</Link></li>
-            <li><FiChevronRight aria-hidden="true" /><Link to={boardUrl}>Animais perdidos</Link></li>
+            <li><FiChevronRight aria-hidden="true" /><Link to={boardUrl}>{found ? 'Animais encontrados' : 'Animais perdidos'}</Link></li>
             <li aria-current="page"><FiChevronRight aria-hidden="true" />{animal.name}</li>
           </ol>
         </nav>
 
+        {published && <p className="alert alert-success" role="status">Anúncio publicado para esta visita.</p>}
+
         <div className="adoption-profile-grid">
           <section className="adoption-detail-panel adoption-profile-summary">
-            <span className="lost-status">Perdido</span>
-            <h1 id="lost-detail-title">{animal.name} desapareceu em {animal.neighborhood}</h1>
+            <span className="lost-status" data-found={found}>{found ? 'Encontrado' : 'Perdido'}</span>
+            <h1 id="lost-detail-title">{animal.name} {found ? 'foi encontrado em' : 'desapareceu em'} {animal.neighborhood}</h1>
             <ul className="adoption-tags" aria-label="Características">
               <li>{animal.sex}</li>
               <li>Porte {animal.size.toLowerCase()}</li>
@@ -45,15 +48,15 @@ function LostAnimalProfile({ animal, boardUrl }) {
             </ul>
             <dl className="adoption-profile-facts">
               <div><dt>Espécie</dt><dd>{animal.species}</dd></div>
-              <div><dt>Localização</dt><dd>{animal.city}</dd></div>
+              <div><dt>Localização</dt><dd>{[animal.city, animal.region].filter(Boolean).join(' - ')}</dd></div>
               {animal.breed && <div><dt>Raça</dt><dd>{animal.breed}</dd></div>}
-              <div><dt>Data do desaparecimento</dt><dd><time dateTime={animal.date}>{formatAlertDate(animal.date)}</time></dd></div>
+              <div><dt>{found ? 'Data do encontro' : 'Data do desaparecimento'}</dt><dd><time dateTime={animal.date}>{formatAlertDate(animal.date)}</time></dd></div>
             </dl>
-            <div className="adoption-profile-actions">
+            {!found && <div className="adoption-profile-actions">
               <button type="button" className="adoption-action" onClick={() => setModal('sighting')}>
                 <FiEye aria-hidden="true" /> Você viu este animal?
               </button>
-            </div>
+            </div>}
             {animal.example && (
               <div className="adoption-share" role="group" aria-label="Compartilhar alerta">
                 <strong>Compartilhar</strong>
@@ -70,10 +73,26 @@ function LostAnimalProfile({ animal, boardUrl }) {
         <section className="adoption-detail-panel">
           <h2>Sobre o animal</h2>
           <p>{animal.description}</p>
+          {(animal.health || animal.temperament || animal.urgency) && (
+            <dl className="adoption-profile-facts mb-0">
+              {animal.health && <div><dt>Saúde</dt><dd>{animal.health}</dd></div>}
+              {animal.temperament && <div><dt>Temperamento</dt><dd>{animal.temperament}</dd></div>}
+              {animal.urgency && <div><dt>Urgência</dt><dd>{animal.urgency}</dd></div>}
+            </dl>
+          )}
         </section>
 
+        {(animal.street || animal.cep || animal.reference || animal.point) && (
+          <section className="adoption-detail-panel">
+            <h2>Local da ocorrência</h2>
+            <p>{[animal.street, animal.neighborhood, animal.city, animal.region, animal.cep].filter(Boolean).join(', ')}</p>
+            {animal.reference && <p>{animal.reference}</p>}
+            {animal.point && <a className="adoption-control mt-3" href={'https://www.openstreetmap.org/?mlat=' + animal.point[0] + '&mlon=' + animal.point[1] + '#map=17/' + animal.point.join('/')} target="_blank" rel="noreferrer">Ver ponto no mapa</a>}
+          </section>
+        )}
+
         <section className="adoption-detail-panel">
-          <h2>Contato para este animal perdido</h2>
+          <h2>Contato do responsável pelo anúncio</h2>
           {animal.example ? (
             <p>Alerta de exemplo. Use o botão “Você viu este animal?” para testar o formulário.</p>
           ) : (
@@ -83,10 +102,10 @@ function LostAnimalProfile({ animal, boardUrl }) {
                 {animal.email && <div><dt>E-mail</dt><dd><a href={'mailto:' + animal.email}>{animal.email}</a></dd></div>}
                 <div><dt>Telefone</dt><dd><a href={'tel:' + animal.phone.replace(/[^+0-9]/g, '')}>{animal.phone}</a></dd></div>
               </dl>
-              <p>Se você tem alguma informação, entre em contato ou use o botão “Você viu este animal?”.</p>
+              <p>{found ? 'Reconheceu o animal? Entre em contato com o responsável pelo anúncio.' : 'Se você tem alguma informação, entre em contato ou use o botão “Você viu este animal?”.'}</p>
             </>
           )}
-          <nav className="lost-contact-links" aria-label="Mais animais perdidos">
+          <nav className="lost-contact-links" aria-label="Mais anúncios">
             <Link className="adoption-action" to={queryLink({ city: animal.city, neighborhood: animal.neighborhood })}>Ver animais no mesmo bairro</Link>
             <Link className="adoption-action" to={queryLink({ city: animal.city })}>Ver animais em {animal.city}</Link>
           </nav>
@@ -108,9 +127,9 @@ export default function LostAnimalPage() {
   const { animalId } = useParams();
   const { state } = useLocation();
   const animal = alerts.find(({ id }) => id === animalId);
-  const boardUrl = { pathname: lostAnimalsPath, search: state?.boardSearch ?? '' };
+  const boardUrl = { pathname: lostAnimalsPath, search: state?.boardSearch ?? (animal?.kind === 'found' ? 'tipo=encontrados' : '') };
 
-  if (animal) return <LostAnimalProfile key={animal.id} animal={animal} boardUrl={boardUrl} />;
+  if (animal) return <LostAnimalProfile key={animal.id} animal={animal} boardUrl={boardUrl} published={state?.published} />;
 
   return (
     <div className="adoption-board">

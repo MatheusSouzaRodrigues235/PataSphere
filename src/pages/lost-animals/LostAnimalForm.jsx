@@ -1,6 +1,17 @@
-import { useState } from 'react';
-import Modal from 'react-bootstrap/Modal';
-import { animalFields, todayDate } from './lostAnimalsData';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { FiCamera, FiCheck, FiChevronLeft, FiChevronRight, FiSend, FiX } from 'react-icons/fi';
+import { Link, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
+import { ages, sexes, sizes, species, urgencies } from '@/pages/dashboard/animals';
+import formatOnBlur from '@/pages/register/formatOnBlur';
+import { lostAnimalsPath, todayDate } from './lostAnimalsData';
+import '@/styles/_lost-registration.scss';
+
+const OccurrenceMap = lazy(() => import('./OccurrenceMap'));
+const steps = ['Dados básicos', 'Detalhes e fotos', 'Local da ocorrência'];
+const photoTypes = ['image/jpeg', 'image/png', 'image/webp'];
+const formatPhone = formatOnBlur(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3');
+const formatCep = formatOnBlur(/^(\d{5})(\d{3})$/, '$1-$2');
+const states = 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ');
 
 function readPhoto(file) {
   return new Promise((resolve, reject) => {
@@ -11,74 +22,216 @@ function readPhoto(file) {
   });
 }
 
-export default function LostAnimalForm({ onClose, onAdd }) {
+function Field({ label, options, wide, value = '', ...props }) {
+  return (
+    <label className={wide ? 'lost-registration-wide' : undefined}>
+      {label}
+      {options ? (
+        <select className="form-select" defaultValue={value} {...props}>
+          <option value="" disabled>Selecione</option>
+          {options.map((option) => <option key={option}>{option}</option>)}
+        </select>
+      ) : <input className="form-control" defaultValue={value} {...props} />}
+    </label>
+  );
+}
+
+function PhotoPicker({ photos, onChange, loading, setLoading }) {
+  const input = useRef(null);
   const [error, setError] = useState('');
-  const [saving, setSaving] = useState(false);
 
-  async function submit(event) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const photos = data.getAll('photos');
-    data.delete('photos');
-    const fields = Object.fromEntries(data);
-    const values = Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, value.trim()]));
-
-    if (!values.name || !values.neighborhood || !values.city || !values.description || !values.contactName) {
-      setError('Preencha os campos obrigatórios.');
+  async function selectPhotos(event) {
+    const files = Array.from(event.target.files);
+    event.target.value = '';
+    if (!files.length) return;
+    if (files.length + photos.length > 4 || files.some((file) => !file.size || file.size > 5 * 1024 * 1024 || !photoTypes.includes(file.type))) {
+      setError('Escolha até 4 fotos JPG, PNG ou WebP de até 5 MB cada.');
       return;
     }
-    if (!/^\+?[\d ()-]+$/.test(values.phone) || !/^\d{10,15}$/.test(values.phone.replace(/\D/g, ''))) {
-      setError('Informe um telefone com DDD.');
-      return;
-    }
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (photos.length > 4 || photos.some((photo) => !photo.size || photo.size > 5 * 1024 * 1024 || !allowedTypes.includes(photo.type))) {
-      setError('Escolha de 1 a 4 fotos JPG, PNG ou WebP de até 5 MB cada.');
-      return;
-    }
-
-    setSaving(true);
+    setLoading(true);
     setError('');
     try {
-      const images = await Promise.all(photos.map(readPhoto));
-      onAdd({ ...values, id: crypto.randomUUID(), photo: images[0], photos: images });
+      const images = await Promise.all(files.map(readPhoto));
+      onChange([...new Set([...photos, ...images])]);
     } catch {
-      setError('Não foi possível adicionar o alerta. Tente selecionar a foto novamente.');
-      setSaving(false);
+      setError('Não foi possível carregar as fotos. Tente selecionar os arquivos novamente.');
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
-    <Modal show centered scrollable onHide={saving ? undefined : onClose} className="adoption-modal lost-modal" aria-labelledby="lost-add-title">
-      <Modal.Header closeButton={!saving} closeLabel="Fechar">
-        <Modal.Title as="h2" id="lost-add-title">Adicionar um animal perdido</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <p>O alerta ficará disponível nesta visita.</p>
-        <form id="lost-add-form" className="lost-form" onSubmit={submit}>
-          <label>Nome do animal<input name="name" className="form-control" required maxLength={60} /></label>
-          {animalFields.map(([name, label, options]) => (
-            <label key={name}>{label}<select name={name} className="form-select" required defaultValue="">
-              <option value="" disabled>Selecione</option>
-              {options.map((option) => <option key={option}>{option}</option>)}
-            </select></label>
+    <>
+      <div className="lost-registration-upload">
+        <FiCamera aria-hidden="true" />
+        <p>Adicione até 4 fotos do animal</p>
+        <input ref={input} type="file" accept={photoTypes.join(',')} multiple hidden onChange={selectPhotos} />
+        <button type="button" className="adoption-action lost-registration-dark" disabled={loading || photos.length === 4} onClick={() => input.current.click()}>
+          {loading ? 'Carregando…' : 'Carregar fotos'}
+        </button>
+      </div>
+      {error && <p className="text-danger" role="alert">{error}</p>}
+      {photos.length > 0 && (
+        <ul className="lost-registration-previews" aria-label="Fotos selecionadas">
+          {photos.map((photo, index) => (
+            <li key={photo}>
+              <img src={photo} alt={'Foto ' + (index + 1)} />
+              <button type="button" className="adoption-control" disabled={loading} aria-label={'Remover foto ' + (index + 1)} onClick={() => onChange(photos.filter((image) => image !== photo))}>
+                <FiX aria-hidden="true" />
+              </button>
+            </li>
           ))}
-          <label>Idade (opcional)<input name="ageLabel" className="form-control" maxLength={30} /></label>
-          <label>Data do desaparecimento<input type="date" name="date" className="form-control" required max={todayDate} /></label>
-          <label>Bairro<input name="neighborhood" className="form-control" required maxLength={80} /></label>
-          <label>Cidade<input name="city" className="form-control" required maxLength={80} /></label>
-          <label className="lost-form-wide">Descrição<textarea name="description" className="form-control" rows={3} required maxLength={500} /></label>
-          <label className="lost-form-wide">Fotos do animal (até 4)<input type="file" name="photos" multiple className="form-control" accept="image/jpeg,image/png,image/webp" required /></label>
-          <label>Nome para contato<input name="contactName" className="form-control" required maxLength={80} /></label>
-          <label>Telefone para contato<input type="tel" name="phone" className="form-control" required inputMode="tel" maxLength={20} /></label>
-          <label>E-mail para contato (opcional)<input type="email" name="email" className="form-control" maxLength={120} /></label>
-          {error && <p className="lost-form-wide text-danger mb-0" role="alert">{error}</p>}
+        </ul>
+      )}
+    </>
+  );
+}
+
+export default function LostAnimalForm() {
+  const { addAlert } = useOutletContext();
+  const { state } = useLocation();
+  const navigate = useNavigate();
+  const heading = useRef(null);
+  const [step, setStep] = useState(0);
+  const [kind, setKind] = useState(state?.boardSearch && new URLSearchParams(state.boardSearch).get('tipo') === 'encontrados' ? 'found' : 'lost');
+  const [draft, setDraft] = useState({});
+  const [photos, setPhotos] = useState([]);
+  const [point, setPoint] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const found = kind === 'found';
+  const boardUrl = { pathname: lostAnimalsPath, search: state?.boardSearch ?? '' };
+
+  useEffect(() => {
+    heading.current?.focus({ preventScroll: true });
+    window.scrollTo(0, 0);
+  }, [step]);
+
+  function readFields(form) {
+    return Object.fromEntries(Array.from(new FormData(form), ([key, value]) => [key, value.trim()]));
+  }
+
+  function back(form) {
+    setDraft({ ...draft, ...readFields(form) });
+    setError('');
+    setStep(step - 1);
+  }
+
+  function submit(event) {
+    event.preventDefault();
+    if (loading) return;
+    const values = { ...draft, ...readFields(event.currentTarget) };
+    if (step === 1 && (!values.description || !photos.length)) {
+      setError(!values.description ? 'Descreva o animal antes de continuar.' : 'Adicione pelo menos uma foto para continuar.');
+      return;
+    }
+    if (step < 2) {
+      setDraft(values);
+      setError('');
+      setStep(step + 1);
+      return;
+    }
+    const id = crypto.randomUUID();
+    const name = values.name || (values.species + ' sem nome identificado');
+    addAlert({ ...values, id, name, kind, photo: photos[0], photos, point });
+    navigate(lostAnimalsPath + '/' + id, {
+      replace: true,
+      state: { boardSearch: found ? 'tipo=encontrados' : '', published: true },
+    });
+  }
+
+  const field = (props) => <Field {...props} value={draft[props.name]} />;
+  const title = step === 0 ? (found ? 'Cadastrar animal encontrado' : 'Cadastrar animal perdido') : steps[step];
+
+  return (
+    <section className="adoption-board lost-registration" aria-labelledby="lost-registration-title">
+      <div className="adoption-container">
+        <h1 id="lost-registration-title" ref={heading} tabIndex={-1}>{title}</h1>
+        <p className="adoption-intro">
+          {[
+            'Conte o essencial sobre o animal para ajudar no reencontro.',
+            'Uma boa descrição e uma foto nítida aumentam as chances de reencontro.',
+            found ? 'Informe onde você encontrou o animal.' : 'Informe onde o animal foi visto pela última vez.',
+          ][step]}
+        </p>
+        <ol className="lost-registration-steps" aria-label="Etapas do cadastro">
+          {steps.map((label, index) => (
+            <li key={label} aria-current={index === step ? 'step' : undefined} data-complete={index < step}>
+              <span aria-hidden="true">{index < step ? <FiCheck /> : index + 1}</span>
+              {label}
+              {index < step && <span className="visually-hidden"> concluída</span>}
+            </li>
+          ))}
+        </ol>
+        <form className="adoption-detail-panel lost-registration-panel" key={step} onSubmit={submit}>
+          {step === 0 && (
+            <>
+              <fieldset className="lost-registration-type">
+                <legend className="visually-hidden">Tipo de ocorrência</legend>
+                {[['lost', 'Perdi um animal'], ['found', 'Encontrei um animal']].map(([value, label]) => (
+                  <label key={value}>
+                    <input type="radio" name="kind" value={value} className="visually-hidden" checked={kind === value} onChange={() => setKind(value)} />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </fieldset>
+              <div className="lost-registration-basic">
+                {field({ name: 'name', label: found ? 'Nome do animal (opcional)' : 'Nome do animal', placeholder: 'Ex.: Bob', required: !found, pattern: String.raw`.*\S.*`, maxLength: 60 })}
+                {field({ name: 'species', label: 'Espécie do animal', options: species, required: true })}
+                {field({ name: 'breed', label: 'Raça (opcional)', placeholder: 'Ex.: São Bernardo', maxLength: 80 })}
+                {field({ name: 'size', label: 'Porte do animal', options: sizes, required: true })}
+                {field({ name: 'urgency', label: 'Urgência', options: urgencies, required: true })}
+                {field({ name: 'sex', label: 'Sexo do animal', options: [...sexes, 'Não identificado'], required: true })}
+              </div>
+            </>
+          )}
+          {step === 1 && (
+            <div className="lost-registration-columns">
+              <div className="lost-registration-fields">
+                <label>Descrição do animal<textarea className="form-control" name="description" rows={4} defaultValue={draft.description} placeholder="Ex.: Pelagem caramelo, coleira azul, atende por Bob" required maxLength={500} /></label>
+                {field({ name: 'health', label: 'Saúde (opcional)', placeholder: 'Ex.: toma medicação diária', maxLength: 160 })}
+                {field({ name: 'temperament', label: 'Temperamento (opcional)', placeholder: 'Ex.: dócil, tímido com estranhos', maxLength: 160 })}
+                {field({ name: 'ageLabel', label: 'Idade estimada', options: ages, required: true })}
+                <div className="lost-registration-status"><strong>Status do animal</strong><p>{found ? 'Encontrado' : 'Perdido'}</p></div>
+              </div>
+              <div className="lost-registration-fields">
+                <PhotoPicker photos={photos} onChange={setPhotos} loading={loading} setLoading={setLoading} />
+                {field({ name: 'phone', label: 'WhatsApp para contato', type: 'tel', placeholder: '(99) 99999-9999', autoComplete: 'tel-national', pattern: String.raw`(?:[0-9]{10,11}|\([0-9]{2}\) [0-9]{4,5}-[0-9]{4})`, title: 'Informe o DDD e o número, com 10 ou 11 dígitos.', maxLength: 20, onBlur: formatPhone, required: true })}
+                {field({ name: 'contactName', label: 'Nome para contato', maxLength: 80, pattern: String.raw`.*\S.*`, autoComplete: 'name', required: true })}
+                {field({ name: 'email', label: 'E-mail para contato (opcional)', type: 'email', autoComplete: 'email', maxLength: 120 })}
+              </div>
+            </div>
+          )}
+          {step === 2 && (
+            <>
+              <div className="lost-registration-columns">
+                <div className="lost-registration-address">
+                  {field({ name: 'cep', label: 'CEP (opcional)', inputMode: 'numeric', placeholder: '00000-000', pattern: '[0-9]{5}-?[0-9]{3}', onBlur: formatCep, maxLength: 9 })}
+                  {field({ name: 'date', label: 'Data da ocorrência', type: 'date', max: todayDate, required: true })}
+                  {field({ name: 'street', label: 'Nome da rua (opcional)', placeholder: 'Ex.: Rua Ipanema', maxLength: 120, wide: true })}
+                  {field({ name: 'neighborhood', label: 'Bairro', placeholder: 'Ex.: Jardim Satélite', pattern: String.raw`.*\S.*`, maxLength: 80, required: true })}
+                  {field({ name: 'city', label: 'Cidade', pattern: String.raw`.*\S.*`, maxLength: 80, required: true })}
+                  {field({ name: 'region', label: 'Estado', options: states, required: true })}
+                  <label className="lost-registration-wide">Complemento (opcional)<textarea className="form-control" name="reference" rows={3} defaultValue={draft.reference} placeholder="Ponto de referência" maxLength={240} /></label>
+                </div>
+                <Suspense fallback={<p role="status">Carregando mapa…</p>}>
+                  <OccurrenceMap point={point} onChange={setPoint} />
+                </Suspense>
+              </div>
+              <p className="lost-registration-note">O anúncio ficará disponível nesta visita.</p>
+            </>
+          )}
+          {error && <p className="text-danger mt-3 mb-0" role="alert">{error}</p>}
+          <div className="lost-registration-actions">
+            {step === 0 ? <Link className="adoption-control" to={boardUrl}>Cancelar</Link> : (
+              <button type="button" className="adoption-control" disabled={loading} onClick={(event) => back(event.currentTarget.form)}><FiChevronLeft aria-hidden="true" /> Voltar</button>
+            )}
+            <button type="submit" className="adoption-action" disabled={loading}>
+              {step === 2 ? <><FiSend aria-hidden="true" /> Publicar</> : <>Próximo <FiChevronRight aria-hidden="true" /></>}
+            </button>
+          </div>
         </form>
-      </Modal.Body>
-      <Modal.Footer>
-        <button type="button" className="adoption-control" disabled={saving} onClick={onClose}>Cancelar</button>
-        <button type="submit" form="lost-add-form" className="adoption-action" disabled={saving}>{saving ? 'Adicionando…' : 'Adicionar alerta'}</button>
-      </Modal.Footer>
-    </Modal>
+      </div>
+    </section>
   );
 }

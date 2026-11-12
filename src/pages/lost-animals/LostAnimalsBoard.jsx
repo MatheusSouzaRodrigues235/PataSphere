@@ -2,7 +2,6 @@ import { useRef, useState } from 'react';
 import { FiChevronLeft, FiChevronRight, FiChevronsLeft, FiChevronsRight, FiFilter, FiMapPin, FiPlus, FiSearch } from 'react-icons/fi';
 import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
 import AdoptionFilterModal from '@/pages/adoption/AdoptionFilterModal';
-import LostAnimalForm from './LostAnimalForm';
 import { animalFields, lostAnimalsPath, timeSince, todayDate } from './lostAnimalsData';
 
 const pageSize = 8;
@@ -17,21 +16,22 @@ function normalize(value) {
 }
 
 function LostAnimalCard({ animal, boardSearch }) {
+  const found = animal.kind === 'found';
   return (
     <article className="adoption-card lost-card">
       <div className="adoption-card-photo">
         <img src={animal.photo} alt={animal.name} loading="lazy" />
-        <span className="lost-status">Perdido</span>
+        <span className="lost-status" data-found={found}>{found ? 'Encontrado' : 'Perdido'}</span>
       </div>
       <div className="adoption-card-body">
         <div className="adoption-card-title">
           <h2>{animal.name}</h2>
-          <span><span aria-hidden="true">{animal.sex === 'Fêmea' ? '♀' : '♂'}</span> {animal.sex}</span>
+          <span><span aria-hidden="true">{{ 'Fêmea': '♀', Macho: '♂' }[animal.sex]}</span> {animal.sex}</span>
         </div>
         <ul className="adoption-tags" aria-label="Características">
           {['Porte ' + animal.size.toLowerCase(), animal.ageLabel, animal.species].filter(Boolean).map((label) => <li key={label}>{label}</li>)}
         </ul>
-        <p>Visto pela última vez em {animal.neighborhood}. {animal.description}</p>
+        <p>{found ? 'Encontrado em' : 'Visto pela última vez em'} {animal.neighborhood}. {animal.description}</p>
         <div className="adoption-card-footer">
           <span className="adoption-location"><FiMapPin aria-hidden="true" /> <time dateTime={animal.date}>{timeSince(animal.date)}</time></span>
           <Link to={lostAnimalsPath + '/' + animal.id} state={{ boardSearch }} className="adoption-action" aria-label={'Ver detalhes de ' + animal.name}>Ver detalhes</Link>
@@ -42,10 +42,11 @@ function LostAnimalCard({ animal, boardSearch }) {
 }
 
 export default function LostAnimalsBoard() {
-  const { alerts, addAlert } = useOutletContext();
+  const { alerts } = useOutletContext();
   const [params, setParams] = useSearchParams();
   const [modal, setModal] = useState(null);
   const heading = useRef(null);
+  const found = params.get('tipo') === 'encontrados';
   const search = params.get('busca') ?? '';
   const neighborhoods = [...new Set(alerts.map(({ neighborhood }) => neighborhood))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   const cities = [...new Set(alerts.map(({ city }) => city))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
@@ -58,6 +59,7 @@ export default function LostAnimalsBoard() {
 
   const term = normalize(search.trim());
   const filtered = alerts.filter((animal) =>
+    (animal.kind === 'found') === found &&
     normalize(animal.name).includes(term) &&
     Object.entries(filters).every(([key, value]) => key === 'recent'
       ? Date.parse(todayDate) - Date.parse(animal.date) <= 7 * 86_400_000
@@ -69,6 +71,7 @@ export default function LostAnimalsBoard() {
 
   function applyFilters(criteria, query = search) {
     const next = new URLSearchParams(Object.entries(criteria));
+    if (found) next.set('tipo', 'encontrados');
     if (query) next.set('busca', query);
     setParams(next, { preventScrollReset: true });
     setModal(null);
@@ -95,12 +98,12 @@ export default function LostAnimalsBoard() {
       <div className="adoption-container">
         <div className="lost-board-heading">
           <div>
-            <h1 id="lost-title" ref={heading} tabIndex={-1}>Animais perdidos</h1>
-            <p className="adoption-intro" role="status">{filtered.length} {filtered.length === 1 ? 'animal esperando' : 'animais esperando'} para voltar para casa</p>
+            <h1 id="lost-title" ref={heading} tabIndex={-1}>{found ? 'Animais encontrados' : 'Animais perdidos'}</h1>
+            <p className="adoption-intro" role="status">{filtered.length} {filtered.length === 1 ? 'alerta' : 'alertas'}</p>
           </div>
-          <button type="button" className="adoption-action lost-add" onClick={() => setModal('add')}>
+          <Link to={lostAnimalsPath + '/cadastro'} state={{ boardSearch: params.toString() }} className="adoption-action lost-add">
             <FiPlus aria-hidden="true" /> Adicionar um animal
-          </button>
+          </Link>
         </div>
         <div className="adoption-search-row">
           <label className="adoption-search">
@@ -110,6 +113,9 @@ export default function LostAnimalsBoard() {
           <button type="button" className="adoption-control" onClick={() => setModal('filters')}><FiFilter aria-hidden="true" /> Filtros</button>
         </div>
         <div className="adoption-quick-filters" role="group" aria-label="Filtros rápidos">
+          <Link className="adoption-control lost-type-link" to={found ? lostAnimalsPath : lostAnimalsPath + '?tipo=encontrados'}>
+            {found ? 'Ver animais perdidos' : 'Ver animais encontrados'}
+          </Link>
           {quickFilters.map(([label, criteria]) => (
             <button type="button" key={label} className="adoption-control"
               aria-pressed={Object.keys(criteria).length === Object.keys(filters).length && Object.entries(criteria).every(([key, value]) => filters[key] === value)}
@@ -148,10 +154,6 @@ export default function LostAnimalsBoard() {
         <AdoptionFilterModal filters={filters} fields={fields} toggles={[[ 'recent', 'Somente os últimos 7 dias' ]]}
           onClose={() => setModal(null)} onApply={applyFilters} />
       )}
-      {modal === 'add' && <LostAnimalForm onClose={() => setModal(null)} onAdd={(animal) => {
-        addAlert(animal);
-        applyFilters({}, '');
-      }} />}
     </section>
   );
 }

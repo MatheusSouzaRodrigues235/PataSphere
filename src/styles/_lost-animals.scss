@@ -73,21 +73,6 @@
   }
 }
 
-.lost-form {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-
-  label { font-weight: 600; }
-  .form-control, .form-select { margin-top: .25rem; }
-}
-
-.lost-form-wide { grid-column: 1 / -1; }
-
-@media (max-width: 480px) {
-  .lost-form { grid-template-columns: minmax(0, 1fr); }
-}
-
 .adoption-request-modal.sighting-modal {
   --bs-modal-width: 480px;
 
@@ -123,3 +108,6 @@
   color: $pata-verde;
   font-size: 1.15rem;
 }
+
+.lost-status[data-found='true'] { background: #dcefe3; color: $pata-verde; }
+.lost-type-link { border-radius: 999px; font-size: .875rem; }

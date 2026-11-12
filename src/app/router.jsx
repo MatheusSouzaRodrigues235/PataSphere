@@ -6,6 +6,7 @@ import AdoptionAnimalPage from '@/pages/adoption/AdoptionAnimalPage';
 import AdoptionLayout from '@/pages/adoption/AdoptionLayout';
 import LostAnimalsLayout from '@/pages/lost-animals/LostAnimalsLayout';
 import LostAnimalsBoard from '@/pages/lost-animals/LostAnimalsBoard';
+import LostAnimalForm from '@/pages/lost-animals/LostAnimalForm';
 import LostAnimalPage from '@/pages/lost-animals/LostAnimalPage';
 import Login from '@/pages/login/Login';
 import ChooseProfile from '@/pages/register/ChooseProfile';
@@ -37,6 +38,7 @@ export const router = createBrowserRouter([
     element: <LostAnimalsLayout />,
     children: [
       { index: true, element: <LostAnimalsBoard /> },
+      { path: 'cadastro', element: <LostAnimalForm /> },
       { path: ':animalId', element: <LostAnimalPage /> },
     ],
   },
