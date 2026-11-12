@@ -5,10 +5,11 @@ import { FaWhatsapp } from 'react-icons/fa';
 import AnimalGallery from '@/pages/adoption/AnimalGallery';
 import '@/styles/_adoption-detail.scss';
 import { Link, useLocation, useOutletContext, useParams } from 'react-router-dom';
+import { tutorAnimalsPath } from '@/pages/tutor/tutorStorage';
 import SightingModal from './SightingModal';
 import { formatAlertDate, lostAnimalsPath } from './lostAnimalsData';
 
-function LostAnimalProfile({ animal, boardUrl, published }) {
+function LostAnimalProfile({ animal, boardUrl, published, returnToTutor }) {
   const found = animal.kind === 'found';
   const [modal, setModal] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -35,11 +36,12 @@ function LostAnimalProfile({ animal, boardUrl, published }) {
           </ol>
         </nav>
 
-        {published && <p className="alert alert-success" role="status">Anúncio publicado para esta visita.</p>}
+        {returnToTutor && <Link className="adoption-control mb-3" to={tutorAnimalsPath}>Voltar para Meus animais</Link>}
+        {published && <p className="alert alert-success" role="status">Anúncio salvo neste navegador.</p>}
 
         <div className="adoption-profile-grid">
           <section className="adoption-detail-panel adoption-profile-summary">
-            <span className="lost-status" data-found={found}>{found ? 'Encontrado' : 'Perdido'}</span>
+            <span className="lost-status" data-found={found}>{animal.closed ? 'Caso encerrado' : found ? 'Encontrado' : 'Perdido'}</span>
             <h1 id="lost-detail-title">{animal.name} {found ? 'foi encontrado em' : 'desapareceu em'} {animal.neighborhood}</h1>
             <ul className="adoption-tags" aria-label="Características">
               <li>{animal.sex}</li>
@@ -52,12 +54,12 @@ function LostAnimalProfile({ animal, boardUrl, published }) {
               {animal.breed && <div><dt>Raça</dt><dd>{animal.breed}</dd></div>}
               <div><dt>{found ? 'Data do encontro' : 'Data do desaparecimento'}</dt><dd><time dateTime={animal.date}>{formatAlertDate(animal.date)}</time></dd></div>
             </dl>
-            {!found && <div className="adoption-profile-actions">
+            {!found && !animal.closed && <div className="adoption-profile-actions">
               <button type="button" className="adoption-action" onClick={() => setModal('sighting')}>
                 <FiEye aria-hidden="true" /> Você viu este animal?
               </button>
             </div>}
-            {animal.example && (
+            {animal.example && !animal.closed && (
               <div className="adoption-share" role="group" aria-label="Compartilhar alerta">
                 <strong>Compartilhar</strong>
                 <a className="adoption-control" href={'https://wa.me/?text=' + encodeURIComponent(shareUrl)} target="_blank" rel="noreferrer" aria-label="Compartilhar no WhatsApp"><FaWhatsapp aria-hidden="true" /></a>
@@ -91,7 +93,7 @@ function LostAnimalProfile({ animal, boardUrl, published }) {
           </section>
         )}
 
-        <section className="adoption-detail-panel">
+        {!animal.closed && <section className="adoption-detail-panel">
           <h2>Contato do responsável pelo anúncio</h2>
           {animal.example ? (
             <p>Alerta de exemplo. Use o botão “Você viu este animal?” para testar o formulário.</p>
@@ -109,7 +111,7 @@ function LostAnimalProfile({ animal, boardUrl, published }) {
             <Link className="adoption-action" to={queryLink({ city: animal.city, neighborhood: animal.neighborhood })}>Ver animais no mesmo bairro</Link>
             <Link className="adoption-action" to={queryLink({ city: animal.city })}>Ver animais em {animal.city}</Link>
           </nav>
-        </section>
+        </section>}
       </article>
       {modal === 'sighting' && <SightingModal name={animal.name} onClose={() => setModal(null)} />}
       {modal === 'share' && (
@@ -129,7 +131,7 @@ export default function LostAnimalPage() {
   const animal = alerts.find(({ id }) => id === animalId);
   const boardUrl = { pathname: lostAnimalsPath, search: state?.boardSearch ?? (animal?.kind === 'found' ? 'tipo=encontrados' : '') };
 
-  if (animal) return <LostAnimalProfile key={animal.id} animal={animal} boardUrl={boardUrl} published={state?.published} />;
+  if (animal) return <LostAnimalProfile key={animal.id} animal={animal} boardUrl={boardUrl} published={state?.published} returnToTutor={state?.returnToTutor} />;
 
   return (
     <div className="adoption-board">

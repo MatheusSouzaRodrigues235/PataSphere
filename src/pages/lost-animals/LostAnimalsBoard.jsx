@@ -20,7 +20,7 @@ function LostAnimalCard({ animal, boardSearch }) {
   return (
     <article className="adoption-card lost-card">
       <div className="adoption-card-photo">
-        <img src={animal.photo} alt={animal.name} loading="lazy" />
+        <img src={animal.photos?.[0] ?? animal.photo} alt={animal.name} loading="lazy" />
         <span className="lost-status" data-found={found}>{found ? 'Encontrado' : 'Perdido'}</span>
       </div>
       <div className="adoption-card-body">
@@ -42,7 +42,8 @@ function LostAnimalCard({ animal, boardSearch }) {
 }
 
 export default function LostAnimalsBoard() {
-  const { alerts } = useOutletContext();
+  const { alerts: allAlerts } = useOutletContext();
+  const alerts = allAlerts.filter((animal) => !animal.closed && !animal.id.startsWith('tutor-'));
   const [params, setParams] = useSearchParams();
   const [modal, setModal] = useState(null);
   const heading = useRef(null);

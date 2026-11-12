@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate, useOutletContext } from 'react-router-d
 import { ages, sexes, sizes, species, urgencies } from '@/pages/dashboard/animals';
 import formatOnBlur from '@/pages/register/formatOnBlur';
 import { lostAnimalsPath, todayDate } from './lostAnimalsData';
+import { tutorAnimalsPath } from '@/pages/tutor/tutorStorage';
 import '@/styles/_lost-registration.scss';
 
 const OccurrenceMap = lazy(() => import('./OccurrenceMap'));
@@ -13,13 +14,18 @@ const formatPhone = formatOnBlur(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3');
 const formatCep = formatOnBlur(/^(\d{5})(\d{3})$/, '$1-$2');
 const states = 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ');
 
-function readPhoto(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
+async function readPhoto(file) {
+  const image = await createImageBitmap(file);
+  try {
+    const scale = Math.min(1, 1200 / Math.max(image.width, image.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(image.width * scale));
+    canvas.height = Math.max(1, Math.round(image.height * scale));
+    canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/webp', 0.8);
+  } finally {
+    image.close();
+  }
 }
 
 function Field({ label, options, wide, value = '', ...props }) {
@@ -133,7 +139,16 @@ export default function LostAnimalForm() {
     }
     const id = crypto.randomUUID();
     const name = values.name || (values.species + ' sem nome identificado');
-    addAlert({ ...values, id, name, kind, photo: photos[0], photos, point });
+    try {
+      addAlert({ ...values, id, name, kind, photos, point });
+    } catch {
+      setError('Não foi possível salvar o anúncio neste navegador. Libere espaço ou use menos fotos.');
+      return;
+    }
+    if (state?.returnToTutor) {
+      navigate(tutorAnimalsPath, { replace: true, state: { registeredAnimal: name } });
+      return;
+    }
     navigate(lostAnimalsPath + '/' + id, {
       replace: true,
       state: { boardSearch: found ? 'tipo=encontrados' : '', published: true },
@@ -218,12 +233,12 @@ export default function LostAnimalForm() {
                   <OccurrenceMap point={point} onChange={setPoint} />
                 </Suspense>
               </div>
-              <p className="lost-registration-note">O anúncio ficará disponível nesta visita.</p>
+              <p className="lost-registration-note">O anúncio será salvo neste navegador e ficará disponível em Meus animais.</p>
             </>
           )}
           {error && <p className="text-danger mt-3 mb-0" role="alert">{error}</p>}
           <div className="lost-registration-actions">
-            {step === 0 ? <Link className="adoption-control" to={boardUrl}>Cancelar</Link> : (
+            {step === 0 ? <Link className="adoption-control" to={state?.returnToTutor ? tutorAnimalsPath : boardUrl}>Cancelar</Link> : (
               <button type="button" className="adoption-control" disabled={loading} onClick={(event) => back(event.currentTarget.form)}><FiChevronLeft aria-hidden="true" /> Voltar</button>
             )}
             <button type="submit" className="adoption-action" disabled={loading}>

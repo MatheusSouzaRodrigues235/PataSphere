@@ -244,7 +244,7 @@
 .tutor-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .tutor-actions:has(.tutor-photo-input:focus-visible) label { outline: 2px solid #9d283a; outline-offset: 2px; }
 
-.tutor-setting, .tutor-pets li {
+.tutor-setting {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -257,8 +257,7 @@
 }
 
 .tutor-setting { cursor: pointer; }
-.tutor-setting + .btn, .tutor-empty, .tutor-pets { margin-top: 24px; }
-.tutor-pets { padding: 0; list-style: none; overflow-wrap: anywhere; }
+.tutor-setting + .btn { margin-top: 24px; }
 
 @media (max-width: 991px) {
   .tutor-header-account { margin: .5rem 0; }
@@ -275,5 +274,165 @@
   .tutor-feedback { margin-inline: 20px; }
   .tutor-columns { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .tutor-nav a, .tutor-nav button { padding-inline: 8px; gap: 7px; font-size: .82rem; }
-  .tutor-pets li { align-items: flex-start; flex-direction: column; }
+}
+
+.tutor-header[data-animals='true'] {
+  .navbar-collapse { justify-content: flex-end; }
+  .tutor-header-account { margin-left: 24px; }
+}
+
+.tutor-panel-header[data-animals='true'] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.tutor-register-animal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.tutor-animal-notice { margin: 20px 40px 0; color: #1d6b3a; }
+
+.tutor-animals { padding-top: 24px; }
+
+.tutor-animal-filters,
+.tutor-animal-badges,
+.tutor-animal-meta,
+.tutor-animal-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tutor-animal-filters button,
+.tutor-animal-empty button,
+.tutor-animal-actions :is(button, a) {
+  border: 1px solid var(--tutor-border);
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+
+  &:hover { background: #f9f5f2; }
+}
+
+.tutor-animal-filters button,
+.tutor-animal-empty button {
+  min-height: 45px;
+  border-radius: 999px;
+  padding: 8px 16px;
+  color: #465361;
+  font-size: .9rem;
+
+  &[aria-pressed='true'] {
+    border-color: var(--pata-petroleo);
+    background: var(--pata-petroleo);
+    color: #fff;
+  }
+}
+
+.tutor-animal-list {
+  display: grid;
+  gap: 16px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tutor-animal-card {
+  display: grid;
+  gap: 20px;
+  padding: 16px;
+  border: 1px solid #eee4de;
+  border-radius: 20px;
+
+  &[data-closed='true'] {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+}
+
+.tutor-animal-summary {
+  display: grid;
+  grid-template-columns: clamp(70px, 12vw, 106px) minmax(0, 1fr);
+  align-items: center;
+  gap: 20px;
+  overflow-wrap: anywhere;
+
+  img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 16px; background: #f9f5f2; }
+  h2 { margin: 8px 0 5px; font-size: 1.2rem; letter-spacing: -.025em; }
+}
+
+.tutor-animal-badges span {
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: .75rem;
+  font-weight: 800;
+
+  &:first-child { text-transform: uppercase; }
+  &[data-tone='red'] { background: #fce6e8; color: #a8293c; }
+  &[data-tone='green'] { background: #dcefe3; color: #1d6b3a; }
+  &[data-tone='gray'] { background: #ededee; color: #465361; }
+}
+
+.tutor-animal-meta {
+  gap: 4px 14px;
+  color: var(--tutor-muted);
+  font-size: .85rem;
+  font-weight: 650;
+
+  span, time { display: inline-flex; align-items: center; gap: 5px; }
+  svg { flex: 0 0 auto; }
+}
+
+.tutor-animal-actions :is(button, a) {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 7px 15px;
+  border-radius: 12px;
+  font-size: .85rem;
+  text-decoration: none;
+
+  &.tutor-animal-dark {
+    border-color: var(--pata-petroleo);
+    background: var(--pata-petroleo);
+    color: #fff;
+
+    &:hover { background: #43505e; }
+  }
+
+  &.tutor-animal-delete {
+    justify-content: center;
+    min-width: 48px;
+    color: #a8293c;
+  }
+}
+
+.tutor-animal-empty {
+  margin-top: 16px;
+  padding: 30px 16px;
+  border: 1px solid var(--tutor-border);
+  border-radius: 20px;
+  text-align: center;
+
+  p:last-child { margin-bottom: 0; }
+}
+
+@media (min-width: 801px) and (max-width: 1050px), (max-width: 650px) {
+  .tutor-animal-card[data-closed='true'] { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 575px) {
+  .tutor-animal-summary { gap: 12px; }
+  .tutor-animal-card { padding: 12px; }
+  .tutor-animal-notice { margin-inline: 20px; }
 }

@@ -1,22 +1,25 @@
 import { useRef, useState } from 'react';
 import { Container, Nav, Navbar } from 'react-bootstrap';
-import { Link, Navigate, NavLink, useParams } from 'react-router-dom';
-import { FiBell, FiCamera, FiEye, FiLock, FiShield, FiUser, FiX } from 'react-icons/fi';
+import { Link, Navigate, NavLink, useLocation, useParams } from 'react-router-dom';
+import { FiBell, FiCamera, FiEye, FiLock, FiPlus, FiShield, FiUser, FiX } from 'react-icons/fi';
 import { LuPawPrint } from 'react-icons/lu';
 import logo from '@/assets/logo-patasphere.svg';
 import TutorProfileForm from './TutorProfileForm';
-import { TutorConfirm, TutorPets, TutorPhoto, TutorPreferences, TutorPreview, TutorSecurity } from './TutorSections';
+import { TutorConfirm, TutorPhoto, TutorPreferences, TutorPreview, TutorSecurity } from './TutorSections';
+import TutorAnimals from './TutorAnimals';
+import { readTutorData, saveTutorData, tutorExampleAlerts, tutorStorageKey } from './tutorStorage';
+import { lostAnimalsPath } from '@/pages/lost-animals/lostAnimalsData';
 import '@/styles/_tutor-profile.scss';
 
 const base = '/perfil/tutor';
-const storageKey = 'patasphere-tutor-profile';
+
 const initialData = {
   profile: {
     firstName: 'Matheus', lastName: 'Souza Rodrigues', intro: '', bio: '', city: '', state: 'São Paulo',
     email: '', phone: '', website: '', instagram: '', facebook: '',
   },
   photo: '',
-  pets: [],
+  alerts: tutorExampleAlerts,
   notifications: { sightings: true, adoption: true, news: false },
   privacy: { location: true, contact: false },
 };
@@ -26,7 +29,7 @@ const sections = {
   perfil: ['Perfil', 'Perfil público', 'Adicione informações sobre você', FiUser],
   foto: ['Foto', 'Foto do perfil', 'Atualize a imagem que aparece no seu perfil.', FiCamera],
   seguranca: ['Segurança da conta', 'Segurança da conta', 'Gerencie a senha da sua conta.', FiLock],
-  animais: ['Meus animais', 'Meus animais', 'Organize a lista dos animais sob seus cuidados.', LuPawPrint],
+  animais: ['Meus animais', 'Meus animais', 'Animais perdidos e encontrados que você cadastrou', LuPawPrint],
   notificacoes: ['Preferências de notificação', 'Preferências de notificação', 'Escolha os avisos que deseja receber quando o envio estiver disponível.', FiBell],
   privacidade: ['Privacidade', 'Privacidade', 'Escolha quais informações aparecem na prévia do perfil público.', FiShield],
 };
@@ -44,7 +47,7 @@ const privacyOptions = [
 
 function readData() {
   try {
-    const stored = JSON.parse(localStorage.getItem(storageKey));
+    const stored = readTutorData();
     if (stored) {
       return {
         ...initialData, ...stored,
@@ -69,6 +72,7 @@ function Avatar({ photo, initials, small = false }) {
 
 export default function TutorProfile() {
   const { secao = 'perfil' } = useParams();
+  const { state } = useLocation();
   const [data, setData] = useState(readData);
   const currentData = useRef(data);
   const [revision, setRevision] = useState(0);
@@ -86,7 +90,7 @@ export default function TutorProfile() {
   function save(changes, message = 'Perfil salvo neste navegador.') {
     const next = { ...currentData.current, ...changes };
     try {
-      localStorage.setItem(storageKey, JSON.stringify(next));
+      saveTutorData(changes);
       currentData.current = next;
       setData(next);
       setFeedback({ section: secao, message });
@@ -99,7 +103,7 @@ export default function TutorProfile() {
 
   function reset() {
     try {
-      localStorage.removeItem(storageKey);
+      localStorage.removeItem(tutorStorageKey);
       currentData.current = initialData;
       setData(initialData);
       setRevision((current) => current + 1);
@@ -116,7 +120,7 @@ export default function TutorProfile() {
     publico: <TutorPreview data={data} avatar={avatar} />,
     foto: <TutorPhoto photo={photo} save={save} avatar={avatar} />,
     seguranca: <TutorSecurity />,
-    animais: <TutorPets pets={data.pets} save={save} />,
+    animais: <TutorAnimals alerts={data.alerts} save={save} />,
     notificacoes: <TutorPreferences options={notificationOptions} values={data.notifications}
       onSave={(notifications) => save({ notifications }, 'Preferências salvas neste navegador.')} />,
     privacidade: <TutorPreferences options={privacyOptions} values={data.privacy}
@@ -126,7 +130,7 @@ export default function TutorProfile() {
   return (
     <div className="tutor-page">
       <a className="skip-link" href="#tutor-conteudo">Pular para o conteúdo</a>
-      <Navbar expand="lg" className="tutor-header">
+      <Navbar expand="lg" className="tutor-header" data-animals={secao === 'animais'}>
         <Container fluid>
           <Navbar.Brand as={Link} to="/" aria-label="PataSphere, página inicial">
             <img src={logo} alt="" width="48" height="48" />
@@ -145,7 +149,7 @@ export default function TutorProfile() {
           </Navbar.Collapse>
         </Container>
       </Navbar>
-      <main className="tutor-layout" id="tutor-conteudo">
+      <main className="tutor-layout" id="tutor-conteudo" data-animals={secao === 'animais'}>
         <aside className="tutor-card tutor-sidebar">
           <div className="tutor-identity">
             {avatar}
@@ -165,10 +169,19 @@ export default function TutorProfile() {
           </nav>
         </aside>
         <section className="tutor-card tutor-panel" aria-labelledby="tutor-title">
-          <header className="tutor-panel-header">
-            <h1 id="tutor-title">{title}</h1>
-            <p>{subtitle}</p>
+          <header className="tutor-panel-header" data-animals={secao === 'animais'}>
+            <div>
+              <h1 id="tutor-title">{title}</h1>
+              <p>{subtitle}</p>
+            </div>
+            {secao === 'animais' && (
+              <Link className="btn btn-primary tutor-register-animal" to={lostAnimalsPath + '/cadastro'}
+                state={{ returnToTutor: true }}><FiPlus aria-hidden="true" /> Cadastrar animal</Link>
+            )}
           </header>
+          {secao === 'animais' && state?.registeredAnimal && !feedback && (
+            <p className="tutor-animal-notice" role="status">Anúncio de {state.registeredAnimal} cadastrado neste navegador.</p>
+          )}
           <div key={secao + revision}>{content[secao]}</div>
           {feedback?.section === secao && (
             <p className={'tutor-feedback' + (feedback.error ? ' tutor-error' : '')}
