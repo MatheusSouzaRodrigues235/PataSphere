@@ -48,7 +48,8 @@ export default function LostAnimalsBoard() {
   const heading = useRef(null);
   const search = params.get('busca') ?? '';
   const neighborhoods = [...new Set(alerts.map(({ neighborhood }) => neighborhood))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
-  const fields = [...animalFields, ['neighborhood', 'Bairro', neighborhoods]];
+  const cities = [...new Set(alerts.map(({ city }) => city))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const fields = [...animalFields, ['city', 'Cidade', cities], ['neighborhood', 'Bairro', neighborhoods]];
   const filters = Object.fromEntries(fields.flatMap(([key, , options]) => {
     const value = params.get(key);
     return options.includes(value) ? [[key, value]] : [];

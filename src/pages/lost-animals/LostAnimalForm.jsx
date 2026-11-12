@@ -17,7 +17,10 @@ export default function LostAnimalForm({ onClose, onAdd }) {
 
   async function submit(event) {
     event.preventDefault();
-    const { photo, ...fields } = Object.fromEntries(new FormData(event.currentTarget));
+    const data = new FormData(event.currentTarget);
+    const photos = data.getAll('photos');
+    data.delete('photos');
+    const fields = Object.fromEntries(data);
     const values = Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, value.trim()]));
 
     if (!values.name || !values.neighborhood || !values.city || !values.description || !values.contactName) {
@@ -28,15 +31,17 @@ export default function LostAnimalForm({ onClose, onAdd }) {
       setError('Informe um telefone com DDD.');
       return;
     }
-    if (photo.size > 5 * 1024 * 1024 || !['image/jpeg', 'image/png', 'image/webp'].includes(photo.type)) {
-      setError('Escolha uma imagem JPG, PNG ou WebP de até 5 MB.');
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (photos.length > 4 || photos.some((photo) => !photo.size || photo.size > 5 * 1024 * 1024 || !allowedTypes.includes(photo.type))) {
+      setError('Escolha de 1 a 4 fotos JPG, PNG ou WebP de até 5 MB cada.');
       return;
     }
 
     setSaving(true);
     setError('');
     try {
-      onAdd({ ...values, id: crypto.randomUUID(), photo: await readPhoto(photo) });
+      const images = await Promise.all(photos.map(readPhoto));
+      onAdd({ ...values, id: crypto.randomUUID(), photo: images[0], photos: images });
     } catch {
       setError('Não foi possível adicionar o alerta. Tente selecionar a foto novamente.');
       setSaving(false);
@@ -63,9 +68,10 @@ export default function LostAnimalForm({ onClose, onAdd }) {
           <label>Bairro<input name="neighborhood" className="form-control" required maxLength={80} /></label>
           <label>Cidade<input name="city" className="form-control" required maxLength={80} /></label>
           <label className="lost-form-wide">Descrição<textarea name="description" className="form-control" rows={3} required maxLength={500} /></label>
-          <label className="lost-form-wide">Foto do animal<input type="file" name="photo" className="form-control" accept="image/jpeg,image/png,image/webp" required /></label>
+          <label className="lost-form-wide">Fotos do animal (até 4)<input type="file" name="photos" multiple className="form-control" accept="image/jpeg,image/png,image/webp" required /></label>
           <label>Nome para contato<input name="contactName" className="form-control" required maxLength={80} /></label>
           <label>Telefone para contato<input type="tel" name="phone" className="form-control" required inputMode="tel" maxLength={20} /></label>
+          <label>E-mail para contato (opcional)<input type="email" name="email" className="form-control" maxLength={120} /></label>
           {error && <p className="lost-form-wide text-danger mb-0" role="alert">{error}</p>}
         </form>
       </Modal.Body>

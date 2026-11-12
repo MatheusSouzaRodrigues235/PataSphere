@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { FiChevronLeft, FiChevronRight, FiFacebook, FiHeart, FiLink, FiMapPin } from 'react-icons/fi';
+import { FiChevronRight, FiFacebook, FiHeart, FiLink, FiMapPin } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Link, useLocation, useOutletContext, useParams } from 'react-router-dom';
+import AnimalGallery from './AnimalGallery';
 import AdoptionDetailModal from './AdoptionDetailModal';
 import AdoptionRequestModal from './AdoptionRequestModal';
 import { adoptionAnimals, adoptionDetails, adoptionPath } from './adoptionData';
@@ -12,32 +13,6 @@ const adoptionSteps = [
   ['Converse com a ONG', 'A conversa continua direto pelo WhatsApp.'],
   ['Conheça e adote', 'A ONG combina o encontro e a entrega responsável.'],
 ];
-
-function AnimalGallery({ animal }) {
-  const [index, setIndex] = useState(0);
-  const { photos } = animal;
-
-  return (
-    <section className="adoption-detail-panel adoption-gallery" aria-label={'Fotos de ' + animal.name}>
-      <div className="adoption-gallery-main">
-        <img src={photos[index]} alt={animal.name + ' — foto ' + (index + 1)} />
-        {photos.length > 1 && (
-          <>
-            <button type="button" className="adoption-control" aria-label="Foto anterior" onClick={() => setIndex((index + photos.length - 1) % photos.length)}><FiChevronLeft aria-hidden="true" /></button>
-            <button type="button" className="adoption-control" aria-label="Próxima foto" onClick={() => setIndex((index + 1) % photos.length)}><FiChevronRight aria-hidden="true" /></button>
-          </>
-        )}
-      </div>
-      <div className="adoption-gallery-thumbnails">
-        {photos.map((photo, position) => (
-          <button key={photo} type="button" aria-pressed={index === position} aria-label={'Ver foto ' + (position + 1)} onClick={() => setIndex(position)}>
-            <img src={photo} alt="" />
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
 
 function AnimalProfile({ animal, boardSearch }) {
   const { favorites, toggleFavorite } = useOutletContext();
@@ -108,7 +83,7 @@ function AnimalProfile({ animal, boardSearch }) {
             <span className="adoption-share-status" role="status">{copied ? 'Link copiado' : ''}</span>
           </div>
         </section>
-        <AnimalGallery animal={animal} />
+        <AnimalGallery key={animal.id} name={animal.name} photos={animal.photos} />
       </div>
 
       <div className="adoption-information-grid">

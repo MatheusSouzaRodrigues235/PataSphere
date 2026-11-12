@@ -1,46 +1,17 @@
 import { useState } from 'react';
 import Modal from 'react-bootstrap/Modal';
-import { FiArrowLeft, FiLink, FiMapPin } from 'react-icons/fi';
+import { FiChevronRight, FiEye, FiFacebook, FiLink } from 'react-icons/fi';
+import { FaWhatsapp } from 'react-icons/fa';
+import AnimalGallery from '@/pages/adoption/AnimalGallery';
+import '@/styles/_adoption-detail.scss';
 import { Link, useLocation, useOutletContext, useParams } from 'react-router-dom';
-import { formatAlertDate, lostAnimalsPath, todayDate } from './lostAnimalsData';
-
-function SightingModal({ name, onClose }) {
-  const [submitted, setSubmitted] = useState(false);
-
-  function submit(event) {
-    event.preventDefault();
-    setSubmitted(true);
-  }
-
-  return (
-    <Modal show centered scrollable onHide={onClose} className="adoption-modal lost-modal" aria-labelledby="sighting-title">
-      <Modal.Header closeButton closeLabel="Fechar">
-        <Modal.Title as="h2" id="sighting-title">Você viu {name}?</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        {submitted ? (
-          <p role="status" className="mb-0">Avistamento simulado. Nenhuma mensagem foi enviada ao responsável.</p>
-        ) : (
-          <form id="sighting-form" className="lost-form" onSubmit={submit}>
-            <label className="lost-form-wide">Onde você viu o animal?<input className="form-control" name="place" placeholder="Bairro, rua ou ponto de referência" required maxLength={160} /></label>
-            <label>Data do avistamento<input className="form-control" type="date" name="date" required max={todayDate} /></label>
-            <label>Seu nome<input className="form-control" name="name" required maxLength={80} /></label>
-            <label className="lost-form-wide">Seu telefone (opcional)<input className="form-control" name="phone" type="tel" maxLength={20} /></label>
-            <label className="lost-form-wide">Observações (opcional)<textarea className="form-control" name="notes" rows={3} maxLength={500} /></label>
-          </form>
-        )}
-      </Modal.Body>
-      <Modal.Footer>
-        <button type="button" className="adoption-control" onClick={onClose}>{submitted ? 'Fechar' : 'Cancelar'}</button>
-        {!submitted && <button type="submit" form="sighting-form" className="adoption-action">Registrar avistamento</button>}
-      </Modal.Footer>
-    </Modal>
-  );
-}
+import SightingModal from './SightingModal';
+import { formatAlertDate, lostAnimalsPath } from './lostAnimalsData';
 
 function LostAnimalProfile({ animal, boardUrl }) {
   const [modal, setModal] = useState(null);
   const [copied, setCopied] = useState(false);
+  const queryLink = (filters) => ({ pathname: lostAnimalsPath, search: new URLSearchParams(filters).toString() });
   const shareUrl = new URL(lostAnimalsPath + '/' + animal.id, window.location.origin).href;
 
   async function copyLink() {
@@ -53,46 +24,74 @@ function LostAnimalProfile({ animal, boardUrl }) {
   }
 
   return (
-    <div className="adoption-board lost-detail">
-      <div className="adoption-container">
-        <Link to={boardUrl} className="adoption-control lost-back"><FiArrowLeft aria-hidden="true" /> Voltar à vitrine</Link>
-        <div className="lost-detail-grid">
-          <section className="lost-panel lost-summary" aria-labelledby="lost-detail-title">
+    <div className="lost-detail-background">
+      <article className="adoption-detail lost-detail" aria-labelledby="lost-detail-title">
+        <nav aria-label="Localização na página">
+          <ol className="adoption-breadcrumb">
+            <li><Link to="/">Home</Link></li>
+            <li><FiChevronRight aria-hidden="true" /><Link to={boardUrl}>Animais perdidos</Link></li>
+            <li aria-current="page"><FiChevronRight aria-hidden="true" />{animal.name}</li>
+          </ol>
+        </nav>
+
+        <div className="adoption-profile-grid">
+          <section className="adoption-detail-panel adoption-profile-summary">
             <span className="lost-status">Perdido</span>
-            <h1 id="lost-detail-title">{animal.name}</h1>
-            <p className="lost-last-seen"><FiMapPin aria-hidden="true" /> {animal.neighborhood}, {animal.city}</p>
+            <h1 id="lost-detail-title">{animal.name} desapareceu em {animal.neighborhood}</h1>
             <ul className="adoption-tags" aria-label="Características">
-              {[animal.sex, 'Porte ' + animal.size.toLowerCase(), animal.ageLabel].filter(Boolean).map((label) => <li key={label}>{label}</li>)}
+              <li>{animal.sex}</li>
+              <li>Porte {animal.size.toLowerCase()}</li>
+              {animal.ageLabel && <li>{animal.ageLabel}</li>}
             </ul>
-            <dl className="lost-facts">
+            <dl className="adoption-profile-facts">
               <div><dt>Espécie</dt><dd>{animal.species}</dd></div>
+              <div><dt>Localização</dt><dd>{animal.city}</dd></div>
               {animal.breed && <div><dt>Raça</dt><dd>{animal.breed}</dd></div>}
               <div><dt>Data do desaparecimento</dt><dd><time dateTime={animal.date}>{formatAlertDate(animal.date)}</time></dd></div>
             </dl>
-            <div className="lost-detail-actions">
-              <button type="button" className="adoption-action" onClick={() => setModal('sighting')}>Informar avistamento</button>
-              {animal.example && <button type="button" className="adoption-control" onClick={copyLink}><FiLink aria-hidden="true" /> {copied ? 'Link copiado' : 'Copiar link'}</button>}
-              <span className="visually-hidden" role="status">{copied && 'Link copiado para a área de transferência.'}</span>
+            <div className="adoption-profile-actions">
+              <button type="button" className="adoption-action" onClick={() => setModal('sighting')}>
+                <FiEye aria-hidden="true" /> Você viu este animal?
+              </button>
             </div>
+            {animal.example && (
+              <div className="adoption-share" role="group" aria-label="Compartilhar alerta">
+                <strong>Compartilhar</strong>
+                <a className="adoption-control" href={'https://wa.me/?text=' + encodeURIComponent(shareUrl)} target="_blank" rel="noreferrer" aria-label="Compartilhar no WhatsApp"><FaWhatsapp aria-hidden="true" /></a>
+                <a className="adoption-control" href={'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(shareUrl)} target="_blank" rel="noreferrer" aria-label="Compartilhar no Facebook"><FiFacebook aria-hidden="true" /></a>
+                <button type="button" className="adoption-control" onClick={copyLink} aria-label="Copiar link"><FiLink aria-hidden="true" /></button>
+                <span className="adoption-share-status" role="status">{copied ? 'Link copiado' : ''}</span>
+              </div>
+            )}
           </section>
-          <div className="lost-panel lost-detail-photo"><img src={animal.photo} alt={animal.name} /></div>
+          <AnimalGallery name={animal.name} photos={animal.photos ?? [animal.photo]} showSingleThumbnail={false} />
         </div>
-        <section className="lost-panel">
-          <h2>Sobre o desaparecimento</h2>
-          <p className="mb-0">{animal.description}</p>
+
+        <section className="adoption-detail-panel">
+          <h2>Sobre o animal</h2>
+          <p>{animal.description}</p>
         </section>
-        <section className="lost-panel">
-          <h2>Contato do responsável</h2>
+
+        <section className="adoption-detail-panel">
+          <h2>Contato para este animal perdido</h2>
           {animal.example ? (
-            <p className="mb-0">Este é um alerta de exemplo.</p>
+            <p>Alerta de exemplo. Use o botão “Você viu este animal?” para testar o formulário.</p>
           ) : (
             <>
-              <p className="mb-1">{animal.contactName}</p>
-              <a href={'tel:' + animal.phone.replace(/[^+0-9]/g, '')}>{animal.phone}</a>
+              <dl className="adoption-profile-facts lost-contact-facts">
+                <div><dt>Nome</dt><dd>{animal.contactName}</dd></div>
+                {animal.email && <div><dt>E-mail</dt><dd><a href={'mailto:' + animal.email}>{animal.email}</a></dd></div>}
+                <div><dt>Telefone</dt><dd><a href={'tel:' + animal.phone.replace(/[^+0-9]/g, '')}>{animal.phone}</a></dd></div>
+              </dl>
+              <p>Se você tem alguma informação, entre em contato ou use o botão “Você viu este animal?”.</p>
             </>
           )}
+          <nav className="lost-contact-links" aria-label="Mais animais perdidos">
+            <Link className="adoption-action" to={queryLink({ city: animal.city, neighborhood: animal.neighborhood })}>Ver animais no mesmo bairro</Link>
+            <Link className="adoption-action" to={queryLink({ city: animal.city })}>Ver animais em {animal.city}</Link>
+          </nav>
         </section>
-      </div>
+      </article>
       {modal === 'sighting' && <SightingModal name={animal.name} onClose={() => setModal(null)} />}
       {modal === 'share' && (
         <Modal show centered onHide={() => setModal(null)} className="adoption-modal" aria-labelledby="lost-share-title">
