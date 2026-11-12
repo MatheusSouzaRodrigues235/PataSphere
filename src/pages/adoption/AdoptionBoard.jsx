@@ -1,23 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
-import Modal from 'react-bootstrap/Modal';
+import { useRef, useState } from 'react';
 import { FiChevronLeft, FiChevronRight, FiChevronsLeft, FiChevronsRight, FiFilter, FiHeart, FiMapPin, FiSearch } from 'react-icons/fi';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import AdoptionFilterModal from './AdoptionFilterModal';
-import { adoptionAnimals, filterFields, quickFilters } from './adoptionData';
-import '@/styles/_adoption.scss';
+import { adoptionAnimals, adoptionPath, filterFields, quickFilters } from './adoptionData';
 
 const pageSize = 8;
-const favoritesKey = 'patasphere:adoption-favorites';
-
-function readFavorites() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(favoritesKey));
-    return Array.isArray(saved) ? saved : [];
-  } catch {
-    return [];
-  }
-}
-
 function normalize(value) {
   return value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR');
 }
@@ -32,7 +19,7 @@ function AnimalTags({ animal }) {
   );
 }
 
-function AnimalCard({ animal, favorite, onFavorite, detailsUrl }) {
+function AnimalCard({ animal, favorite, onFavorite, detailsUrl, boardSearch }) {
   return (
     <article className="adoption-card">
       <div className="adoption-card-photo">
@@ -62,7 +49,7 @@ function AnimalCard({ animal, favorite, onFavorite, detailsUrl }) {
             <FiMapPin aria-hidden="true" />
             <div><strong>{animal.organization}</strong>{animal.neighborhood}</div>
           </div>
-          <Link to={detailsUrl} className="adoption-action" aria-label={'Quero adotar ' + animal.name} preventScrollReset>
+          <Link to={detailsUrl} className="adoption-action" aria-label={'Quero adotar ' + animal.name} state={{ boardSearch }}>
             Quero adotar
           </Link>
         </div>
@@ -71,78 +58,55 @@ function AnimalCard({ animal, favorite, onFavorite, detailsUrl }) {
   );
 }
 
-function AdoptionDetails({ animal, onClose }) {
-  return (
-    <Modal show centered scrollable onHide={onClose} className="adoption-modal" aria-labelledby="adoption-details-title">
-      <Modal.Header closeButton closeLabel="Fechar detalhes">
-        <Modal.Title as="h2" id="adoption-details-title">Adote {animal.name}</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <img className="adoption-detail-photo" src={animal.photo} alt={animal.name} />
-        <AnimalTags animal={animal} />
-        <p>{animal.description}</p>
-        <p className="mb-2"><strong>{animal.organization}</strong> · {animal.neighborhood}, São José dos Campos</p>
-        <p className="mb-0">Este perfil é demonstrativo. O contato para adoção será disponibilizado quando o cadastro da ONG estiver conectado ao mural.</p>
-      </Modal.Body>
-      <Modal.Footer>
-        <button type="button" className="adoption-control" onClick={onClose}>Voltar ao mural</button>
-      </Modal.Footer>
-    </Modal>
-  );
-}
-
 export default function AdoptionBoard() {
   const [params, setParams] = useSearchParams();
-  const [search, setSearch] = useState('');
+  const search = params.get('busca') ?? '';
 
   const [filterOpen, setFilterOpen] = useState(false);
-  const [favorites, setFavorites] = useState(readFavorites);
+  const { favorites, toggleFavorite } = useOutletContext();
 
   const heading = useRef(null);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(favoritesKey, JSON.stringify(favorites));
-    } catch {
-      // Favorites are still available during the current visit.
-    }
-  }, [favorites]);
 
   const filters = Object.fromEntries(filterFields.flatMap(([key, , options]) => {
     const value = params.get(key);
     return options.includes(value) ? [[key, value]] : [];
   }));
+  const organization = params.get('ong');
+
   if (params.has('urgent')) filters.urgent = true;
   if (params.has('puppy')) filters.puppy = true;
 
   const searchTerm = normalize(search.trim());
   const filtered = adoptionAnimals.filter((animal) =>
     normalize(animal.name).includes(searchTerm) &&
+    (!organization || animal.organization === organization) &&
     Object.entries(filters).every(([key, value]) => animal[key] === value),
   );
   const pageCount = Math.ceil(filtered.length / pageSize);
   const requestedPage = Number.parseInt(params.get('pagina'), 10) || 1;
   const page = Math.max(1, Math.min(requestedPage, pageCount));
   const currentAnimals = filtered.slice((page - 1) * pageSize, page * pageSize);
-  const selectedAnimal = adoptionAnimals.find(({ id }) => String(id) === params.get('animal'));
+  const legacyAnimal = adoptionAnimals.find(({ id }) => String(id) === params.get('animal'));
   const activeFilter = quickFilters.find(([, criteria]) =>
     Object.keys(criteria).length === Object.keys(filters).length &&
     Object.entries(criteria).every(([key, value]) => filters[key] === value),
   )?.[0];
 
-  function applyFilters(next) {
+  function applyFilters(next, query = search, currentOrganization = organization) {
     const nextParams = new URLSearchParams(Object.entries(next));
+
+    if (currentOrganization) nextParams.set('ong', currentOrganization);
+    if (query) nextParams.set('busca', query);
     setParams(nextParams, { preventScrollReset: true });
     setFilterOpen(false);
   }
 
   function changeSearch(value) {
-    setSearch(value);
-    if (params.has('pagina')) {
-      const nextParams = new URLSearchParams(params);
-      nextParams.delete('pagina');
-      setParams(nextParams, { replace: true, preventScrollReset: true });
-    }
+    const nextParams = new URLSearchParams(params);
+    nextParams.delete('pagina');
+    if (value) nextParams.set('busca', value);
+    else nextParams.delete('busca');
+    setParams(nextParams, { replace: true, preventScrollReset: true });
   }
 
   function changePage(next) {
@@ -153,10 +117,10 @@ export default function AdoptionBoard() {
     heading.current?.scrollIntoView({ block: 'start' });
   }
 
-  function closeDetails() {
-    const nextParams = new URLSearchParams(params);
-    nextParams.delete('animal');
-    setParams(nextParams, { replace: true, preventScrollReset: true });
+  if (legacyAnimal) {
+    const boardParams = new URLSearchParams(params);
+    boardParams.delete('animal');
+    return <Navigate replace to={adoptionPath(legacyAnimal)} state={{ boardSearch: boardParams.toString() }} />;
   }
 
   return (
@@ -164,6 +128,7 @@ export default function AdoptionBoard() {
       <div className="adoption-container">
         <h1 id="adoption-title" ref={heading} tabIndex={-1}>Adote um amigo</h1>
         <p className="adoption-intro">Animais disponíveis de todas as ONGs de São José dos Campos. Os casos urgentes aparecem primeiro.</p>
+        {organization && <p>Animais da ONG <strong>{organization}</strong> · <Link to="/adocao">Voltar ao mural completo</Link></p>}
         <div className="adoption-search-row">
           <label className="adoption-search">
             <FiSearch aria-hidden="true" />
@@ -189,26 +154,21 @@ export default function AdoptionBoard() {
         <p className="visually-hidden" role="status">{filtered.length} animais encontrados</p>
         {currentAnimals.length > 0 ? (
           <div className="adoption-grid">
-            {currentAnimals.map((animal) => {
-              const detailsParams = new URLSearchParams(params);
-              detailsParams.set('animal', animal.id);
-              return (
-                <AnimalCard
-                  key={animal.id}
-                  animal={animal}
-                  favorite={favorites.includes(animal.id)}
-                  onFavorite={() => setFavorites((current) => current.includes(animal.id)
-                    ? current.filter((id) => id !== animal.id)
-                    : [...current, animal.id])}
-                  detailsUrl={'?' + detailsParams.toString()}
-                />
-              );
-            })}
+            {currentAnimals.map((animal) => (
+              <AnimalCard
+                key={animal.id}
+                animal={animal}
+                favorite={favorites.includes(animal.id)}
+                onFavorite={() => toggleFavorite(animal.id)}
+                detailsUrl={adoptionPath(animal)}
+                boardSearch={params.toString()}
+              />
+            ))}
           </div>
         ) : (
           <div className="adoption-empty">
             <h2>Nenhum animal encontrado</h2>
-            <button type="button" className="adoption-control" onClick={() => { setSearch(''); applyFilters({}); }}>Limpar busca e filtros</button>
+            <button type="button" className="adoption-control" onClick={() => applyFilters({}, '', null)}>Limpar busca e filtros</button>
           </div>
         )}
         {pageCount > 1 && (
@@ -222,7 +182,7 @@ export default function AdoptionBoard() {
         )}
       </div>
       {filterOpen && <AdoptionFilterModal filters={filters} onApply={applyFilters} onClose={() => setFilterOpen(false)} />}
-      {selectedAnimal && <AdoptionDetails animal={selectedAnimal} onClose={closeDetails} />}
+
     </section>
   );
 }

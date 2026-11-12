@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import PublicLayout from '@/layouts/PublicLayout';
 import Home from '@/pages/home/Home';
 import AdoptionBoard from '@/pages/adoption/AdoptionBoard';
+import AdoptionAnimalPage from '@/pages/adoption/AdoptionAnimalPage';
 import AdoptionLayout from '@/pages/adoption/AdoptionLayout';
 import Login from '@/pages/login/Login';
 import ChooseProfile from '@/pages/register/ChooseProfile';
@@ -20,7 +21,14 @@ export const router = createBrowserRouter([
       { path: 'animais-perdidos', element: null },
     ],
   },
-  { path: '/adocao', element: <AdoptionLayout />, children: [{ index: true, element: <AdoptionBoard /> }] },
+  {
+    path: '/adocao',
+    element: <AdoptionLayout />,
+    children: [
+      { index: true, element: <AdoptionBoard /> },
+      { path: ':animalId', element: <AdoptionAnimalPage /> },
+    ],
+  },
   { path: '/login', element: <Login /> },
   { path: '/cadastro', element: <ChooseProfile /> },
   { path: '/cadastro/tutor', element: <RegisterTutor /> },

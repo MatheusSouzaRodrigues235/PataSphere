@@ -15,8 +15,9 @@ const listings = {
 
 export const adoptionAnimals = initialAnimals
   .filter(({ name }) => Object.hasOwn(listings, name))
-  .map(({ id, name, species, sex, ageLabel, size, urgency, photo }) => ({
-    id, name, species, sex, ageLabel, size, photo,
+  .map(({ id, name, species, sex, ageLabel, size, urgency, photo, breed, color, photos }) => ({
+    id, name, species, sex, ageLabel, size, photo, breed, color,
+    photos: [...new Set([photo, ...(photos ?? [])])],
     urgent: urgency === 'Alta',
     puppy: ageLabel.endsWith('meses'),
     neighborhood: listings[name][0],
@@ -24,6 +25,19 @@ export const adoptionAnimals = initialAnimals
     organization: 'Amor de Pet',
   }))
   .sort((first, second) => Number(second.urgent) - Number(first.urgent));
+
+export const adoptionPath = ({ id }) => '/adocao/' + id;
+
+export const adoptionDetails = {
+  Thor: {
+    code: '100245',
+    introduction: 'Cão resgatado, pronto para conhecer uma nova família.',
+    traits: ['Brincalhão', 'Carinhoso', 'Energético'],
+    about: 'Thor é brincalhão, adora passear e se dá bem com crianças. Foi resgatado e hoje vive em lar temporário, onde aprendeu comandos básicos. Procura uma família que tenha tempo para brincar e passear.',
+    care: 'Vacinado, vermifugado e castrado. Sem doenças conhecidas. Precisa de passeios diários e acompanhamento veterinário de rotina.',
+  },
+  Mimi: { care: 'Precisa de acompanhamento veterinário.' },
+};
 
 export const quickFilters = [
   ['Todos', {}],
