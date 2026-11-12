@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Modal from 'react-bootstrap/Modal';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useMatch } from 'react-router-dom';
 import {
   FiBell, FiFilter, FiGrid, FiHeart, FiMoon, FiPlus, FiSearch, FiSun,
 } from 'react-icons/fi';
@@ -9,6 +9,7 @@ import { initialAnimals, sexes, sizes, traits } from './animals';
 import AnimalFilterModal from './AnimalFilterModal';
 import { matchesAnimalFilters } from './animalFilters';
 import Donations from './donations/Donations';
+import AnimalManagement from './management/AnimalManagement';
 
 const emptyFilters = {};
 
@@ -63,7 +64,10 @@ function SelectField({ name, label, options }) {
   );
 }
 
-export default function OngDashboard({ donations = false }) {
+export default function OngDashboard() {
+  const donations = Boolean(useMatch('/dashboard/ong/doacoes'));
+  const management = Boolean(useMatch('/dashboard/ong/animais'));
+  const overview = !donations && !management;
   const [animals, setAnimals] = useState(initialAnimals);
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState(emptyFilters);
@@ -98,6 +102,10 @@ export default function OngDashboard({ donations = false }) {
       name,
       sex: data.get('sex'),
       size: data.get('size'),
+      age: 'Não informada',
+      urgency: 'Baixa',
+      registeredAt: new Date().toLocaleDateString('pt-BR'),
+      status: data.has('medicalCare') ? 'Em tratamento' : 'Disponível',
       medicalCare: data.has('medicalCare'),
       traits: data.getAll('traits'),
     };
@@ -116,7 +124,7 @@ export default function OngDashboard({ donations = false }) {
           <ul>
             <li><NavLink to="/dashboard/ong" end><FiGrid aria-hidden="true" /> Visão geral</NavLink></li>
             <li><NavLink to="/dashboard/ong/doacoes"><FiHeart aria-hidden="true" /> Doações</NavLink></li>
-            <li><span aria-disabled="true"><LuPawPrint aria-hidden="true" /> Animais</span></li>
+            <li><NavLink to="/dashboard/ong/animais"><LuPawPrint aria-hidden="true" /> Animais</NavLink></li>
             <li><span aria-disabled="true"><FiSearch aria-hidden="true" /> Animais perdidos</span></li>
           </ul>
         </nav>
@@ -124,9 +132,9 @@ export default function OngDashboard({ donations = false }) {
 
       <div className="ong-workspace">
         <header className="ong-topbar">
-          <div className="ong-breadcrumb">Dashboards <span aria-hidden="true">/</span> <strong>{donations ? 'Doações' : 'Visão geral'}</strong></div>
+          <div className="ong-breadcrumb">Dashboards <span aria-hidden="true">/</span> <strong>{management ? 'Animais' : donations ? 'Doações' : 'Visão geral'}</strong></div>
           <div className="ong-tools">
-            {!donations && <SearchField className="ong-top-search" label="Buscar" value={query} onChange={setQuery} />}
+            {overview && <SearchField className="ong-top-search" label="Buscar" value={query} onChange={setQuery} />}
             <div className="ong-notifications">
               <button type="button" className="ong-icon" aria-label="Notificações" aria-expanded={showNotifications}
                 onClick={() => setShowNotifications((current) => !current)}>
@@ -142,7 +150,8 @@ export default function OngDashboard({ donations = false }) {
         </header>
 
         <div hidden={!donations}><Donations dark={dark} /></div>
-        <main id="visao-geral" className="ong-main" hidden={donations}>
+        {management && <AnimalManagement animals={animals} setAnimals={setAnimals} dark={dark} />}
+        <main id="visao-geral" className="ong-main" hidden={!overview}>
           <div className="ong-title">
             <div>
               <h1>Seus animais</h1>
@@ -180,7 +189,7 @@ export default function OngDashboard({ donations = false }) {
       </div>
 
       {dialog?.type === 'filters' ? (
-        <AnimalFilterModal filters={filters} dark={dark} onApply={applyFilters} onClose={closeDialog} />
+        <AnimalFilterModal filters={filters} animals={animals} dark={dark} onApply={applyFilters} onClose={closeDialog} />
       ) : (
         <Modal show={Boolean(dialog)} onHide={closeDialog} centered data-bs-theme={dark ? 'dark' : 'light'}
           aria-labelledby="ong-dialog-title">

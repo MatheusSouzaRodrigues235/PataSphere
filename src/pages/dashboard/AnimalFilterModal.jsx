@@ -4,7 +4,7 @@ import { FiCheck, FiChevronRight, FiX } from 'react-icons/fi';
 import { filterGroups } from './animalFilters';
 import '@/styles/_ong-filters.scss';
 
-export default function AnimalFilterModal({ filters, dark, onApply, onClose }) {
+export default function AnimalFilterModal({ filters, dark, onApply, onClose, animals }) {
   const [draft, setDraft] = useState(filters);
   const [expanded, setExpanded] = useState(null);
   const optionsRef = useRef(null);
@@ -46,6 +46,9 @@ export default function AnimalFilterModal({ filters, dark, onApply, onClose }) {
       <Modal.Body>
         {filterGroups.map(({ label, color, criteria }) => {
           const criterion = criteria.find(({ key }) => key === expanded);
+          const options = animals && ['breed', 'color', 'traits'].includes(criterion?.key)
+            ? [...new Set([...animals.flatMap((animal) => animal[criterion.key] || []), draft[criterion.key]].filter(Boolean))]
+            : criterion?.options;
           return (
             <section key={label} className="ong-filter-group" data-color={color}>
               <h3>{label}</h3>
@@ -77,7 +80,7 @@ export default function AnimalFilterModal({ filters, dark, onApply, onClose }) {
                     onChange={(event) => changeCriterion(criterion.key, event.target.value)}
                   >
                     <option value="">Qualquer opção</option>
-                    {criterion.options.map((option) => {
+                    {options.map((option) => {
                       const [value, text] = Array.isArray(option) ? option : [option, option];
                       return <option key={value} value={value}>{text}</option>;
                     })}

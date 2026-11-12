@@ -3,14 +3,14 @@ import {
   LuPawPrint, LuRuler, LuSmile, LuType,
 } from 'react-icons/lu';
 import { TbGenderFemale } from 'react-icons/tb';
-import { sexes, sizes, traits } from './animals';
+import { ages, sexes, sizes, species, statuses, traits, urgencies } from './animals';
 
 export const filterGroups = [
   {
     label: 'Características físicas',
     color: 'purple',
     criteria: [
-      { key: 'species', label: 'Espécie', icon: LuPawPrint, options: ['Cão', 'Gato'] },
+      { key: 'species', label: 'Espécie', icon: LuPawPrint, options: species },
       { key: 'breed', label: 'Raça', icon: LuDna, options: ['Sem raça definida', 'Jack Russell Terrier', 'Maine Coon'] },
       { key: 'size', label: 'Porte', icon: LuRuler, options: sizes },
       { key: 'color', label: 'Cor', icon: LuPalette, options: ['Tigrado', 'Tricolor', 'Laranja'] },
@@ -20,7 +20,7 @@ export const filterGroups = [
     label: 'Informações',
     color: 'orange',
     criteria: [
-      { key: 'age', label: 'Idade', icon: LuCalendar, options: ['Filhote', 'Adulto', 'Idoso'] },
+      { key: 'age', label: 'Idade', icon: LuCalendar, options: ages },
       { key: 'sex', label: 'Sexo', icon: TbGenderFemale, options: sexes },
       { key: 'medicalCare', label: 'Saúde', icon: LuHeart, options: [
         ['yes', 'Com cuidados médicos'], ['no', 'Sem cuidados médicos'],
@@ -32,10 +32,8 @@ export const filterGroups = [
     label: 'Status',
     color: 'green',
     criteria: [
-      { key: 'status', label: 'Status', icon: LuCheck, options: ['Disponível para adoção', 'Em tratamento', 'Adotado'] },
-      { key: 'urgent', label: 'Urgência', icon: LuOctagonAlert, options: [
-        ['yes', 'Urgente'], ['no', 'Sem urgência'],
-      ] },
+      { key: 'status', label: 'Status', icon: LuCheck, options: statuses.map(({ label }) => label) },
+      { key: 'urgency', label: 'Urgência', icon: LuOctagonAlert, options: urgencies },
       { key: 'photo', label: 'Fotos', icon: LuCamera, options: [
         ['yes', 'Com fotos'], ['no', 'Sem fotos'],
       ] },
@@ -52,7 +50,6 @@ export function matchesAnimalFilters(animal, filters) {
     if (key === 'photo' || key === 'description' || key === 'medicalCare') {
       return Boolean(animal[key]) === (value === 'yes');
     }
-    if (key === 'urgent') return animal.urgent === (value === 'yes');
     return animal[key] === value;
   });
 }
