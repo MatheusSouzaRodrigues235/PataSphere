@@ -16,6 +16,7 @@ export default function SiteHeader() {
         <Navbar.Toggle aria-controls="menu-principal" aria-label={expanded ? 'Fechar menu' : 'Abrir menu'} />
         <Navbar.Collapse id="menu-principal">
           <Nav className="ms-auto align-items-lg-center">
+            <Nav.Link as={Link} to="/adocao" onClick={closeMenu}>Adotar um animal</Nav.Link>
             <Nav.Link href="/#beneficios" onClick={closeMenu}>A plataforma</Nav.Link>
             <Nav.Link href="/#quem-somos" onClick={closeMenu}>Quem somos</Nav.Link>
             <Nav.Link href="/#como-funciona" onClick={closeMenu}>Como funciona</Nav.Link>
