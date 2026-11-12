@@ -227,7 +227,103 @@
   li { padding: .25rem .625rem; border-radius: .5rem; background: #fbe9dc; color: #904417; font-size: .8125rem; font-weight: 700; }
 }
 
-.ong-directory { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 1rem; }
+.ong-directory-page {
+  h1 { font-size: clamp(1.8rem, 4vw, 2.25rem); margin-bottom: .45rem; }
+  .adoption-search-row > button { flex: none; white-space: nowrap; }
+}
+
+.ong-directory {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.75rem;
+}
+
+.ong-directory-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: clamp(1rem, 2vw, 1.5rem);
+}
+
+.ong-directory-identity {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  h2 { font-size: 1.125rem; margin: 0; }
+  p { margin: .125rem 0 0; font-size: .875rem; }
+}
+
+.ong-directory-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 3.75rem;
+  aspect-ratio: 1;
+  border-radius: 1.125rem;
+  color: white;
+  font-size: 1.65rem;
+  font-weight: 800;
+}
+
+.ong-directory-location {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  margin: 1rem 0 .75rem;
+  font-size: .875rem;
+  font-weight: 600;
+
+  svg { flex: none; margin-top: .2rem; }
+}
+
+.ong-directory-count {
+  padding: .25rem .625rem;
+  border-radius: .5rem;
+  background: #f0ece9;
+  color: $pata-texto-suave;
+  font-size: .75rem;
+  font-weight: 750;
+
+  &[data-available='true'] { background: #dcefe3; color: $pata-verde; }
+}
+
+.ong-directory-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 1.125rem;
+
+  a { flex: 1 0 auto; border-radius: 999px; font-size: .85rem; padding-inline: .75rem; }
+  .ong-directory-profile { background: $pata-petroleo; color: white; border-color: $pata-petroleo; }
+  .ong-directory-profile:hover { background: #3e4b5b; }
+}
+
+.ong-directory-empty { margin-top: 1.75rem; }
+
+.adoption-header nav a.adoption-account-link {
+  border-radius: 999px;
+  width: auto;
+  height: auto;
+  padding-inline: 1rem;
+  font-size: inherit;
+
+  &.adoption-action { color: white; }
+}
+
+@media (min-width: 901px) {
+  .adoption-footer-columns.ong-directory-footer { grid-template-columns: 1.4fr repeat(4, 1fr); }
+}
+
+@media (max-width: 1100px) { .ong-directory { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 850px) { .ong-directory { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 530px) {
+  .ong-directory { grid-template-columns: minmax(0, 1fr); }
+  .ong-directory-page .adoption-search-row > button { padding-inline: .65rem; font-size: .875rem; }
+}
 
 .ong-donation-backdrop {
   background: #202a35;
@@ -319,7 +415,7 @@
 
 @media (max-width: 760px) {
   .ong-profile-grid { grid-template-columns: minmax(0, 1fr); }
-  .ong-contact { grid-column: auto; grid-row: 4; }
+  .ong-contact { grid-column: auto; grid-row: auto; }
 }
 
 @media (max-width: 480px) {

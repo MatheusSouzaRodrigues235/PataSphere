@@ -6,7 +6,7 @@ import { AdoptionFooter, AdoptionHeader } from '@/pages/adoption/AdoptionNavigat
 import { adoptionAnimals, adoptionPath } from '@/pages/adoption/adoptionData';
 import NotFound from '@/pages/NotFound';
 import OngDonationModal from './OngDonationModal';
-import { ongProfilePath, ongProfiles } from './ongProfiles';
+import { ongAdoptionSearch, ongProfiles } from './ongProfiles';
 import '@/styles/_adoption.scss';
 import '@/styles/_ong-public.scss';
 
@@ -32,27 +32,10 @@ export function OngPublicLayout() {
   return (
     <>
       <a className="skip-link" href="#conteudo">Pular para o conteúdo</a>
-      <AdoptionHeader />
+      <AdoptionHeader showAccountActions={pathname === '/ongs'} />
       <main id="conteudo" className="ong-public"><Outlet /></main>
-      <AdoptionFooter />
+      <AdoptionFooter showLostAnimals={pathname === '/ongs'} />
     </>
-  );
-}
-
-export function OngDirectory() {
-  return (
-    <div className="ong-public-container">
-      <h1>ONGs</h1>
-      <div className="ong-directory">
-        {ongProfiles.map((ong) => (
-          <article key={ong.slug} className="ong-public-panel">
-            <h2>{ong.name}</h2>
-            <p>{ong.city}</p>
-            <Link className="adoption-action" to={ongProfilePath(ong)}>Ver perfil da ONG</Link>
-          </article>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -93,6 +76,7 @@ function OngAnimals({ animals, boardSearch }) {
         <h2>Animais para adoção</h2>
         <Link to={'/adocao?' + boardSearch}>Ver todos <FiChevronRight aria-hidden="true" /></Link>
       </div>
+      {animals.length === 0 && <p>Nenhum animal divulgado para adoção por esta ONG.</p>}
       <div className="ong-animal-grid">
         {animals.map((animal) => (
           <article className="ong-animal-card" key={animal.id}>
@@ -154,12 +138,14 @@ export function OngProfile() {
   if (!ong) return <NotFound />;
 
   const animals = adoptionAnimals.filter(({ organization }) => organization === ong.name);
-  const featured = ong.featured.map((name) => animals.find((animal) => animal.name === name)).filter(Boolean);
-  const boardSearch = new URLSearchParams({ ong: ong.name }).toString();
+  const featured = ong.featured
+    ? ong.featured.map((name) => animals.find((animal) => animal.name === name)).filter(Boolean)
+    : animals.slice(0, 4);
+  const boardSearch = ongAdoptionSearch(ong);
   const stats = [
     ['Animais para adoção', animals.length],
-    ['Animais adotados', ong.adopted],
-    ['Ano de fundação', ong.founded],
+    ['Animais adotados', ong.adopted ?? '—'],
+    ['Ano de fundação', ong.founded ?? '—'],
   ];
 
   return (
@@ -175,21 +161,21 @@ export function OngProfile() {
       <section className="ong-hero" aria-labelledby="ong-name">
         <div className="ong-cover" aria-hidden="true" />
         <div className="ong-identity">
-          <span className="ong-avatar" aria-hidden="true">{ong.name[0]}</span>
+          <span className="ong-avatar" style={{ backgroundColor: ong.color }} aria-hidden="true">{ong.name[0]}</span>
           <div className="ong-identity-text">
             <h1 id="ong-name">{ong.name}</h1>
             <p>{ong.tagline}</p>
             <ul>
               <li><FiMapPin aria-hidden="true" /> {ong.city}</li>
-              <li><FiCalendar aria-hidden="true" /> Fundada em {ong.founded}</li>
+              {ong.founded && <li><FiCalendar aria-hidden="true" /> Fundada em {ong.founded}</li>}
             </ul>
           </div>
-          <div className="ong-hero-actions">
+          {ong.pixKey && <div className="ong-hero-actions">
             <a className="adoption-action ong-whatsapp" href="#contato"><FaWhatsapp aria-hidden="true" /> Ver WhatsApp</a>
             <button className="adoption-action" type="button" aria-haspopup="dialog" onClick={() => setDonationOpen(true)}>
               <FiHeart aria-hidden="true" /> Como doar
             </button>
-          </div>
+          </div>}
         </div>
         <dl className="ong-stats">
           {stats.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
@@ -197,7 +183,9 @@ export function OngProfile() {
       </section>
 
       <nav className="ong-section-nav" aria-label="Seções do perfil">
-        {sections.map(([id, label]) => <a key={id} className="adoption-control" href={'#' + id}>{label}</a>)}
+        {sections.filter(([id]) => id !== 'como-ajudar' || ong.pixKey).map(([id, label]) => (
+          <a key={id} className="adoption-control" href={'#' + id}>{label}</a>
+        ))}
       </nav>
 
       <div className="ong-profile-grid">
@@ -205,11 +193,17 @@ export function OngProfile() {
           <h2>Sobre a ONG</h2>
           <p>{ong.description}</p>
         </section>
-        <OngContact ong={ong} />
         <OngAnimals animals={featured} boardSearch={boardSearch} />
-        <OngHelp supplies={ong.supplies} onDonate={() => setDonationOpen(true)} />
+        {ong.pixKey && <OngHelp supplies={ong.supplies} onDonate={() => setDonationOpen(true)} />}
+        {ong.address ? <OngContact ong={ong} /> : (
+          <section id="contato" className="ong-public-panel ong-contact" tabIndex={-1}>
+            <h2>Contato e localização</h2>
+            <p>{ong.neighborhood} · {ong.city}</p>
+            <p>Contatos ainda não divulgados.</p>
+          </section>
+        )}
       </div>
-      <OngDonationModal ong={ong} show={donationOpen} onClose={() => setDonationOpen(false)} />
+      {ong.pixKey && <OngDonationModal ong={ong} show={donationOpen} onClose={() => setDonationOpen(false)} />}
     </div>
   );
 }

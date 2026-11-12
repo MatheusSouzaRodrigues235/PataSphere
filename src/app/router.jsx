@@ -13,7 +13,8 @@ import ChooseProfile from '@/pages/register/ChooseProfile';
 import RegisterTutor from '@/pages/register/RegisterTutor';
 import RegisterOng from '@/pages/register/RegisterOng';
 import OngDashboard from '@/pages/dashboard/OngDashboard';
-import { OngDirectory, OngProfile, OngPublicLayout } from '@/pages/ongs/OngPublic';
+import { OngProfile, OngPublicLayout } from '@/pages/ongs/OngPublic';
+import OngDirectory from '@/pages/ongs/OngDirectory';
 import NotFound from '@/pages/NotFound';
 
 export const router = createBrowserRouter([
