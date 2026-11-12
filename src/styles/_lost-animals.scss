@@ -1,0 +1,107 @@
+@use 'tokens' as *;
+
+.lost-board-heading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: .75rem;
+  margin-bottom: 1.6rem;
+
+  .adoption-intro { margin-bottom: 0; }
+}
+
+.lost-add {
+  min-height: 48px;
+  border-radius: 999px;
+  padding-inline: 1.35rem;
+  font-size: .95rem;
+}
+
+.lost-status {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  background: #fce8e8;
+  color: #a3263a;
+  padding: .3rem .75rem;
+  font-size: .75rem;
+  font-weight: 750;
+}
+
+.lost-card {
+  .adoption-card-photo img { height: auto; aspect-ratio: 1.55; }
+  .lost-status { position: absolute; top: .75rem; left: .75rem; }
+  .adoption-card-title > span { color: #a3263a; }
+  .adoption-card-body > p {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+  }
+  .adoption-action {
+    background: $pata-petroleo;
+
+    &:hover { background: #3e4a59; }
+  }
+}
+
+.lost-back { margin-bottom: 1.5rem; }
+.lost-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.25rem;
+}
+
+.lost-panel {
+  background: white;
+  border-radius: 1.25rem;
+  padding: clamp(1.2rem, 3vw, 2rem);
+  box-shadow: var(--pata-sombra);
+  overflow-wrap: anywhere;
+
+  h2 { font-size: 1.25rem; }
+}
+
+.lost-detail .adoption-container > .lost-panel { margin-top: 1.25rem; }
+.lost-summary h1 { margin-top: .75rem; }
+.lost-last-seen { color: $pata-texto-suave; }
+.lost-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-block: 1.25rem;
+
+  dt { font-size: .85rem; color: $pata-texto-suave; }
+  dd { margin: 0; }
+}
+
+.lost-detail-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+.lost-detail-photo {
+  overflow: hidden;
+  padding: 0;
+
+  img { display: block; width: 100%; height: 100%; max-height: 460px; object-fit: cover; }
+}
+
+.lost-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+
+  label { font-weight: 600; }
+  .form-control, .form-select { margin-top: .25rem; }
+}
+
+.lost-form-wide { grid-column: 1 / -1; }
+
+@media (max-width: 700px) {
+  .lost-detail-grid { grid-template-columns: minmax(0, 1fr); }
+  .lost-detail-photo { grid-row: 1; }
+  .lost-detail-photo img { max-height: 320px; }
+}
+
+@media (max-width: 480px) {
+  .lost-form { grid-template-columns: minmax(0, 1fr); }
+}

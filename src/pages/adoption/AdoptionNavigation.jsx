@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { FiGithub, FiUser } from 'react-icons/fi';
 import logo from '@/assets/logo-patasphere.svg';
 
@@ -8,7 +8,8 @@ export function AdoptionHeader() {
       <Link to="/" aria-label="PataSphere, página inicial"><img src={logo} alt="" width="44" height="44" /></Link>
       <nav aria-label="Menu principal">
         <Link to="/">Home</Link>
-        <Link to="/adocao" aria-current="page">Adotar um animal</Link>
+        <NavLink to="/animais-perdidos">Animais perdidos</NavLink>
+        <NavLink to="/adocao">Adotar um animal</NavLink>
         <Link className="adoption-control" to="/login" aria-label="Acessar conta"><FiUser aria-hidden="true" /></Link>
       </nav>
     </header>
@@ -48,4 +49,3 @@ export function AdoptionFooter() {
     </footer>
   );
 }
-

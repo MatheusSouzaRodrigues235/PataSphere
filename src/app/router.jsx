@@ -4,6 +4,9 @@ import Home from '@/pages/home/Home';
 import AdoptionBoard from '@/pages/adoption/AdoptionBoard';
 import AdoptionAnimalPage from '@/pages/adoption/AdoptionAnimalPage';
 import AdoptionLayout from '@/pages/adoption/AdoptionLayout';
+import LostAnimalsLayout from '@/pages/lost-animals/LostAnimalsLayout';
+import LostAnimalsBoard from '@/pages/lost-animals/LostAnimalsBoard';
+import LostAnimalPage from '@/pages/lost-animals/LostAnimalPage';
 import Login from '@/pages/login/Login';
 import ChooseProfile from '@/pages/register/ChooseProfile';
 import RegisterTutor from '@/pages/register/RegisterTutor';
@@ -27,6 +30,14 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <AdoptionBoard /> },
       { path: ':animalId', element: <AdoptionAnimalPage /> },
+    ],
+  },
+  {
+    path: '/animais-perdidos',
+    element: <LostAnimalsLayout />,
+    children: [
+      { index: true, element: <LostAnimalsBoard /> },
+      { path: ':animalId', element: <LostAnimalPage /> },
     ],
   },
   { path: '/login', element: <Login /> },

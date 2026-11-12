@@ -2,7 +2,9 @@ import { useState } from 'react';
 import Modal from 'react-bootstrap/Modal';
 import { filterFields } from './adoptionData';
 
-export default function AdoptionFilterModal({ filters, onApply, onClose }) {
+const adoptionToggles = [['urgent', 'Somente casos urgentes'], ['puppy', 'Somente filhotes']];
+
+export default function AdoptionFilterModal({ filters, onApply, onClose, fields = filterFields, toggles = adoptionToggles }) {
   const [draft, setDraft] = useState(filters);
 
   return (
@@ -11,7 +13,7 @@ export default function AdoptionFilterModal({ filters, onApply, onClose }) {
         <Modal.Title as="h2" id="adoption-filter-title">Filtros</Modal.Title>
       </Modal.Header>
       <Modal.Body className="adoption-filter-fields">
-        {filterFields.map(([key, label, options]) => (
+        {fields.map(([key, label, options]) => (
           <label key={key}>
             {label}
             <select
@@ -24,7 +26,7 @@ export default function AdoptionFilterModal({ filters, onApply, onClose }) {
             </select>
           </label>
         ))}
-        {[['urgent', 'Somente casos urgentes'], ['puppy', 'Somente filhotes']].map(([key, label]) => (
+        {toggles.map(([key, label]) => (
           <label key={key} className="adoption-checkbox">
             <input
               type="checkbox"
