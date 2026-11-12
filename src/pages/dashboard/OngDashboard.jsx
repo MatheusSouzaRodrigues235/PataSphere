@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Modal from 'react-bootstrap/Modal';
+import { NavLink } from 'react-router-dom';
 import {
   FiBell, FiFilter, FiGrid, FiHeart, FiMoon, FiPlus, FiSearch, FiSun,
 } from 'react-icons/fi';
@@ -7,6 +8,7 @@ import { LuPawPrint } from 'react-icons/lu';
 import { initialAnimals, sexes, sizes, traits } from './animals';
 import AnimalFilterModal from './AnimalFilterModal';
 import { matchesAnimalFilters } from './animalFilters';
+import Donations from './donations/Donations';
 
 const emptyFilters = {};
 
@@ -61,7 +63,7 @@ function SelectField({ name, label, options }) {
   );
 }
 
-export default function OngDashboard() {
+export default function OngDashboard({ donations = false }) {
   const [animals, setAnimals] = useState(initialAnimals);
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState(emptyFilters);
@@ -112,8 +114,8 @@ export default function OngDashboard() {
         <nav aria-label="Páginas do dashboard">
           <p>Páginas</p>
           <ul>
-            <li><a href="#visao-geral" aria-current="page"><FiGrid aria-hidden="true" /> Visão geral</a></li>
-            <li><span aria-disabled="true"><FiHeart aria-hidden="true" /> Doações</span></li>
+            <li><NavLink to="/dashboard/ong" end><FiGrid aria-hidden="true" /> Visão geral</NavLink></li>
+            <li><NavLink to="/dashboard/ong/doacoes"><FiHeart aria-hidden="true" /> Doações</NavLink></li>
             <li><span aria-disabled="true"><LuPawPrint aria-hidden="true" /> Animais</span></li>
             <li><span aria-disabled="true"><FiSearch aria-hidden="true" /> Animais perdidos</span></li>
           </ul>
@@ -122,9 +124,9 @@ export default function OngDashboard() {
 
       <div className="ong-workspace">
         <header className="ong-topbar">
-          <div className="ong-breadcrumb">Dashboards <span aria-hidden="true">/</span> <strong>Visão geral</strong></div>
+          <div className="ong-breadcrumb">Dashboards <span aria-hidden="true">/</span> <strong>{donations ? 'Doações' : 'Visão geral'}</strong></div>
           <div className="ong-tools">
-            <SearchField className="ong-top-search" label="Buscar" value={query} onChange={setQuery} />
+            {!donations && <SearchField className="ong-top-search" label="Buscar" value={query} onChange={setQuery} />}
             <div className="ong-notifications">
               <button type="button" className="ong-icon" aria-label="Notificações" aria-expanded={showNotifications}
                 onClick={() => setShowNotifications((current) => !current)}>
@@ -139,7 +141,8 @@ export default function OngDashboard() {
           </div>
         </header>
 
-        <main id="visao-geral" className="ong-main">
+        <div hidden={!donations}><Donations dark={dark} /></div>
+        <main id="visao-geral" className="ong-main" hidden={donations}>
           <div className="ong-title">
             <div>
               <h1>Seus animais</h1>

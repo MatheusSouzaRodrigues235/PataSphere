@@ -10,6 +10,7 @@ import NotFound from '@/pages/NotFound';
 
 export const router = createBrowserRouter([
   { path: '/dashboard/ong', element: <OngDashboard /> },
+  { path: '/dashboard/ong/doacoes', element: <OngDashboard donations /> },
   { path: '/login', element: <Login /> },
   { path: '/cadastro', element: <ChooseProfile /> },
   { path: '/cadastro/tutor', element: <RegisterTutor /> },

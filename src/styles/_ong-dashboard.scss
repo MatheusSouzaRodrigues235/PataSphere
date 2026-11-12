@@ -1,4 +1,5 @@
-.ong-dashboard {
+.ong-dashboard,
+.donation-modal {
   --ong-bg: #f8f5f2;
   --ong-surface: #fff;
   --ong-input: #f2eeeb;
@@ -8,12 +9,6 @@
   --ong-accent: #bc4656;
   --ong-female: #a93445;
   --ong-male: #18599e;
-  display: grid;
-  grid-template-columns: clamp(13rem, 17.4vw, 16.875rem) minmax(0, 1fr);
-  min-height: 100vh;
-  background: var(--ong-bg);
-  color: var(--ong-ink);
-
   &[data-bs-theme='dark'] {
     --ong-bg: #1d242d;
     --ong-surface: #29323e;
@@ -25,6 +20,14 @@
     --ong-male: #a7cfff;
   }
 
+}
+
+.ong-dashboard {
+  display: grid;
+  grid-template-columns: clamp(13rem, 17.4vw, 16.875rem) minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--ong-bg);
+  color: var(--ong-ink);
   h1, h2 { color: inherit; }
 }
 
