@@ -1,14 +1,30 @@
 import { createBrowserRouter } from 'react-router-dom';
 import PublicLayout from '@/layouts/PublicLayout';
 import Home from '@/pages/home/Home';
+import AdoptionBoard from '@/pages/adoption/AdoptionBoard';
+import AdoptionAnimalPage from '@/pages/adoption/AdoptionAnimalPage';
+import AdoptionLayout from '@/pages/adoption/AdoptionLayout';
+import LostAnimalsLayout from '@/pages/lost-animals/LostAnimalsLayout';
+import LostAnimalsBoard from '@/pages/lost-animals/LostAnimalsBoard';
+import LostAnimalForm from '@/pages/lost-animals/LostAnimalForm';
+import LostAnimalPage from '@/pages/lost-animals/LostAnimalPage';
 import Login from '@/pages/login/Login';
 import ChooseProfile from '@/pages/register/ChooseProfile';
 import RegisterTutor from '@/pages/register/RegisterTutor';
 import RegisterOng from '@/pages/register/RegisterOng';
 import OngDashboard from '@/pages/dashboard/OngDashboard';
+import { OngDirectory, OngProfile, OngPublicLayout } from '@/pages/ongs/OngPublic';
 import NotFound from '@/pages/NotFound';
 
 export const router = createBrowserRouter([
+  {
+    path: '/ongs',
+    element: <OngPublicLayout />,
+    children: [
+      { index: true, element: <OngDirectory /> },
+      { path: ':ongSlug', element: <OngProfile /> },
+    ],
+  },
   {
     path: '/dashboard/ong',
     element: <OngDashboard />,
@@ -16,6 +32,23 @@ export const router = createBrowserRouter([
       { path: 'doacoes', element: null },
       { path: 'animais', element: null },
       { path: 'animais-perdidos', element: null },
+    ],
+  },
+  {
+    path: '/adocao',
+    element: <AdoptionLayout />,
+    children: [
+      { index: true, element: <AdoptionBoard /> },
+      { path: ':animalId', element: <AdoptionAnimalPage /> },
+    ],
+  },
+  {
+    path: '/animais-perdidos',
+    element: <LostAnimalsLayout />,
+    children: [
+      { index: true, element: <LostAnimalsBoard /> },
+      { path: 'cadastro', element: <LostAnimalForm /> },
+      { path: ':animalId', element: <LostAnimalPage /> },
     ],
   },
   { path: '/login', element: <Login /> },

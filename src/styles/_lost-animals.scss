@@ -1,0 +1,113 @@
+@use 'tokens' as *;
+
+.lost-board-heading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: .75rem;
+  margin-bottom: 1.6rem;
+
+  .adoption-intro { margin-bottom: 0; }
+}
+
+.lost-add {
+  min-height: 48px;
+  border-radius: 999px;
+  padding-inline: 1.35rem;
+  font-size: .95rem;
+}
+
+.lost-status {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  background: #fce8e8;
+  color: #a3263a;
+  padding: .3rem .75rem;
+  font-size: .75rem;
+  font-weight: 750;
+}
+
+.lost-card {
+  .adoption-card-photo img { height: auto; aspect-ratio: 1.55; }
+  .lost-status { position: absolute; top: .75rem; left: .75rem; }
+  .adoption-card-title > span { color: #a3263a; }
+  .adoption-card-body > p {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+  }
+  .adoption-action {
+    background: $pata-petroleo;
+
+    &:hover { background: #3e4a59; }
+  }
+}
+
+.lost-detail-background { background: #f8f5f3; }
+
+.lost-detail {
+  .adoption-detail-panel { overflow-wrap: anywhere; }
+  .lost-status { margin-bottom: .75rem; }
+  .adoption-gallery-main img { aspect-ratio: 1.43; }
+  .adoption-profile-actions .adoption-action { white-space: normal; }
+  .lost-contact-facts { margin-top: 0; }
+}
+
+.lost-contact-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #eee5df;
+
+  .adoption-action { border-radius: 999px; white-space: normal; text-align: center; }
+  .adoption-action:first-child {
+    background: $pata-petroleo;
+
+    &:hover { background: #3e4a59; }
+  }
+}
+
+.adoption-request-modal.sighting-modal {
+  --bs-modal-width: 480px;
+
+  .form-control {
+    min-height: 48px;
+    border-color: #e2d5ce;
+    border-radius: .75rem;
+    background: white;
+    color: $pata-petroleo;
+    font-weight: 500;
+  }
+
+  .sighting-submit {
+    width: 100%;
+    min-height: 52px;
+    margin-top: .4rem;
+    border-radius: 999px;
+    font-size: .95rem;
+  }
+}
+
+.sighting-phone {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: .625rem;
+}
+
+.sighting-phone-icon {
+  display: grid;
+  place-items: center;
+  border-radius: .75rem;
+  background: #dcefe3;
+  color: $pata-verde;
+  font-size: 1.15rem;
+}
+
+.lost-status[data-found='true'] { background: #dcefe3; color: $pata-verde; }
+.lost-type-link { border-radius: 999px; font-size: .875rem; }
