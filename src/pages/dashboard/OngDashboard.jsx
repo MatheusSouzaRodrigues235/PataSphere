@@ -6,6 +6,8 @@ import { initialAnimals } from './animals';
 import { initialDonations } from './donations/donationData';
 import Donations from './donations/Donations';
 import AnimalManagement from './management/AnimalManagement';
+import LostAnimals from './LostAnimals';
+import { initialAlerts } from './lostAnimalData';
 import OngOverview from './OngOverview';
 
 const organization = 'Amor de Pet';
@@ -13,7 +15,9 @@ const organization = 'Amor de Pet';
 export default function OngDashboard() {
   const donations = Boolean(useMatch('/dashboard/ong/doacoes'));
   const management = Boolean(useMatch('/dashboard/ong/animais'));
-  const overview = !donations && !management;
+  const lostAnimals = Boolean(useMatch('/dashboard/ong/animais-perdidos'));
+  const overview = !donations && !management && !lostAnimals;
+  const [alerts, setAlerts] = useState(initialAlerts);
   const [animals, setAnimals] = useState(initialAnimals);
   const [records, setRecords] = useState(initialDonations);
   const [dark, setDark] = useState(false);
@@ -29,7 +33,7 @@ export default function OngDashboard() {
             <li><NavLink to="/dashboard/ong" end><FiGrid aria-hidden="true" /> Visão geral</NavLink></li>
             <li><NavLink to="/dashboard/ong/doacoes"><FiHeart aria-hidden="true" /> Doações</NavLink></li>
             <li><NavLink to="/dashboard/ong/animais"><LuPawPrint aria-hidden="true" /> Animais</NavLink></li>
-            <li><span aria-disabled="true"><FiSearch aria-hidden="true" /> Animais perdidos</span></li>
+            <li><NavLink to="/dashboard/ong/animais-perdidos"><FiSearch aria-hidden="true" /> Animais perdidos</NavLink></li>
           </ul>
         </nav>
       </aside>
@@ -37,7 +41,7 @@ export default function OngDashboard() {
       <div className="ong-workspace">
         <header className="ong-topbar">
           <div className="ong-breadcrumb">
-            Dashboards <span aria-hidden="true">/</span> <strong>{management ? 'Animais' : donations ? 'Doações' : 'Visão geral'}</strong>
+            Dashboards <span aria-hidden="true">/</span> <strong>{lostAnimals ? 'Animais perdidos' : management ? 'Animais' : donations ? 'Doações' : 'Visão geral'}</strong>
           </div>
           <div className="ong-tools">
             <div className="ong-notifications">
@@ -58,6 +62,7 @@ export default function OngDashboard() {
 
         <div hidden={!donations}><Donations records={records} setRecords={setRecords} dark={dark} /></div>
         {management && <AnimalManagement animals={animals} setAnimals={setAnimals} dark={dark} />}
+        {lostAnimals && <LostAnimals alerts={alerts} setAlerts={setAlerts} dark={dark} />}
         {overview && <OngOverview organization={organization} animals={animals} records={records} dark={dark} />}
       </div>
     </div>
