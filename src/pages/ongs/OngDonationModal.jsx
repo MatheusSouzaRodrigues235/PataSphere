@@ -13,7 +13,7 @@ export default function OngDonationModal({ ong, show, onClose }) {
   async function copyPixKey() {
     try {
       await navigator.clipboard.writeText(ong.pixKey);
-      setCopyStatus('Chave demonstrativa copiada.');
+      setCopyStatus(ong.preview ? 'Chave Pix copiada.' : 'Chave demonstrativa copiada.');
     } catch {
       pixInput.current?.focus();
       pixInput.current?.select();
@@ -49,8 +49,8 @@ export default function OngDonationModal({ ong, show, onClose }) {
         </div>
       </Modal.Header>
       <Modal.Body>
-        <div className="ong-donation-pix">
-          <label htmlFor="ong-donation-key">Chave Pix (CNPJ) · Demonstrativa</label>
+        {ong.pixKey && <div className="ong-donation-pix">
+          <label htmlFor="ong-donation-key">{ong.preview ? 'Chave Pix' : 'Chave Pix (CNPJ) · Demonstrativa'}</label>
           <div className="ong-donation-key">
             <input id="ong-donation-key" ref={pixInput} value={ong.pixKey} readOnly />
             <button className="adoption-control" type="button" onClick={copyPixKey}>
@@ -58,22 +58,30 @@ export default function OngDonationModal({ ong, show, onClose }) {
             </button>
           </div>
           <span role="status">{copyStatus}</span>
-        </div>
-        <h3>Doação de ração e medicamentos</h3>
-        <p>Consulte os contatos da ONG em {ong.city} para combinar o dia e o horário da entrega.</p>
+        </div>}
+        {ong.preview ? (
+          ong.supplies.length > 0 && <>
+            <h3>Insumos necessários</h3>
+            <ul>{ong.supplies.map((item) => <li key={item}>{item}</li>)}</ul>
+          </>
+        ) : <>
+          <h3>Doação de ração e medicamentos</h3>
+          <p>Consulte os contatos da ONG em {ong.city} para combinar o dia e o horário da entrega.</p>
+        </>}
         <p className="ong-donation-note">
           <FiInfo aria-hidden="true" />
-          <span>A doação é feita diretamente com a ONG. Os dados desta página são demonstrativos.</span>
+          <span>{ong.preview ? 'Você está visualizando os dados salvos neste navegador.'
+            : 'A doação é feita diretamente com a ONG. Os dados desta página são demonstrativos.'}</span>
         </p>
       </Modal.Body>
       <Modal.Footer>
         <button className="adoption-control" type="button" onClick={onClose}>Fechar</button>
-        <button className="adoption-action ong-donation-delivery" type="button" onClick={() => {
+        {(ong.whatsapp || ong.email) && <button className="adoption-action ong-donation-delivery" type="button" onClick={() => {
           setGoToContact(true);
           onClose();
         }}>
           <FaWhatsapp aria-hidden="true" /> Combinar entrega
-        </button>
+        </button>}
       </Modal.Footer>
     </Modal>
   );

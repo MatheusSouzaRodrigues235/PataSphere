@@ -13,8 +13,10 @@ import ChooseProfile from '@/pages/register/ChooseProfile';
 import RegisterTutor from '@/pages/register/RegisterTutor';
 import RegisterOng from '@/pages/register/RegisterOng';
 import OngDashboard from '@/pages/dashboard/OngDashboard';
-import { OngProfile, OngPublicLayout } from '@/pages/ongs/OngPublic';
+import { OngProfile, OngProfilePreview, OngPublicLayout } from '@/pages/ongs/OngPublic';
+import OngSettings from '@/pages/ong-settings/OngSettings';
 import OngDirectory from '@/pages/ongs/OngDirectory';
+import TutorProfile from '@/pages/tutor/TutorProfile';
 import NotFound from '@/pages/NotFound';
 
 export const router = createBrowserRouter([
@@ -23,6 +25,7 @@ export const router = createBrowserRouter([
     element: <OngPublicLayout />,
     children: [
       { index: true, element: <OngDirectory /> },
+      { path: 'amor-de-pet/previa', element: <OngProfilePreview /> },
       { path: ':ongSlug', element: <OngProfile /> },
     ],
   },
@@ -52,6 +55,8 @@ export const router = createBrowserRouter([
       { path: ':animalId', element: <LostAnimalPage /> },
     ],
   },
+  { path: '/perfil/tutor/:secao?', element: <TutorProfile /> },
+  { path: '/perfil/ong/:secao?', element: <OngSettings /> },
   { path: '/login', element: <Login /> },
   { path: '/cadastro', element: <ChooseProfile /> },
   { path: '/cadastro/tutor', element: <RegisterTutor /> },

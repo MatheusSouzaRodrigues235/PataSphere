@@ -1,0 +1,186 @@
+import { useRef, useState } from 'react';
+import { Container, Nav, Navbar } from 'react-bootstrap';
+import { Link, Navigate, NavLink, useParams } from 'react-router-dom';
+import { FiBell, FiCamera, FiEye, FiLock, FiShield, FiUser, FiX } from 'react-icons/fi';
+import { LuPawPrint } from 'react-icons/lu';
+import logo from '@/assets/logo-patasphere.svg';
+import TutorProfileForm from './TutorProfileForm';
+import { TutorConfirm, TutorPets, TutorPhoto, TutorPreferences, TutorPreview, TutorSecurity } from './TutorSections';
+import '@/styles/_tutor-profile.scss';
+
+const base = '/perfil/tutor';
+const storageKey = 'patasphere-tutor-profile';
+const initialData = {
+  profile: {
+    firstName: 'Matheus', lastName: 'Souza Rodrigues', intro: '', bio: '', city: '', state: 'São Paulo',
+    email: '', phone: '', website: '', instagram: '', facebook: '',
+  },
+  photo: '',
+  pets: [],
+  notifications: { sightings: true, adoption: true, news: false },
+  privacy: { location: true, contact: false },
+};
+
+const sections = {
+  publico: ['Visualizar perfil público', 'Prévia do perfil público', 'Veja como seu perfil seria exibido.', FiEye],
+  perfil: ['Perfil', 'Perfil público', 'Adicione informações sobre você', FiUser],
+  foto: ['Foto', 'Foto do perfil', 'Atualize a imagem que aparece no seu perfil.', FiCamera],
+  seguranca: ['Segurança da conta', 'Segurança da conta', 'Gerencie a senha da sua conta.', FiLock],
+  animais: ['Meus animais', 'Meus animais', 'Organize a lista dos animais sob seus cuidados.', LuPawPrint],
+  notificacoes: ['Preferências de notificação', 'Preferências de notificação', 'Escolha os avisos que deseja receber quando o envio estiver disponível.', FiBell],
+  privacidade: ['Privacidade', 'Privacidade', 'Escolha quais informações aparecem na prévia do perfil público.', FiShield],
+};
+
+const notificationOptions = [
+  ['sightings', 'Avistamentos', 'Avisos sobre animais perdidos que você cadastrou.'],
+  ['adoption', 'Adoção', 'Atualizações sobre suas solicitações de adoção.'],
+  ['news', 'Novidades', 'Comunicados do PataSphere.'],
+];
+
+const privacyOptions = [
+  ['location', 'Localização', 'Mostrar cidade e estado no perfil público.'],
+  ['contact', 'Contato', 'Mostrar e-mail e WhatsApp no perfil público.'],
+];
+
+function readData() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(storageKey));
+    if (stored) {
+      return {
+        ...initialData, ...stored,
+        profile: { ...initialData.profile, ...stored.profile },
+        notifications: { ...initialData.notifications, ...stored.notifications },
+        privacy: { ...initialData.privacy, ...stored.privacy },
+      };
+    }
+  } catch {
+    return initialData;
+  }
+  return initialData;
+}
+
+function Avatar({ photo, initials, small = false }) {
+  return (
+    <span className={'tutor-avatar' + (small ? ' tutor-avatar-small' : '')} aria-hidden="true">
+      {photo ? <img src={photo} alt="" /> : initials}
+    </span>
+  );
+}
+
+export default function TutorProfile() {
+  const { secao = 'perfil' } = useParams();
+  const [data, setData] = useState(readData);
+  const currentData = useRef(data);
+  const [revision, setRevision] = useState(0);
+  const [confirm, setConfirm] = useState(false);
+  const [feedback, setFeedback] = useState(null);
+
+  if (!Object.hasOwn(sections, secao)) return <Navigate to={base} replace />;
+
+  const { profile, photo } = data;
+  const firstSurname = profile.lastName.split(/\s+/)[0];
+  const initials = (profile.firstName[0] + firstSurname[0]).toLocaleUpperCase('pt-BR');
+  const avatar = <Avatar photo={photo} initials={initials} />;
+  const [, title, subtitle] = sections[secao];
+
+  function save(changes, message = 'Perfil salvo neste navegador.') {
+    const next = { ...currentData.current, ...changes };
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(next));
+      currentData.current = next;
+      setData(next);
+      setFeedback({ section: secao, message });
+      return true;
+    } catch {
+      setFeedback({ section: secao, message: 'Não foi possível salvar os dados neste navegador.', error: true });
+      return false;
+    }
+  }
+
+  function reset() {
+    try {
+      localStorage.removeItem(storageKey);
+      currentData.current = initialData;
+      setData(initialData);
+      setRevision((current) => current + 1);
+      setConfirm(false);
+      setFeedback({ section: secao, message: 'Os dados locais do perfil foram apagados.' });
+    } catch {
+      setFeedback({ section: secao, message: 'Não foi possível apagar os dados neste navegador.', error: true });
+      setConfirm(false);
+    }
+  }
+
+  const content = {
+    perfil: <TutorProfileForm profile={profile} save={save} />,
+    publico: <TutorPreview data={data} avatar={avatar} />,
+    foto: <TutorPhoto photo={photo} save={save} avatar={avatar} />,
+    seguranca: <TutorSecurity />,
+    animais: <TutorPets pets={data.pets} save={save} />,
+    notificacoes: <TutorPreferences options={notificationOptions} values={data.notifications}
+      onSave={(notifications) => save({ notifications }, 'Preferências salvas neste navegador.')} />,
+    privacidade: <TutorPreferences options={privacyOptions} values={data.privacy}
+      onSave={(privacy) => save({ privacy }, 'Preferências salvas neste navegador.')} />,
+  };
+
+  return (
+    <div className="tutor-page">
+      <a className="skip-link" href="#tutor-conteudo">Pular para o conteúdo</a>
+      <Navbar expand="lg" className="tutor-header">
+        <Container fluid>
+          <Navbar.Brand as={Link} to="/" aria-label="PataSphere, página inicial">
+            <img src={logo} alt="" width="48" height="48" />
+          </Navbar.Brand>
+          <Navbar.Toggle aria-controls="tutor-site-menu" label="Alternar menu principal" />
+          <Navbar.Collapse id="tutor-site-menu">
+            <Nav>
+              <Nav.Link as={Link} to="/">Home</Nav.Link>
+              <Nav.Link as={Link} to="/animais-perdidos">Animais perdidos</Nav.Link>
+              <Nav.Link as={Link} to="/adocao">Adotar um animal</Nav.Link>
+              <Nav.Link as={Link} to="/ongs">Visualizar ONGs</Nav.Link>
+            </Nav>
+            <Link to={base} className="tutor-header-account" aria-label="Meu perfil">
+              <Avatar photo={photo} initials={initials[0]} small />
+            </Link>
+          </Navbar.Collapse>
+        </Container>
+      </Navbar>
+      <main className="tutor-layout" id="tutor-conteudo">
+        <aside className="tutor-card tutor-sidebar">
+          <div className="tutor-identity">
+            {avatar}
+            <strong>{profile.firstName} {firstSurname}</strong>
+            <span className="tutor-role">Tutor</span>
+          </div>
+          <nav className="tutor-nav" aria-label="Configurações do tutor">
+            {Object.entries(sections).map(([id, [label, , , Icon]]) => (
+              <NavLink key={id} to={id === 'perfil' ? base : base + '/' + id} end
+                onClick={() => setFeedback(null)}>
+                <Icon aria-hidden="true" />{label}
+              </NavLink>
+            ))}
+            <button type="button" className="tutor-danger" onClick={() => setConfirm(true)}>
+              <FiX aria-hidden="true" />Encerrar conta
+            </button>
+          </nav>
+        </aside>
+        <section className="tutor-card tutor-panel" aria-labelledby="tutor-title">
+          <header className="tutor-panel-header">
+            <h1 id="tutor-title">{title}</h1>
+            <p>{subtitle}</p>
+          </header>
+          <div key={secao + revision}>{content[secao]}</div>
+          {feedback?.section === secao && (
+            <p className={'tutor-feedback' + (feedback.error ? ' tutor-error' : '')}
+              role={feedback.error ? 'alert' : 'status'}>{feedback.message}</p>
+          )}
+        </section>
+      </main>
+      {confirm && (
+        <TutorConfirm title="Encerrar conta" confirm="Apagar dados locais" close={() => setConfirm(false)} action={reset}>
+          Nesta versão, essa ação apaga as alterações do perfil, a foto, os animais e as preferências salvos neste navegador.
+        </TutorConfirm>
+      )}
+    </div>
+  );
+}

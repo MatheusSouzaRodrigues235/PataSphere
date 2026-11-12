@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useMatch } from 'react-router-dom';
-import { FiBell, FiGrid, FiHeart, FiMoon, FiSearch, FiSun } from 'react-icons/fi';
+import { FiBell, FiGrid, FiHeart, FiMoon, FiSearch, FiSun, FiUser } from 'react-icons/fi';
 import { LuPawPrint } from 'react-icons/lu';
 import { initialAnimals } from './animals';
 import { initialDonations } from './donations/donationData';
@@ -9,6 +9,7 @@ import AnimalManagement from './management/AnimalManagement';
 import LostAnimals from './LostAnimals';
 import { initialAlerts } from './lostAnimalData';
 import OngOverview from './OngOverview';
+import { ongSettingsPath } from '@/pages/ong-settings/ongSettingsStorage';
 
 const organization = 'Amor de Pet';
 
@@ -34,6 +35,7 @@ export default function OngDashboard() {
             <li><NavLink to="/dashboard/ong/doacoes"><FiHeart aria-hidden="true" /> Doações</NavLink></li>
             <li><NavLink to="/dashboard/ong/animais"><LuPawPrint aria-hidden="true" /> Animais</NavLink></li>
             <li><NavLink to="/dashboard/ong/animais-perdidos"><FiSearch aria-hidden="true" /> Animais perdidos</NavLink></li>
+            <li><NavLink to={ongSettingsPath}><FiUser aria-hidden="true" /> Perfil da ONG</NavLink></li>
           </ul>
         </nav>
       </aside>
