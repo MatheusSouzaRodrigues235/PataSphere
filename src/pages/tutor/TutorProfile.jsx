@@ -1,9 +1,8 @@
 import { useRef, useState } from 'react';
-import { Container, Nav, Navbar } from 'react-bootstrap';
 import { Link, Navigate, NavLink, useLocation, useParams } from 'react-router-dom';
 import { FiBell, FiCamera, FiEye, FiLock, FiPlus, FiShield, FiUser, FiX } from 'react-icons/fi';
 import { LuPawPrint } from 'react-icons/lu';
-import logo from '@/assets/logo-patasphere.svg';
+import SiteHeader from '@/components/layout/SiteHeader';
 import TutorProfileForm from './TutorProfileForm';
 import { TutorConfirm, TutorPhoto, TutorPreferences, TutorPreview, TutorSecurity } from './TutorSections';
 import TutorAnimals from './TutorAnimals';
@@ -62,9 +61,9 @@ function readData() {
   return initialData;
 }
 
-function Avatar({ photo, initials, small = false }) {
+function Avatar({ photo, initials }) {
   return (
-    <span className={'tutor-avatar' + (small ? ' tutor-avatar-small' : '')} aria-hidden="true">
+    <span className="tutor-avatar" aria-hidden="true">
       {photo ? <img src={photo} alt="" /> : initials}
     </span>
   );
@@ -130,25 +129,7 @@ export default function TutorProfile() {
   return (
     <div className="tutor-page">
       <a className="skip-link" href="#tutor-conteudo">Pular para o conteúdo</a>
-      <Navbar expand="lg" className="tutor-header" data-animals={secao === 'animais'}>
-        <Container fluid>
-          <Navbar.Brand as={Link} to="/" aria-label="PataSphere, página inicial">
-            <img src={logo} alt="" width="48" height="48" />
-          </Navbar.Brand>
-          <Navbar.Toggle aria-controls="tutor-site-menu" label="Alternar menu principal" />
-          <Navbar.Collapse id="tutor-site-menu">
-            <Nav>
-              <Nav.Link as={Link} to="/">Home</Nav.Link>
-              <Nav.Link as={Link} to="/animais-perdidos">Animais perdidos</Nav.Link>
-              <Nav.Link as={Link} to="/adocao">Adotar um animal</Nav.Link>
-              <Nav.Link as={Link} to="/ongs">Visualizar ONGs</Nav.Link>
-            </Nav>
-            <Link to={base} className="tutor-header-account" aria-label="Meu perfil">
-              <Avatar photo={photo} initials={initials[0]} small />
-            </Link>
-          </Navbar.Collapse>
-        </Container>
-      </Navbar>
+      <SiteHeader role="tutor" identity={{ name: [profile.firstName, firstSurname].filter(Boolean).join(' ') || 'Tutor', email: profile.email, photo }} />
       <main className="tutor-layout" id="tutor-conteudo" data-animals={secao === 'animais'}>
         <aside className="tutor-card tutor-sidebar">
           <div className="tutor-identity">

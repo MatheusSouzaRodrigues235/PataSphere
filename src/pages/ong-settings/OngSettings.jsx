@@ -1,8 +1,7 @@
 import { useRef, useState } from 'react';
-import { Container, Nav, Navbar } from 'react-bootstrap';
 import { Link, Navigate, NavLink, useParams } from 'react-router-dom';
 import { FiBell, FiCamera, FiEye, FiHeart, FiLock, FiShield, FiUser, FiX } from 'react-icons/fi';
-import logo from '@/assets/logo-patasphere.svg';
+import SiteHeader from '@/components/layout/SiteHeader';
 import { TutorConfirm, TutorPreferences, TutorSecurity } from '@/pages/tutor/TutorSections';
 import OngProfileForm from './OngProfileForm';
 import { OngImages, OngReceiving } from './OngSettingsSections';
@@ -31,9 +30,9 @@ const privacyOptions = [
   ['location', 'Localização', 'Mostrar cidade e estado.'],
 ];
 
-function Avatar({ images, name, small = false }) {
+function Avatar({ images, name }) {
   return (
-    <span className={'tutor-avatar' + (small ? ' tutor-avatar-small' : '')} aria-hidden="true">
+    <span className="tutor-avatar" aria-hidden="true">
       {images.logo ? <img src={images.logo} alt="" /> : name[0]?.toLocaleUpperCase('pt-BR')}
     </span>
   );
@@ -92,25 +91,7 @@ export default function OngSettings() {
   return (
     <div className="tutor-page ong-settings">
       <a className="skip-link" href="#ong-settings-content">Pular para o conteúdo</a>
-      <Navbar expand="lg" className="tutor-header">
-        <Container fluid>
-          <Navbar.Brand as={Link} to="/" aria-label="PataSphere, página inicial">
-            <img src={logo} alt="" width="48" height="48" />
-          </Navbar.Brand>
-          <Navbar.Toggle aria-controls="ong-settings-menu" label="Alternar menu principal" />
-          <Navbar.Collapse id="ong-settings-menu">
-            <Nav>
-              <Nav.Link as={Link} to="/">Home</Nav.Link>
-              <Nav.Link as={Link} to="/animais-perdidos">Animais perdidos</Nav.Link>
-              <Nav.Link as={Link} to="/adocao">Adotar um animal</Nav.Link>
-              <Nav.Link as={Link} to="/ongs">Visualizar ONGs</Nav.Link>
-            </Nav>
-            <Link to="/dashboard/ong" className="tutor-header-account" aria-label="Ir para o painel da ONG">
-              <Avatar images={data.images} name={data.profile.name} small />
-            </Link>
-          </Navbar.Collapse>
-        </Container>
-      </Navbar>
+      <SiteHeader role="ong" identity={{ name: data.profile.name || 'Amor de Pet', email: data.profile.email, photo: data.images.logo }} />
       <main className="tutor-layout" id="ong-settings-content">
         <aside className="tutor-card tutor-sidebar">
           <div className="tutor-identity">

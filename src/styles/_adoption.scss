@@ -1,21 +1,5 @@
 @use 'tokens' as *;
 
-.adoption-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  min-height: 72px;
-  padding: .75rem clamp(1rem, 3.3vw, 3rem);
-  background: #fff;
-  border-bottom: 1px solid #eee5df;
-
-  nav { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: .5rem 1rem; }
-  nav a { color: $pata-petroleo; text-decoration: none; font-weight: 600; }
-  nav a[aria-current] { padding: .5rem 1rem; border-radius: 999px; background: $pata-petroleo; color: white; }
-  nav a.adoption-control { border-radius: 50%; padding: 0; width: 46px; height: 46px; font-size: 1.2rem; }
-}
-
 .adoption-board {
   background: #f8f5f3;
   color: $pata-petroleo;
@@ -252,8 +236,6 @@
 @media (max-width: 580px) {
   .adoption-container, .adoption-footer-inner { width: calc(100% - 2rem); }
   .adoption-grid { grid-template-columns: minmax(0, 1fr); }
-  .adoption-header nav { gap: .5rem; font-size: .8rem; }
-  .adoption-header nav a[aria-current] { padding-inline: .65rem; }
   .adoption-search-row { gap: .5rem; }
   .adoption-search { padding-inline: .65rem; gap: .4rem; }
 }

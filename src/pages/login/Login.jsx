@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FiArrowRight } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
+import { startDemoRole } from '@/app/demoSession';
 import AuthLayout from '@/layouts/AuthLayout';
 import AuthPasswordInput from '@/components/layout/AuthPasswordInput';
 
@@ -73,8 +74,8 @@ export default function Login() {
           Ainda não tem conta?{' '}
           <Link to="/cadastro" className="auth-action">Cadastre-se</Link>
         </p>
-        <p className="auth-switch"><Link to="/perfil/tutor" className="auth-action">Experimentar perfil do tutor</Link></p>
-        <p className="auth-switch"><Link to="/perfil/ong" className="auth-action">Experimentar perfil da ONG</Link></p>
+        <p className="auth-switch"><Link to="/perfil/tutor" onClick={() => startDemoRole('tutor')} className="auth-action">Experimentar perfil do tutor</Link></p>
+        <p className="auth-switch"><Link to="/perfil/ong" onClick={() => startDemoRole('ong')} className="auth-action">Experimentar perfil da ONG</Link></p>
         <p className="auth-feedback" role="status">{feedback}</p>
       </div>
     </AuthLayout>

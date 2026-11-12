@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { AdoptionFooter, AdoptionHeader } from '@/pages/adoption/AdoptionNavigation';
+import { AdoptionFooter } from '@/pages/adoption/AdoptionNavigation';
+import SiteHeader from '@/components/layout/SiteHeader';
 import { exampleAlerts } from './lostAnimalsData';
 import { readTutorAlerts, saveTutorData } from '@/pages/tutor/tutorStorage';
 import '@/styles/_adoption.scss';
@@ -23,7 +24,7 @@ export default function LostAnimalsLayout() {
   return (
     <>
       <a className="skip-link" href="#conteudo">Pular para o conteúdo</a>
-      <AdoptionHeader />
+      <SiteHeader />
       <main id="conteudo"><Outlet context={{ alerts: [...tutorAlerts, ...exampleAlerts], addAlert }} /></main>
       <AdoptionFooter />
     </>

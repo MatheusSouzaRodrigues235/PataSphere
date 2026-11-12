@@ -1,28 +1,6 @@
-import { Link, NavLink } from 'react-router-dom';
-import { FiGithub, FiUser } from 'react-icons/fi';
+import { Link } from 'react-router-dom';
+import { FiGithub } from 'react-icons/fi';
 import logo from '@/assets/logo-patasphere.svg';
-
-export function AdoptionHeader({ showAccountActions = false }) {
-  return (
-    <header className="adoption-header">
-      <Link to="/" aria-label="PataSphere, página inicial"><img src={logo} alt="" width="44" height="44" /></Link>
-      <nav aria-label="Menu principal">
-        <Link to="/">Home</Link>
-        <NavLink to="/animais-perdidos">Animais perdidos</NavLink>
-        <NavLink to="/adocao">Adotar um animal</NavLink>
-        <NavLink to="/ongs">Visualizar ONGs</NavLink>
-        {showAccountActions ? (
-          <>
-            <Link className="adoption-control adoption-account-link" to="/login">Entrar</Link>
-            <Link className="adoption-action adoption-account-link" to="/cadastro">Cadastrar</Link>
-          </>
-        ) : (
-          <Link className="adoption-control" to="/login" aria-label="Acessar conta"><FiUser aria-hidden="true" /></Link>
-        )}
-      </nav>
-    </header>
-  );
-}
 
 export function AdoptionFooter({ showLostAnimals = false }) {
   return (

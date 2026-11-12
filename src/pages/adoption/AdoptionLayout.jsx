@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { AdoptionFooter, AdoptionHeader } from './AdoptionNavigation';
+import { AdoptionFooter } from './AdoptionNavigation';
+import SiteHeader from '@/components/layout/SiteHeader';
 import '@/styles/_adoption.scss';
 
 const favoritesKey = 'patasphere:adoption-favorites';
@@ -39,7 +40,7 @@ export default function AdoptionLayout() {
   return (
     <>
       <a className="skip-link" href="#conteudo">Pular para o conteúdo</a>
-      <AdoptionHeader />
+      <SiteHeader />
       <main id="conteudo"><Outlet context={{ favorites, toggleFavorite }} /></main>
       <AdoptionFooter />
     </>

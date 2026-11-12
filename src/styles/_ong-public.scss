@@ -304,16 +304,6 @@
 
 .ong-directory-empty { margin-top: 1.75rem; }
 
-.adoption-header nav a.adoption-account-link {
-  border-radius: 999px;
-  width: auto;
-  height: auto;
-  padding-inline: 1rem;
-  font-size: inherit;
-
-  &.adoption-action { color: white; }
-}
-
 @media (min-width: 901px) {
   .adoption-footer-columns.ong-directory-footer { grid-template-columns: 1.4fr repeat(4, 1fr); }
 }

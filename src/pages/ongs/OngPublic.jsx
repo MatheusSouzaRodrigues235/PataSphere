@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { FiCalendar, FiChevronRight, FiCopy, FiFacebook, FiGlobe, FiHeart, FiInstagram, FiMail, FiMapPin, FiPackage } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
-import { AdoptionFooter, AdoptionHeader } from '@/pages/adoption/AdoptionNavigation';
+import { AdoptionFooter } from '@/pages/adoption/AdoptionNavigation';
+import SiteHeader from '@/components/layout/SiteHeader';
 import { adoptionAnimals, adoptionPath } from '@/pages/adoption/adoptionData';
 import NotFound from '@/pages/NotFound';
 import { ongSettingsPath, readOngSettings } from '@/pages/ong-settings/ongSettingsStorage';
@@ -33,7 +34,7 @@ export function OngPublicLayout() {
   return (
     <>
       <a className="skip-link" href="#conteudo">Pular para o conteúdo</a>
-      <AdoptionHeader showAccountActions={pathname === '/ongs'} />
+      <SiteHeader />
       <main id="conteudo" className="ong-public"><Outlet /></main>
       <AdoptionFooter showLostAnimals={pathname === '/ongs'} />
     </>

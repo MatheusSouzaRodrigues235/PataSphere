@@ -1,0 +1,114 @@
+.site-header {
+  min-height: 72px;
+  padding-block: .625rem;
+  background: #fff;
+  border-bottom: 1px solid #eee5df;
+  color: #29323e;
+
+  > .container-fluid { padding-inline: clamp(1rem, 3.3vw, 3.5rem); }
+  .navbar-brand { padding-block: 0; }
+  .navbar-brand img { display: block; }
+  .navbar-nav { gap: .25rem clamp(.15rem, 1vw, .75rem); }
+
+  .navbar-nav .nav-link,
+  .site-guest-actions a {
+    display: block;
+    padding: .55rem .9rem;
+    border-radius: 999px;
+    color: #465361;
+    text-decoration: none;
+    font-weight: 650;
+
+    &:hover { background: #f8eeed; color: #892c3d; }
+  }
+
+  .navbar-nav .nav-link.active { background: #29323e; color: #fff; }
+}
+
+.site-header .site-guest-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin-inline-start: clamp(.5rem, 1.5vw, 1.25rem);
+
+  .site-login { border: 1px solid #dfd1cb; }
+  .site-register {
+    border: 1px solid transparent;
+    background: #b34354;
+    color: #fff;
+
+    &:hover { background: #963545; color: #fff; }
+  }
+}
+
+.site-account {
+  margin-inline-start: clamp(.5rem, 1.5vw, 1.25rem);
+
+  .site-account-toggle {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 50%;
+    background: #b34354;
+    color: #fff;
+    font-weight: 800;
+
+    &:hover, &:focus-visible, &.show { background: #963545; color: #fff; }
+    &::after { display: none; }
+    img { width: 100%; height: 100%; object-fit: cover; }
+  }
+
+  .dropdown-menu {
+    --bs-dropdown-bg: #fff;
+    width: min(17rem, calc(100vw - 2rem));
+    margin-top: .55rem;
+    padding: .5rem;
+    border: 1px solid #f0e9e5;
+    border-radius: 1.25rem;
+    box-shadow: 0 18px 42px rgba(41, 50, 62, .18);
+  }
+
+  .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    min-height: 44px;
+    padding: .55rem .85rem;
+    border-radius: .7rem;
+    color: #465361;
+    font-weight: 650;
+
+    svg { flex: none; }
+    &:hover, &:focus, &.active { background: #f8eeed; color: #892c3d; }
+    &.site-account-signout { color: #9f3043; }
+  }
+}
+
+.site-account-identity {
+  display: grid;
+  gap: .2rem;
+  margin-bottom: .35rem;
+  padding: .65rem .85rem .75rem;
+  border-bottom: 1px solid #eee5df;
+  color: #29323e;
+  overflow-wrap: anywhere;
+
+  span { color: #5e6976; font-size: .875rem; }
+}
+
+@media (max-width: 991.98px) {
+  .site-header .navbar-collapse {
+    max-height: calc(100dvh - 72px);
+    overflow-y: auto;
+    padding: .75rem .25rem .4rem;
+  }
+
+  .site-account,
+  .site-header .site-guest-actions { margin: .65rem 0 0; }
+
+  .site-account .dropdown-menu { position: static; box-shadow: none; }
+}
