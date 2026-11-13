@@ -14,6 +14,7 @@ const formatCnpj = formatOnBlur(/^([A-Z0-9]{2})([A-Z0-9]{3})([A-Z0-9]{3})([A-Z0-
 export default function RegisterOng() {
   return (
     <RegistrationForm
+      profile="ong"
       title="Cadastro de ONG"
       intro={<>Gerencie sua ONG em<br />um só lugar</>}
       description="Cadastre sua organização para divulgar animais, registrar doações e ampliar o alcance das suas campanhas."
@@ -29,7 +30,7 @@ export default function RegisterOng() {
           label="CNPJ"
           autoCapitalize="characters"
           spellCheck={false}
-          pattern={String.raw`(?:[A-Za-z0-9]{12}[0-9]{2}|[A-Za-z0-9]{2}\.[A-Za-z0-9]{3}\.[A-Za-z0-9]{3}/[A-Za-z0-9]{4}-[0-9]{2})`}
+          pattern={String.raw`(?:[A-Za-z0-9]{12}[0-9]{2}|[A-Za-z0-9]{2}\.[A-Za-z0-9]{3}\.[A-Za-z0-9]{3}\/[A-Za-z0-9]{4}-[0-9]{2})`}
           onBlur={formatCnpj}
           placeholder="00.000.000/0000-00"
           title="Informe os 14 caracteres do CNPJ, com os dois últimos em números."

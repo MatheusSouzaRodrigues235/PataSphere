@@ -13,6 +13,7 @@ const formatCpf = formatOnBlur(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
 export default function RegisterTutor() {
   return (
     <RegistrationForm
+      profile="tutor"
       title="Cadastro de tutor"
       intro={<>Adote, divulgue,<br />reencontre</>}
       description="Crie sua conta de tutor e ajude animais a encontrar um lar ou voltar para casa."
