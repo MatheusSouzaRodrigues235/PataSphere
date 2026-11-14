@@ -43,7 +43,11 @@ export default function Login() {
       clearDemoRole();
       const returnTo = state?.returnTo;
       const dashboardPath = /^\/dashboard\/ong(?:[/?]|$)/.test(returnTo) ? returnTo : '/dashboard/ong';
-      await navigate(role === 'tutor' ? '/adocao' : dashboardPath, { replace: true });
+      if (returnTo === '/animais-perdidos/cadastro') {
+        await navigate(returnTo, { replace: true, state: state?.lostAnimalForm });
+      } else {
+        await navigate(role === 'tutor' ? '/adocao' : dashboardPath, { replace: true });
+      }
     } catch {
       setFeedback('Não foi possível acessar o serviço de login. Tente novamente.');
     } finally {

@@ -3,6 +3,7 @@ import { Button, Modal } from 'react-bootstrap';
 import { FiCalendar, FiCheck, FiEdit2, FiEye, FiMapPin, FiTrash2 } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { formatAlertDate, lostAnimalsPath, todayDate } from '@/pages/lost-animals/lostAnimalsData';
+import { isPublishedAlert, requestLostAnimals, useLostAnimals } from '@/pages/lost-animals/lostAnimalsApi';
 import { TutorConfirm } from './TutorSections';
 
 
@@ -87,7 +88,7 @@ function EditAlert({ animal, close, submit, error }) {
           <div className="tutor-field">
             <label htmlFor="tutor-animal-description">Descrição</label>
             <textarea id="tutor-animal-description" name="description" defaultValue={animal.description}
-              maxLength={500} rows={3} />
+              maxLength={500} rows={3} required />
           </div>
           {error && <p className="tutor-error mb-0" role="alert">{error}</p>}
         </Modal.Body>
@@ -100,11 +101,14 @@ function EditAlert({ animal, close, submit, error }) {
   );
 }
 
-export default function TutorAnimals({ alerts, save }) {
+export default function TutorAnimals({ alerts, save, notify }) {
   const [filter, setFilter] = useState(0);
   const [action, setAction] = useState(null);
   const [error, setError] = useState('');
-  const visible = alerts.filter(filters[filter][1]).sort((a, b) => b.date.localeCompare(a.date));
+  const [saving, setSaving] = useState(false);
+  const { data, loading, error: loadError, reload } = useLostAnimals('/meus');
+  const allAlerts = [...(data?.alerts ?? []), ...alerts];
+  const visible = allAlerts.filter(filters[filter][1]).sort((a, b) => b.date.localeCompare(a.date));
   const cancel = () => { setAction(null); setError(''); };
 
   function commit(next, message) {
@@ -114,6 +118,22 @@ export default function TutorAnimals({ alerts, save }) {
 
   function replace(updated, message) {
     commit(alerts.map((animal) => animal.id === updated.id ? updated : animal), message);
+  }
+
+  async function updatePublished(animal, method, body, message) {
+    if (saving) return;
+    setSaving(true);
+    setError('');
+    try {
+      await requestLostAnimals('/' + animal.id, { method, body });
+      reload();
+      notify(message);
+      cancel();
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSaving(false);
+    }
   }
 
   const removing = action?.type === 'delete';
@@ -126,27 +146,37 @@ export default function TutorAnimals({ alerts, save }) {
           </button>
         ))}
       </div>
+      {loading && <p role="status">Carregando anúncios…</p>}
+      {loadError && <p role="alert">{loadError} <button type="button" onClick={reload}>Tentar novamente</button></p>}
       {visible.length ? (
         <ul className="tutor-animal-list" aria-label="Anúncios cadastrados">
           {visible.map((animal) => <AnimalCard key={animal.id} animal={animal}
             onAction={(type, selected) => setAction({ type, animal: selected })} />)}
         </ul>
-      ) : (
+      ) : !loading && !loadError && (
         <div className="tutor-animal-empty">
-          <p>{alerts.length ? 'Nenhum anúncio neste filtro.' : 'Você ainda não cadastrou nenhum anúncio.'}</p>
-          {alerts.length > 0 && <button type="button" onClick={() => setFilter(0)}>Ver todos</button>}
+          <p>{allAlerts.length ? 'Nenhum anúncio neste filtro.' : 'Você ainda não cadastrou nenhum anúncio.'}</p>
+          {allAlerts.length > 0 && <button type="button" onClick={() => setFilter(0)}>Ver todos</button>}
         </div>
       )}
       {action?.type === 'edit' && <EditAlert animal={action.animal} close={cancel} error={error}
-        submit={(updated) => replace(updated, 'Anúncio atualizado.')} />}
+        submit={(updated) => {
+          if (isPublishedAlert(updated.id)) {
+            const { name, neighborhood, date, description } = updated;
+            updatePublished(updated, 'PATCH', { name, neighborhood, date, description }, 'Anúncio atualizado.');
+          } else replace(updated, 'Anúncio atualizado.');
+        }} />}
       {action && action.type !== 'edit' && (
         <TutorConfirm title={removing ? 'Excluir anúncio' : 'Encerrar caso'}
           confirm={removing ? 'Excluir anúncio' : 'Encerrar caso'} close={cancel} action={() => {
-            if (removing) commit(alerts.filter((animal) => animal.id !== action.animal.id), 'Anúncio excluído.');
+            if (isPublishedAlert(action.animal.id)) {
+              if (removing) updatePublished(action.animal, 'DELETE', undefined, 'Anúncio excluído.');
+              else updatePublished(action.animal, 'PATCH', { closed: true }, 'Caso encerrado.');
+            } else if (removing) commit(alerts.filter((animal) => animal.id !== action.animal.id), 'Anúncio excluído.');
             else replace({ ...action.animal, closed: true }, 'Caso encerrado.');
           }}>
           {removing
-            ? <>O anúncio de <strong>{action.animal.name}</strong> será removido deste navegador.</>
+            ? <>O anúncio de <strong>{action.animal.name}</strong> será excluído.</>
             : <>O anúncio de <strong>{action.animal.name}</strong> sairá da vitrine e ficará disponível em Encerrados.</>}
           {error && <p className="tutor-error mt-2 mb-0" role="alert">{error}</p>}
         </TutorConfirm>

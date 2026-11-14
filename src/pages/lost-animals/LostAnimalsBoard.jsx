@@ -2,7 +2,8 @@ import { useRef, useState } from 'react';
 import { FiChevronLeft, FiChevronRight, FiChevronsLeft, FiChevronsRight, FiFilter, FiMapPin, FiPlus, FiSearch } from 'react-icons/fi';
 import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
 import AdoptionFilterModal from '@/pages/adoption/AdoptionFilterModal';
-import { animalFields, lostAnimalsPath, timeSince, todayDate } from './lostAnimalsData';
+import { useLostAnimals } from './lostAnimalsApi';
+import { animalFields, exampleAlerts, lostAnimalsPath, timeSince, todayDate } from './lostAnimalsData';
 
 const pageSize = 8;
 const quickFilters = [
@@ -42,7 +43,9 @@ function LostAnimalCard({ animal, boardSearch }) {
 }
 
 export default function LostAnimalsBoard() {
-  const { alerts: allAlerts } = useOutletContext();
+  const { tutorAlerts } = useOutletContext();
+  const { data, loading, error, reload } = useLostAnimals('', { live: true });
+  const allAlerts = [...(data?.alerts ?? []), ...tutorAlerts, ...exampleAlerts];
   const alerts = allAlerts.filter((animal) => !animal.closed && !animal.id.startsWith('tutor-'));
   const [params, setParams] = useSearchParams();
   const [modal, setModal] = useState(null);
@@ -125,13 +128,15 @@ export default function LostAnimalsBoard() {
             </button>
           ))}
         </div>
+        {loading && <p role="status">Carregando anúncios…</p>}
+        {error && <p role="alert">{error} <button type="button" className="adoption-control" onClick={reload}>Tentar novamente</button></p>}
         {filtered.length ? (
           <div className="adoption-grid">
             {filtered.slice((page - 1) * pageSize, page * pageSize).map((animal) => (
               <LostAnimalCard key={animal.id} animal={animal} boardSearch={params.toString()} />
             ))}
           </div>
-        ) : (
+        ) : !loading && !error && (
           <div className="adoption-empty">
             <h2>Nenhum animal encontrado</h2>
             <button type="button" className="adoption-control" onClick={() => applyFilters({}, '')}>Limpar busca e filtros</button>

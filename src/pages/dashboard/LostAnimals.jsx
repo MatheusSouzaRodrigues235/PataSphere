@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { requestLostAnimals, useLostAnimals } from '@/pages/lost-animals/lostAnimalsApi';
+import { lostAnimalsPath, todayDate } from '@/pages/lost-animals/lostAnimalsData';
 import Modal from 'react-bootstrap/Modal';
 import { FiCheck, FiEdit2, FiEye, FiPlus, FiTrash2 } from 'react-icons/fi';
 import { LuPawPrint } from 'react-icons/lu';
@@ -45,7 +48,7 @@ function AlertMetadata({ alert }) {
   );
 }
 
-function AlertDialog({ dialog, dark, onDismiss, onApply }) {
+function AlertDialog({ dialog, dark, onDismiss, onApply, connected, error, saving }) {
   const { type, alert } = dialog;
   const editing = type === 'add' || type === 'edit';
 
@@ -64,11 +67,11 @@ function AlertDialog({ dialog, dark, onDismiss, onApply }) {
       const file = data.get('photo');
       onApply({
         name: data.get('name').trim(),
-        kind: data.get('kind'),
+        kind: data.get('kind') ?? alert.kind,
         place,
         date: data.get('date'),
         description: data.get('description').trim(),
-        photo: file.name ? file : alert?.photo,
+        photo: file?.name ? file : alert?.photo,
       });
     } else {
       onApply({ status: data.get('status') });
@@ -85,33 +88,33 @@ function AlertDialog({ dialog, dark, onDismiss, onApply }) {
         <Modal.Body>
           {editing && (
             <div className="ong-alert-fields">
-              <label>Tipo de anúncio
+              {!connected && <label>Tipo de anúncio
                 <select name="kind" className="form-select" defaultValue={alert?.kind ?? 'lost'}>
                   {Object.entries(kinds).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                 </select>
-              </label>
+              </label>}
               <label>Nome do animal
-                <input name="name" className="form-control" defaultValue={alert?.name} placeholder="Se souber" maxLength={100} />
+                <input name="name" className="form-control" defaultValue={alert?.name} placeholder="Se souber" maxLength={connected ? 80 : 100} required={connected} />
               </label>
               <label>Bairro ou local
-                <input name="place" className="form-control" defaultValue={alert?.place} required maxLength={150}
+                <input name="place" className="form-control" defaultValue={alert?.place} required maxLength={connected ? 80 : 150}
                   onInput={(event) => event.currentTarget.setCustomValidity('')} />
               </label>
               <label>Data do ocorrido
-                <input type="date" name="date" className="form-control" defaultValue={alert?.date} required />
+                <input type="date" name="date" className="form-control" defaultValue={alert?.date} max={connected ? todayDate : undefined} required />
               </label>
               <label>Descrição
-                <textarea name="description" className="form-control" defaultValue={alert?.description} rows={3} maxLength={2000} />
+                <textarea name="description" className="form-control" defaultValue={alert?.description} rows={3} maxLength={connected ? 500 : 2000} required={connected} />
               </label>
               {alert?.photo && <AlertPhoto photo={alert.photo} alt={displayName(alert)} />}
-              <label>{alert?.photo ? 'Substituir foto' : 'Foto do animal'}
+              {!connected && <label>{alert?.photo ? 'Substituir foto' : 'Foto do animal'}
                 <input type="file" name="photo" className="form-control" accept="image/*"
                   onChange={(event) => {
                     const input = event.currentTarget;
                     const file = input.files[0];
                     input.setCustomValidity(file && !file.type.startsWith('image/') ? 'Selecione um arquivo de imagem.' : '');
                   }} />
-              </label>
+              </label>}
             </div>
           )}
           {type === 'view' && (
@@ -123,8 +126,9 @@ function AlertDialog({ dialog, dark, onDismiss, onApply }) {
               {alert.description && <p>{alert.description}</p>}
             </div>
           )}
-          {type === 'close' && (
-            <label>Como terminou o caso de {displayName(alert)}?
+          {type === 'close' && (connected
+            ? <p>Encerrar o anúncio de <strong>{displayName(alert)}</strong> e removê-lo do mural?</p>
+            : <label>Como terminou o caso de {displayName(alert)}?
               <select name="status" className="form-select" defaultValue="reunited">
                 <option value="reunited">Animal reencontrado</option>
                 <option value="closed">Encerrado sem reencontro</option>
@@ -132,11 +136,12 @@ function AlertDialog({ dialog, dark, onDismiss, onApply }) {
             </label>
           )}
           {type === 'delete' && <p>Deseja excluir o anúncio de <strong>{displayName(alert)}</strong>?</p>}
+          {error && <p role="alert" className="text-danger">{error}</p>}
         </Modal.Body>
         <Modal.Footer>
           <button type="button" className="ong-button" onClick={onDismiss}>{type === 'view' ? 'Fechar' : 'Cancelar'}</button>
           {type !== 'view' && (
-            <button type="submit" className="ong-button ong-primary">
+            <button type="submit" className="ong-button ong-primary" disabled={saving}>
               {editing ? 'Salvar anúncio' : type === 'close' ? 'Encerrar caso' : 'Excluir anúncio'}
             </button>
           )}
@@ -146,15 +151,41 @@ function AlertDialog({ dialog, dark, onDismiss, onApply }) {
   );
 }
 
-export default function LostAnimals({ alerts, setAlerts, dark }) {
+export default function LostAnimals({ alerts, setAlerts, dark, connected }) {
+  const { state } = useLocation();
   const [filter, setFilter] = useState('all');
   const [dialog, setDialog] = useState(null);
   const [message, setMessage] = useState('');
-  const results = alerts.filter((alert) => filter === 'all'
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const { data, loading, error: loadError, reload } = useLostAnimals(connected ? '/meus' : null);
+  const owned = connected ? (data?.alerts ?? []).map((alert) => ({
+    ...alert, place: alert.neighborhood, photo: alert.photos[0], status: alert.closed ? 'closed' : 'open',
+  })) : alerts;
+  const results = owned.filter((alert) => filter === 'all'
     || (filter === 'closed' ? alert.status !== 'open' : alert.status === 'open' && alert.kind === filter));
 
-  function apply(values) {
+  async function apply(values) {
     const { type, alert } = dialog;
+    if (connected) {
+      if (saving) return;
+      setSaving(true);
+      setError('');
+      try {
+        const body = type === 'close' ? { closed: true } : type === 'edit' ? {
+          name: values.name, neighborhood: values.place, date: values.date, description: values.description,
+        } : undefined;
+        await requestLostAnimals('/' + alert.id, { method: type === 'delete' ? 'DELETE' : 'PATCH', body });
+        reload();
+        setDialog(null);
+        setMessage({ edit: 'Alterações salvas.', close: 'Caso encerrado.', delete: 'Anúncio excluído.' }[type]);
+      } catch (requestError) {
+        setError(requestError.message);
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
     if (type === 'add') {
       const newAlert = { ...values, id: crypto.randomUUID(), status: 'open' };
       setAlerts((current) => [newAlert, ...current]);
@@ -177,11 +208,16 @@ export default function LostAnimals({ alerts, setAlerts, dark }) {
           <h1>Animais perdidos</h1>
           <p>Alertas de perdidos e encontrados publicados pela ONG</p>
         </div>
-        <button type="button" className="ong-button ong-primary" onClick={() => setDialog({ type: 'add' })}>
+        {connected ? (
+          <Link to={lostAnimalsPath + '/cadastro'} state={{ returnToOng: true }} className="ong-button ong-primary">
+            <FiPlus aria-hidden="true" /> Cadastrar animal perdido
+          </Link>
+        ) : <button type="button" className="ong-button ong-primary" onClick={() => setDialog({ type: 'add' })}>
           <FiPlus aria-hidden="true" /> Cadastrar animal perdido
-        </button>
+        </button>}
       </div>
 
+      {state?.registeredAnimal && <p role="status">Anúncio de {state.registeredAnimal} publicado no mural.</p>}
       <div className="ong-alert-filters" role="group" aria-label="Filtrar anúncios">
         {Object.entries(filters).map(([value, label]) => (
           <button key={value} type="button" className="ong-button" aria-pressed={filter === value}
@@ -189,6 +225,8 @@ export default function LostAnimals({ alerts, setAlerts, dark }) {
         ))}
       </div>
 
+      {loading && <p role="status">Carregando anúncios…</p>}
+      {loadError && <p role="alert">{loadError} <button type="button" className="ong-button" onClick={reload}>Tentar novamente</button></p>}
       {results.length ? (
         <ul className="ong-alert-list" aria-label="Anúncios">
           {results.map((alert) => (
@@ -222,10 +260,11 @@ export default function LostAnimals({ alerts, setAlerts, dark }) {
             </li>
           ))}
         </ul>
-      ) : <p className="ong-empty">Nenhum anúncio neste filtro.</p>}
+      ) : !loading && !loadError && <p className="ong-empty">Nenhum anúncio neste filtro.</p>}
 
       <div role="status" className="visually-hidden">{message}</div>
-      {dialog && <AlertDialog dialog={dialog} dark={dark} onDismiss={() => setDialog(null)} onApply={apply} />}
+      {dialog && <AlertDialog dialog={dialog} dark={dark} connected={connected} saving={saving} error={error}
+        onDismiss={() => { if (!saving) { setDialog(null); setError(''); } }} onApply={apply} />}
     </main>
   );
 }

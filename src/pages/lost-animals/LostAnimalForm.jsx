@@ -1,12 +1,15 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { FiCamera, FiCheck, FiChevronLeft, FiChevronRight, FiSend, FiX } from 'react-icons/fi';
-import { Link, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { useAccountSession } from '@/app/accountSession';
+import { requestLostAnimals } from './lostAnimalsApi';
 import { ages, sexes, sizes, species, urgencies } from '@/pages/dashboard/animals';
 import formatOnBlur from '@/pages/register/formatOnBlur';
 import { lostAnimalsPath, todayDate } from './lostAnimalsData';
 import { tutorAnimalsPath } from '@/pages/tutor/tutorStorage';
 import '@/styles/_lost-registration.scss';
 
+const ongAlertsPath = '/dashboard/ong/animais-perdidos';
 const OccurrenceMap = lazy(() => import('./OccurrenceMap'));
 const steps = ['Dados básicos', 'Detalhes e fotos', 'Local da ocorrência'];
 const photoTypes = ['image/jpeg', 'image/png', 'image/webp'];
@@ -94,10 +97,12 @@ function PhotoPicker({ photos, onChange, loading, setLoading }) {
 }
 
 export default function LostAnimalForm() {
-  const { addAlert } = useOutletContext();
+  const account = useAccountSession();
   const { state } = useLocation();
   const navigate = useNavigate();
   const heading = useRef(null);
+  const publicationKey = useRef(null);
+  const submitting = useRef(false);
   const [step, setStep] = useState(0);
   const [kind, setKind] = useState(state?.boardSearch && new URLSearchParams(state.boardSearch).get('tipo') === 'encontrados' ? 'found' : 'lost');
   const [draft, setDraft] = useState({});
@@ -123,9 +128,9 @@ export default function LostAnimalForm() {
     setStep(step - 1);
   }
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
-    if (loading) return;
+    if (loading || submitting.current) return;
     const values = { ...draft, ...readFields(event.currentTarget) };
     if (step === 1 && (!values.description || !photos.length)) {
       setError(!values.description ? 'Descreva o animal antes de continuar.' : 'Adicione pelo menos uma foto para continuar.');
@@ -137,23 +142,37 @@ export default function LostAnimalForm() {
       setStep(step + 1);
       return;
     }
-    const id = crypto.randomUUID();
-    const name = values.name || (values.species + ' sem nome identificado');
+    submitting.current = true;
+    setLoading(true);
+    setError('');
+    let alert;
     try {
-      addAlert({ ...values, id, name, kind, photos, point });
-    } catch {
-      setError('Não foi possível salvar o anúncio neste navegador. Libere espaço ou use menos fotos.');
+      publicationKey.current ??= crypto.randomUUID();
+      ({ alert } = await requestLostAnimals('', {
+        method: 'POST', body: { ...values, key: publicationKey.current, kind, photos, point },
+      }));
+    } catch (requestError) {
+      setError(requestError.message);
+      return;
+    } finally {
+      submitting.current = false;
+      setLoading(false);
+    }
+    if (state?.returnToOng) {
+      navigate(ongAlertsPath, { replace: true, state: { registeredAnimal: alert.name } });
       return;
     }
     if (state?.returnToTutor) {
-      navigate(tutorAnimalsPath, { replace: true, state: { registeredAnimal: name } });
+      navigate(tutorAnimalsPath, { replace: true, state: { registeredAnimal: alert.name } });
       return;
     }
-    navigate(lostAnimalsPath + '/' + id, {
+    navigate(lostAnimalsPath + '/' + alert.id, {
       replace: true,
       state: { boardSearch: found ? 'tipo=encontrados' : '', published: true },
     });
   }
+
+  if (!account) return <Navigate to="/login" replace state={{ returnTo: lostAnimalsPath + '/cadastro', lostAnimalForm: state }} />;
 
   const field = (props) => <Field {...props} value={draft[props.name]} />;
   const title = step === 0 ? (found ? 'Cadastrar animal encontrado' : 'Cadastrar animal perdido') : steps[step];
@@ -233,16 +252,16 @@ export default function LostAnimalForm() {
                   <OccurrenceMap point={point} onChange={setPoint} />
                 </Suspense>
               </div>
-              <p className="lost-registration-note">O anúncio será salvo neste navegador e ficará disponível em Meus animais.</p>
+              <p className="lost-registration-note">O anúncio e os dados de contato serão exibidos no mural público.</p>
             </>
           )}
           {error && <p className="text-danger mt-3 mb-0" role="alert">{error}</p>}
           <div className="lost-registration-actions">
-            {step === 0 ? <Link className="adoption-control" to={state?.returnToTutor ? tutorAnimalsPath : boardUrl}>Cancelar</Link> : (
+            {step === 0 ? <Link className="adoption-control" to={state?.returnToOng ? ongAlertsPath : state?.returnToTutor ? tutorAnimalsPath : boardUrl}>Cancelar</Link> : (
               <button type="button" className="adoption-control" disabled={loading} onClick={(event) => back(event.currentTarget.form)}><FiChevronLeft aria-hidden="true" /> Voltar</button>
             )}
             <button type="submit" className="adoption-action" disabled={loading}>
-              {step === 2 ? <><FiSend aria-hidden="true" /> Publicar</> : <>Próximo <FiChevronRight aria-hidden="true" /></>}
+              {step === 2 ? <><FiSend aria-hidden="true" /> {loading ? 'Publicando…' : 'Publicar'}</> : <>Próximo <FiChevronRight aria-hidden="true" /></>}
             </button>
           </div>
         </form>

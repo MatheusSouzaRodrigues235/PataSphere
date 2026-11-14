@@ -1,5 +1,6 @@
 import express from 'express';
 import multer from 'multer';
+import { lostAnimalRoutes } from './lost-animals.js';
 import { authRoutes } from './auth.js';
 import { PrismaClient } from '@prisma/client';
 import { logoDirectory, registrationRoutes } from './registration.js';
@@ -15,9 +16,11 @@ try {
 
 const app = express();
 app.disable('x-powered-by');
+const auth = authRoutes(prisma);
+app.use('/api/animais-perdidos', lostAnimalRoutes(prisma, auth.sessionAccountId));
 app.use(express.json({ limit: '16kb' }));
 app.use('/api/uploads/logos', express.static(logoDirectory, { index: false }));
-app.use('/api/auth', authRoutes(prisma));
+app.use('/api/auth', auth.router);
 app.use('/api/cadastros', registrationRoutes(prisma));
 app.use((_req, res) => res.status(404).json({ message: 'Rota não encontrada.' }));
 app.use((error, _req, res, next) => {

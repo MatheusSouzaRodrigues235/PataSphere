@@ -126,7 +126,7 @@ export default function TutorProfile() {
     publico: <TutorPreview data={data} avatar={avatar} />,
     foto: <TutorPhoto photo={photo} save={save} avatar={avatar} />,
     seguranca: <TutorSecurity />,
-    animais: <TutorAnimals alerts={data.alerts} save={save} />,
+    animais: <TutorAnimals alerts={data.alerts} save={save} notify={(message) => setFeedback({ section: secao, message })} />,
     notificacoes: <TutorPreferences options={notificationOptions} values={data.notifications}
       onSave={(notifications) => save({ notifications }, 'Preferências salvas neste navegador.')} />,
     privacidade: <TutorPreferences options={privacyOptions} values={data.privacy}
@@ -168,7 +168,7 @@ export default function TutorProfile() {
             )}
           </header>
           {secao === 'animais' && state?.registeredAnimal && !feedback && (
-            <p className="tutor-animal-notice" role="status">Anúncio de {state.registeredAnimal} cadastrado neste navegador.</p>
+            <p className="tutor-animal-notice" role="status">Anúncio de {state.registeredAnimal} publicado no mural.</p>
           )}
           <div key={secao + revision}>{content[secao]}</div>
           {feedback?.section === secao && (

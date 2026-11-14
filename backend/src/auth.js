@@ -98,12 +98,17 @@ export function authRoutes(prisma) {
     return res.json({ account: profile });
   });
 
+  function sessionAccountId(req) {
+    const session = sessions.get(currentKey(req));
+    return session?.expires > Date.now() ? session.accountId : null;
+  }
+
   router.get('/sessao', async (req, res) => {
     const key = currentKey(req);
-    const session = sessions.get(key);
-    if (session?.expires > Date.now()) {
+    const accountId = sessionAccountId(req);
+    if (accountId) {
       const account = await prisma.usuario.findUnique({
-        where: { id: session.accountId }, select: accountFields,
+        where: { id: accountId }, select: accountFields,
       });
       const profile = account && identity(account);
       if (profile) return res.json({ account: profile });
@@ -119,5 +124,5 @@ export function authRoutes(prisma) {
     return res.sendStatus(204);
   });
 
-  return router;
+  return { router, sessionAccountId };
 }

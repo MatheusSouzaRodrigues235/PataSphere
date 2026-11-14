@@ -7,7 +7,8 @@ import '@/styles/_adoption-detail.scss';
 import { Link, useLocation, useOutletContext, useParams } from 'react-router-dom';
 import { tutorAnimalsPath } from '@/pages/tutor/tutorStorage';
 import SightingModal from './SightingModal';
-import { formatAlertDate, lostAnimalsPath } from './lostAnimalsData';
+import { isPublishedAlert, useLostAnimals } from './lostAnimalsApi';
+import { exampleAlerts, formatAlertDate, lostAnimalsPath } from './lostAnimalsData';
 
 function LostAnimalProfile({ animal, boardUrl, published, returnToTutor }) {
   const found = animal.kind === 'found';
@@ -37,7 +38,7 @@ function LostAnimalProfile({ animal, boardUrl, published, returnToTutor }) {
         </nav>
 
         {returnToTutor && <Link className="adoption-control mb-3" to={tutorAnimalsPath}>Voltar para Meus animais</Link>}
-        {published && <p className="alert alert-success" role="status">Anúncio salvo neste navegador.</p>}
+        {published && <p className="alert alert-success" role="status">Anúncio publicado no mural.</p>}
 
         <div className="adoption-profile-grid">
           <section className="adoption-detail-panel adoption-profile-summary">
@@ -125,10 +126,11 @@ function LostAnimalProfile({ animal, boardUrl, published, returnToTutor }) {
 }
 
 export default function LostAnimalPage() {
-  const { alerts } = useOutletContext();
+  const { tutorAlerts } = useOutletContext();
   const { animalId } = useParams();
   const { state } = useLocation();
-  const animal = alerts.find(({ id }) => id === animalId);
+  const { data, loading, error, reload } = useLostAnimals(isPublishedAlert(animalId) ? '/' + animalId : null);
+  const animal = data?.alert ?? [...tutorAlerts, ...exampleAlerts].find(({ id }) => id === animalId);
   const boardUrl = { pathname: lostAnimalsPath, search: state?.boardSearch ?? (animal?.kind === 'found' ? 'tipo=encontrados' : '') };
 
   if (animal) return <LostAnimalProfile key={animal.id} animal={animal} boardUrl={boardUrl} published={state?.published} returnToTutor={state?.returnToTutor} />;
@@ -136,7 +138,8 @@ export default function LostAnimalPage() {
   return (
     <div className="adoption-board">
       <div className="adoption-container adoption-empty">
-        <h1>Alerta indisponível</h1>
+        <h1>{loading ? 'Carregando anúncio…' : error || 'Alerta indisponível'}</h1>
+        {error && <button type="button" className="adoption-control" onClick={reload}>Tentar novamente</button>}
         <Link to={lostAnimalsPath} className="adoption-control">Voltar à vitrine</Link>
       </div>
     </div>

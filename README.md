@@ -36,4 +36,10 @@ O Vite encaminha o caminho `/api` para a porta 3000 durante o desenvolvimento.
 - `POST /api/cadastros/ong` recebe os campos comuns e `organization`, `cnpj`, `street`, `district` e `number`. Aceita JSON ou formulário multipart com `logo` opcional em JPG ou PNG (até 5 MB). No formulário multipart, a caixa de consentimento envia `on`. Os logos ficam em `backend/uploads/logos/`.
 - As duas rotas são públicas. Retornam `201` com `id` e `role`, `400` para dados inválidos, `409` para e-mail ou documento em uso e `413` quando o envio excede o limite.
 
+### Publicação de animais perdidos e encontrados
+
+Em um banco existente, execute `database/migrations/003_detalhes_ocorrencia.sql` no banco `patasphere` com a conta proprietária da tabela `ocorrencia_pet` antes de iniciar a API atualizada. Em um banco novo, o passo acima que aplica as migrações em ordem já inclui esse arquivo.
+
+O mural público consulta `/api/animais-perdidos`. Entre com uma conta de tutor ou ONG para publicar e gerenciar seus anúncios. As fotos são armazenadas no PostgreSQL com a ocorrência.
+
 Em uma publicação, encaminhe `/api` ao Express no mesmo domínio do frontend e use armazenamento persistente para os logos. Os textos de Termos de Uso e Política de Privacidade precisam estar disponíveis antes de abrir os cadastros ao público.

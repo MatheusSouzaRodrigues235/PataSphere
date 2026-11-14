@@ -70,7 +70,7 @@ export default function OngDashboard() {
 
           <div hidden={!donations}><Donations records={records} setRecords={setRecords} dark={dark} /></div>
           {management && <AnimalManagement animals={animals} setAnimals={setAnimals} dark={dark} />}
-          {lostAnimals && <LostAnimals alerts={alerts} setAlerts={setAlerts} dark={dark} />}
+          {lostAnimals && <LostAnimals alerts={alerts} setAlerts={setAlerts} dark={dark} connected={Boolean(ong)} />}
           {overview && <OngOverview demo={!ong} organization={organization} animals={animals} records={records} dark={dark} />}
         </div>
       </div>
