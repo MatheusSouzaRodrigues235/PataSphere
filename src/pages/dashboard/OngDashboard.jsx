@@ -7,6 +7,7 @@ import { LuPawPrint } from 'react-icons/lu';
 import { useAdoptionAnimals } from '@/pages/adoption/adoptionApi';
 import { initialAnimals } from './animals';
 import { initialDonations } from './donations/donationData';
+import { useDonations } from './donations/donationApi';
 import Donations from './donations/Donations';
 import AnimalManagement from './management/AnimalManagement';
 import LostAnimals from './LostAnimals';
@@ -26,7 +27,10 @@ export default function OngDashboard() {
   const { data, loading, error, reload, updateAnimals } = useAdoptionAnimals(ong ? '/meus' : null);
   const animals = ong ? data?.animals ?? [] : demoAnimals;
   const setAnimals = ong ? updateAnimals : setDemoAnimals;
-  const [records, setRecords] = useState(() => ong ? [] : initialDonations);
+  const [demoRecords, setDemoRecords] = useState(initialDonations);
+  const donationHistory = useDonations(Boolean(ong));
+  const records = ong ? donationHistory.records ?? [] : demoRecords;
+  const setRecords = ong ? donationHistory.updateRecords : setDemoRecords;
   const [dark, setDark] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
@@ -72,7 +76,18 @@ export default function OngDashboard() {
             </div>
           </header>
 
-          <div hidden={!donations}><Donations records={records} setRecords={setRecords} dark={dark} /></div>
+          {(donations || overview) && donationHistory.loading && <p role="status">Carregando doações…</p>}
+          {(donations || overview) && donationHistory.error && (
+            <div>
+              <p role="alert">{donationHistory.error}</p>
+              <button type="button" className="ong-button" onClick={donationHistory.reload}>Tentar novamente</button>
+            </div>
+          )}
+          {!donationHistory.loading && !donationHistory.error && (
+            <div hidden={!donations}>
+              <Donations records={records} setRecords={setRecords} dark={dark} connected={Boolean(ong)} />
+            </div>
+          )}
           {(management || overview) && loading && <p role="status">Carregando animais…</p>}
           {(management || overview) && error && (
             <div>
@@ -83,7 +98,7 @@ export default function OngDashboard() {
           {management && !loading && !error &&
             <AnimalManagement animals={animals} setAnimals={setAnimals} dark={dark} connected={Boolean(ong)} />}
           {lostAnimals && <LostAnimals alerts={alerts} setAlerts={setAlerts} dark={dark} connected={Boolean(ong)} />}
-          {overview && !loading && !error && <OngOverview demo={!ong} organization={organization} animals={animals} records={records} dark={dark} />}
+          {overview && !loading && !error && !donationHistory.loading && !donationHistory.error && <OngOverview demo={!ong} organization={organization} animals={animals} records={records} dark={dark} />}
         </div>
       </div>
     </div>

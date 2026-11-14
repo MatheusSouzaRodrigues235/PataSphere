@@ -16,7 +16,7 @@ const requests = [
 }));
 
 const monthlyCurrency = new Intl.NumberFormat('pt-BR', {
-  style: 'currency', currency: 'BRL', minimumFractionDigits: 0,
+  style: 'currency', currency: 'BRL',
 });
 const monthFormatter = new Intl.DateTimeFormat('pt-BR', { month: 'long', timeZone: 'UTC' });
 
@@ -32,7 +32,7 @@ export default function OngOverview({ demo, organization, animals, records, dark
   const [selectedRequest, setSelectedRequest] = useState(null);
   const urgent = animals.filter((animal) => animal.urgency === 'Alta');
   const recentDonations = records.toSorted((first, second) => second.date.localeCompare(first.date));
-  const month = (recentDonations[0]?.date ?? today()).slice(0, 7);
+  const month = (demo ? recentDonations[0]?.date ?? today() : today()).slice(0, 7);
   const monthName = monthFormatter.format(new Date(`${month}-01T00:00:00Z`));
   const monthlyTotal = records.reduce((total, record) =>
     record.type === 'money' && record.date.startsWith(month) ? total + record.amount : total, 0);
@@ -52,7 +52,7 @@ export default function OngOverview({ demo, organization, animals, records, dark
       <div className="ong-title">
         <div>
           <h1>Visão geral</h1>
-          <p>Resumo da {organization} nesta semana</p>
+          <p>Resumo da {organization}</p>
         </div>
         <Link className="ong-button ong-primary" to="animais?cadastrar=1">
           <FiPlus aria-hidden="true" /> Cadastrar animal

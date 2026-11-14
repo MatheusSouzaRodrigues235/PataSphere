@@ -1,4 +1,5 @@
 import express from 'express';
+import { donationRoutes } from './donations.js';
 import multer from 'multer';
 import { adoptionRoutes } from './adoption.js';
 import { lostAnimalRoutes } from './lost-animals.js';
@@ -20,6 +21,7 @@ app.disable('x-powered-by');
 const auth = authRoutes(prisma);
 app.use('/api/animais-perdidos', lostAnimalRoutes(prisma, auth.sessionAccountId));
 app.use('/api/adocao', adoptionRoutes(prisma, auth.sessionAccountId));
+app.use('/api/doacoes', donationRoutes(prisma, auth.sessionAccountId));
 app.use(express.json({ limit: '16kb' }));
 app.use('/api/uploads/logos', express.static(logoDirectory, { index: false }));
 app.use('/api/auth', auth.router);

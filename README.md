@@ -53,3 +53,10 @@ O mural público consulta `/api/adocao`, exclui os adotados e mostra os animais 
 ### Interesse em adoção
 
 Um tutor autenticado pode revisar as respostas e abrir o WhatsApp da ONG responsável, com uma mensagem pronta. O tutor confirma o envio no WhatsApp. Para o destino, a API usa o WhatsApp público da ONG ou o telefone informado no cadastro, conforme a configuração de exibição de contato.
+
+### Doações recebidas
+
+Em um banco existente, aplique `database/migrations/005_registro_doacoes.sql` com a conta proprietária das tabelas.
+A ONG registra manualmente doações financeiras, ração e medicamentos. A data é registrada no horário de Brasília.
+O histórico e os anexos são acessíveis apenas pela ONG responsável. Cada registro aceita até quatro imagens ou PDFs de até 5 MB cada.
+A visão geral usa as doações recentes da ONG e soma as contribuições financeiras do mês atual.
