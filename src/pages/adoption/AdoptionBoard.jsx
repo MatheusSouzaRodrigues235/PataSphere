@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react';
 import { FiChevronLeft, FiChevronRight, FiChevronsLeft, FiChevronsRight, FiFilter, FiHeart, FiMapPin, FiSearch } from 'react-icons/fi';
 import { Link, Navigate, useOutletContext, useSearchParams } from 'react-router-dom';
+import AddressSearch from '@/components/layout/AddressSearch';
+import { locationSearch } from '@/app/locationSearch';
 import AdoptionBoardFilterModal from './AdoptionBoardFilterModal';
 import { adoptionPath, filterGroups, quickFilters } from './adoptionData';
 import { useAdoptionAnimals } from './adoptionApi';
@@ -65,6 +67,8 @@ function AnimalCard({ animal, favorite, favoritesDisabled, onFavorite, detailsUr
 export default function AdoptionBoard() {
   const [params, setParams] = useSearchParams();
   const search = params.get('busca') ?? '';
+  const address = params.get('endereco') ?? '';
+  const matchesAddress = locationSearch(address);
   const favoritesOnly = params.has('favoritos');
 
   const [filterOpen, setFilterOpen] = useState(false);
@@ -88,7 +92,7 @@ export default function AdoptionBoard() {
 
   const searchTerm = normalize(search.trim());
   const matchingSearch = adoptionAnimals.filter((animal) =>
-    normalize(animal.name).includes(searchTerm) &&
+    normalize(animal.name).includes(searchTerm) && matchesAddress(animal) &&
     (!favoritesOnly || favorites.includes(animal.id)) &&
     (organizationId ? animal.organizationId === organizationId : !organization || animal.organization === organization),
   );
@@ -112,16 +116,17 @@ export default function AdoptionBoard() {
     if (currentOrganization) nextParams.set('ong', currentOrganization);
     if (organizationId && currentOrganization !== null) nextParams.set('ongId', organizationId);
     if (query) nextParams.set('busca', query);
+    if (address) nextParams.set('endereco', address);
     if (favoritesOnly) nextParams.set('favoritos', '1');
     setParams(nextParams, { preventScrollReset: true });
     setFilterOpen(false);
   }
 
-  function changeSearch(value) {
+  function changeSearch(key, value) {
     const nextParams = new URLSearchParams(params);
     nextParams.delete('pagina');
-    if (value) nextParams.set('busca', value);
-    else nextParams.delete('busca');
+    if (value) nextParams.set(key, value);
+    else nextParams.delete(key);
     setParams(nextParams, { replace: true, preventScrollReset: true });
   }
 
@@ -153,13 +158,15 @@ export default function AdoptionBoard() {
               aria-label="Buscar pelo nome do animal"
               placeholder="Buscar pelo nome do animal"
               value={search}
-              onChange={({ target }) => changeSearch(target.value)}
+              onChange={({ target }) => changeSearch('busca', target.value)}
             />
           </label>
           <button type="button" className="adoption-control" aria-haspopup="dialog" onClick={() => setFilterOpen(true)}>
             <FiFilter aria-hidden="true" /> Filtros
           </button>
         </div>
+        <AddressSearch label="Buscar pela localização pública da ONG" placeholder="Bairro, cidade ou UF da ONG"
+          value={address} onChange={(value) => changeSearch('endereco', value)} />
         <div className="adoption-quick-filters" role="group" aria-label="Filtros rápidos">
           <button type="button" className="adoption-control" aria-pressed={favoritesOnly}
             disabled={favoritesDisabled} onClick={() => {

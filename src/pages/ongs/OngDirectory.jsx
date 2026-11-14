@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react';
 import { FiChevronLeft, FiChevronRight, FiFilter, FiMapPin, FiSearch } from 'react-icons/fi';
 import { Link, useSearchParams } from 'react-router-dom';
+import AddressSearch from '@/components/layout/AddressSearch';
+import { locationSearch } from '@/app/locationSearch';
 import AdoptionFilterModal from '@/pages/adoption/AdoptionFilterModal';
 import { useOrganizations } from './organizationApi';
 import { ongAdoptionSearch, ongProfilePath } from './ongProfiles';
@@ -44,6 +46,8 @@ export default function OngDirectory() {
   const [filterOpen, setFilterOpen] = useState(false);
   const heading = useRef(null);
   const search = params.get('busca') ?? '';
+  const address = params.get('endereco') ?? '';
+  const matchesAddress = locationSearch(address);
   const neighborhood = params.get('bairro');
   const availableOnly = params.has('disponiveis');
   const term = normalize(search);
@@ -53,7 +57,7 @@ export default function OngDirectory() {
     .sort((first, second) => first.localeCompare(second, 'pt-BR'));
   const filterFields = [['bairro', 'Bairro', neighborhoods]];
   const results = organizations.filter((ong) => (
-    normalize(ong.name).includes(term) &&
+    normalize(ong.name).includes(term) && matchesAddress(ong) &&
     (!neighborhood || ong.neighborhood === neighborhood) &&
     (!availableOnly || ong.available > 0)
   ));
@@ -91,6 +95,8 @@ export default function OngDirectory() {
           <FiFilter aria-hidden="true" /> {neighborhood || availableOnly ? 'Filtros ativos' : 'Filtros'}
         </button>
       </div>
+      <AddressSearch label="Buscar pela localização pública da ONG" placeholder="Bairro, cidade ou UF da ONG"
+        value={address} onChange={(value) => updateParams({ endereco: value }, { replace: true, preventScrollReset: true })} />
       <p className="visually-hidden" role="status">{results.length} ONGs encontradas</p>
       {loading ? <p role="status">Carregando ONGs…</p> : error ? (
         <div className="adoption-empty ong-directory-empty">

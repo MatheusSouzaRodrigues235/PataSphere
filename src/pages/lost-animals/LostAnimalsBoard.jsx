@@ -1,9 +1,12 @@
 import { useRef, useState } from 'react';
 import { FiChevronLeft, FiChevronRight, FiChevronsLeft, FiChevronsRight, FiFilter, FiMapPin, FiPlus, FiSearch } from 'react-icons/fi';
 import { Link, useSearchParams } from 'react-router-dom';
+import AddressSearch from '@/components/layout/AddressSearch';
+import { locationSearch } from '@/app/locationSearch';
 import AdoptionFilterModal from '@/pages/adoption/AdoptionFilterModal';
 import { useLostAnimals } from './lostAnimalsApi';
-import { animalFields, lostAnimalsPath, timeSince, todayDate } from './lostAnimalsData';
+import { matchesOccurrenceDate, occurrenceDateError } from './occurrenceDates';
+import { animalFields, formatAlertDate, lostAnimalsPath, timeSince, todayDate } from './lostAnimalsData';
 
 const pageSize = 8;
 const quickFilters = [
@@ -50,6 +53,8 @@ export default function LostAnimalsBoard() {
   const heading = useRef(null);
   const found = params.get('tipo') === 'encontrados';
   const search = params.get('busca') ?? '';
+  const address = params.get('endereco') ?? '';
+  const matchesAddress = locationSearch(address);
   const neighborhoods = [...new Set(alerts.map(({ neighborhood }) => neighborhood))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   const cities = [...new Set(alerts.map(({ city }) => city))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   const fields = [...animalFields, ['city', 'Cidade', cities], ['neighborhood', 'Bairro', neighborhoods]];
@@ -58,32 +63,46 @@ export default function LostAnimalsBoard() {
     return options.includes(value) ? [[key, value]] : [];
   }));
   if (params.has('recent')) filters.recent = true;
+  const dateFilters = { de: params.get('de') ?? '', ate: params.get('ate') ?? '' };
+  const dateError = occurrenceDateError(dateFilters);
+  const activeDates = !dateError && (dateFilters.de || dateFilters.ate);
+  const draft = dateError ? filters : { ...filters, ...dateFilters };
+  const otherType = new URLSearchParams(params);
+  otherType.delete('pagina');
+  if (found) otherType.delete('tipo');
+  else otherType.set('tipo', 'encontrados');
 
   const term = normalize(search.trim());
   const filtered = alerts.filter((animal) =>
     (animal.kind === 'found') === found &&
-    normalize(animal.name).includes(term) &&
-    Object.entries(filters).every(([key, value]) => key === 'recent'
-      ? Date.parse(todayDate) - Date.parse(animal.date) <= 7 * 86_400_000
-      : animal[key] === value),
+    normalize(animal.name).includes(term) && matchesAddress(animal) &&
+    matchesOccurrenceDate(animal.date, { ...(activeDates ? dateFilters : {}), recent: filters.recent }, todayDate) &&
+    Object.entries(filters).every(([key, value]) => key === 'recent' || animal[key] === value),
   ).sort((a, b) => b.date.localeCompare(a.date));
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const page = Math.max(1, Math.min(Number.parseInt(params.get('pagina'), 10) || 1, pageCount));
 
-  function applyFilters(criteria, query = search) {
-    const next = new URLSearchParams(Object.entries(criteria));
+  function applyFilters(criteria, query = search, location = address) {
+    const next = new URLSearchParams(Object.entries(criteria).filter(([, value]) => value));
     if (found) next.set('tipo', 'encontrados');
     if (query) next.set('busca', query);
+    if (location) next.set('endereco', location);
     setParams(next, { preventScrollReset: true });
     setModal(null);
   }
 
-  function changeSearch(value) {
+  function clearDates() {
+    const next = new URLSearchParams(params);
+    ['de', 'ate', 'pagina'].forEach((key) => next.delete(key));
+    setParams(next, { preventScrollReset: true });
+  }
+
+  function changeSearch(key, value) {
     const next = new URLSearchParams(params);
     next.delete('pagina');
-    if (value) next.set('busca', value);
-    else next.delete('busca');
+    if (value) next.set(key, value);
+    else next.delete(key);
     setParams(next, { replace: true, preventScrollReset: true });
   }
 
@@ -110,22 +129,32 @@ export default function LostAnimalsBoard() {
         <div className="adoption-search-row">
           <label className="adoption-search">
             <FiSearch aria-hidden="true" />
-            <input type="search" aria-label="Buscar pelo nome do animal" placeholder="Buscar pelo nome do animal" value={search} onChange={({ target }) => changeSearch(target.value)} />
+            <input type="search" aria-label="Buscar pelo nome do animal" placeholder="Buscar pelo nome do animal" value={search} onChange={({ target }) => changeSearch('busca', target.value)} />
           </label>
-          <button type="button" className="adoption-control" onClick={() => setModal('filters')}><FiFilter aria-hidden="true" /> Filtros</button>
+          <button type="button" className="adoption-control" aria-haspopup="dialog" onClick={() => setModal('filters')}><FiFilter aria-hidden="true" /> Filtros</button>
         </div>
+        <AddressSearch label="Buscar pelo endereço da ocorrência" placeholder="CEP, rua, bairro ou cidade da ocorrência"
+          value={address} onChange={(value) => changeSearch('endereco', value)} />
         <div className="adoption-quick-filters" role="group" aria-label="Filtros rápidos">
-          <Link className="adoption-control lost-type-link" to={found ? lostAnimalsPath : lostAnimalsPath + '?tipo=encontrados'}>
+          <Link className="adoption-control lost-type-link" to={{ pathname: lostAnimalsPath, search: otherType.toString() }}>
             {found ? 'Ver animais perdidos' : 'Ver animais encontrados'}
           </Link>
           {quickFilters.map(([label, criteria]) => (
             <button type="button" key={label} className="adoption-control"
               aria-pressed={Object.keys(criteria).length === Object.keys(filters).length && Object.entries(criteria).every(([key, value]) => filters[key] === value)}
-              onClick={() => applyFilters(criteria)}>
+              onClick={() => applyFilters({ ...criteria, ...(activeDates ? dateFilters : {}) })}>
               {label}
             </button>
           ))}
         </div>
+        {(activeDates || dateError) && <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
+          {dateError ? <span role="alert">{dateError}</span> : <span>
+            Período da ocorrência {dateFilters.de && <>desde {formatAlertDate(dateFilters.de)}</>}
+            {dateFilters.de && dateFilters.ate && ' '}
+            {dateFilters.ate && <>até {formatAlertDate(dateFilters.ate)}</>}
+          </span>}
+          <button type="button" className="adoption-control" onClick={clearDates}>Remover período</button>
+        </div>}
         {loading && <p role="status">Carregando anúncios…</p>}
         {error && <p role="alert">{error} <button type="button" className="adoption-control" onClick={reload}>Tentar novamente</button></p>}
         {filtered.length ? (
@@ -137,7 +166,7 @@ export default function LostAnimalsBoard() {
         ) : !loading && !error && (
           <div className="adoption-empty">
             <h2>Nenhum animal encontrado</h2>
-            <button type="button" className="adoption-control" onClick={() => applyFilters({}, '')}>Limpar busca e filtros</button>
+            <button type="button" className="adoption-control" onClick={() => applyFilters({}, '', '')}>Limpar busca e filtros</button>
           </div>
         )}
         {pageCount > 1 && (
@@ -155,7 +184,7 @@ export default function LostAnimalsBoard() {
         )}
       </div>
       {modal === 'filters' && (
-        <AdoptionFilterModal filters={filters} fields={fields} toggles={[[ 'recent', 'Somente os últimos 7 dias' ]]}
+        <AdoptionFilterModal filters={draft} fields={fields} dateRange={{ validate: occurrenceDateError }} toggles={[['recent', 'Somente os últimos 7 dias']]}
           onClose={() => setModal(null)} onApply={applyFilters} />
       )}
     </section>
