@@ -3,7 +3,7 @@ import { FiCalendar, FiChevronRight, FiCopy, FiFacebook, FiGlobe, FiHeart, FiIns
 import { FaWhatsapp } from 'react-icons/fa';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
 import { AdoptionFooter } from '@/pages/adoption/AdoptionNavigation';
-import { useOngSession } from '@/app/ongSession';
+import { useOngSession } from '@/app/accountSession';
 import SiteHeader from '@/components/layout/SiteHeader';
 import { adoptionAnimals, adoptionPath } from '@/pages/adoption/adoptionData';
 import NotFound from '@/pages/NotFound';

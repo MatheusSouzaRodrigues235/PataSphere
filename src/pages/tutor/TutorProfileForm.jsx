@@ -98,6 +98,7 @@ export default function TutorProfileForm({ profile, save }) {
             <label htmlFor="state">Estado</label>
             <select id="state" name="state" value={draft.state} onChange={change} autoComplete="address-level1">
               <option value="">Selecione</option>
+              {draft.state && !states.includes(draft.state) && <option>{draft.state}</option>}
               {states.map((state) => <option key={state}>{state}</option>)}
             </select>
           </div>

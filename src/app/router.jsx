@@ -1,6 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom';
-import OngAccess from './OngAccess';
-import { loadOngSession } from './ongSession';
+import AccountAccess from './AccountAccess';
+import { loadAccountSession } from './accountSession';
 import PublicLayout from '@/layouts/PublicLayout';
 import Home from '@/pages/home/Home';
 import AdoptionBoard from '@/pages/adoption/AdoptionBoard';
@@ -27,12 +27,12 @@ const routes = [
     element: <OngPublicLayout />,
     children: [
       { index: true, element: <OngDirectory /> },
-      { element: <OngAccess />, children: [{ path: 'amor-de-pet/previa', element: <OngProfilePreview /> }] },
+      { element: <AccountAccess role="ong" />, children: [{ path: 'amor-de-pet/previa', element: <OngProfilePreview /> }] },
       { path: ':ongSlug', element: <OngProfile /> },
     ],
   },
   {
-    element: <OngAccess />,
+    element: <AccountAccess role="ong" />,
     children: [
       {
         path: '/dashboard/ong',
@@ -63,7 +63,7 @@ const routes = [
       { path: ':animalId', element: <LostAnimalPage /> },
     ],
   },
-  { path: '/perfil/tutor/:secao?', element: <TutorProfile /> },
+  { element: <AccountAccess role="tutor" />, children: [{ path: '/perfil/tutor/:secao?', element: <TutorProfile /> }] },
   { path: '/login', element: <Login /> },
   { path: '/cadastro', element: <ChooseProfile /> },
   { path: '/cadastro/tutor', element: <RegisterTutor /> },
@@ -79,8 +79,8 @@ const routes = [
 ];
 
 export const router = createBrowserRouter([{
-  id: 'ong-session',
-  loader: loadOngSession,
+  id: 'account-session',
+  loader: loadAccountSession,
   hydrateFallbackElement: <p role="status">Carregando…</p>,
   shouldRevalidate: () => true,
   children: routes,

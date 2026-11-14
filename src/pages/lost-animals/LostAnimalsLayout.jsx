@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { AdoptionFooter } from '@/pages/adoption/AdoptionNavigation';
+import { useTutorSession } from '@/app/accountSession';
 import SiteHeader from '@/components/layout/SiteHeader';
 import { exampleAlerts } from './lostAnimalsData';
 import { readTutorAlerts, saveTutorData } from '@/pages/tutor/tutorStorage';
@@ -8,7 +9,12 @@ import '@/styles/_adoption.scss';
 import '@/styles/_lost-animals.scss';
 
 export default function LostAnimalsLayout() {
-  const [tutorAlerts, setTutorAlerts] = useState(readTutorAlerts);
+  const tutor = useTutorSession();
+  return <LostAnimals key={tutor?.id ?? 'guest'} tutorId={tutor?.id} />;
+}
+
+function LostAnimals({ tutorId }) {
+  const [tutorAlerts, setTutorAlerts] = useState(() => readTutorAlerts(tutorId));
   const { pathname } = useLocation();
 
   useEffect(() => {
@@ -16,8 +22,8 @@ export default function LostAnimalsLayout() {
   }, [pathname]);
 
   function addAlert(alert) {
-    const next = [alert, ...readTutorAlerts()];
-    saveTutorData({ alerts: next });
+    const next = [alert, ...readTutorAlerts(tutorId)];
+    saveTutorData({ alerts: next }, tutorId);
     setTutorAlerts(next);
   }
 

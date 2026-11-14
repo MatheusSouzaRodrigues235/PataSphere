@@ -15,15 +15,20 @@ const accountFields = {
   id: true, email: true, telefone: true,
   endereco: { select: { cep: true, cidade: true, uf: true } },
   ong: { select: organizationFields },
+  tutor: { select: { nome: true, sobrenome: true } },
 };
 
 function identity(account) {
+  const { ong, tutor } = account;
+  if (!ong && !tutor) return null;
+  const profile = ong
+    ? { role: 'ong', name: ong.nome, photo: ong.logoUrl, cnpj: ong.cnpj }
+    : { role: 'tutor', name: tutor.nome + ' ' + tutor.sobrenome, firstName: tutor.nome, lastName: tutor.sobrenome };
+
   return {
+    ...profile,
     id: account.id.toString(),
-    name: account.ong.nome,
     email: account.email,
-    photo: account.ong.logoUrl,
-    cnpj: account.ong.cnpj,
     phone: account.telefone,
     cep: account.endereco?.cep ?? '',
     city: account.endereco?.cidade ?? '',
@@ -83,13 +88,14 @@ export function authRoutes(prisma) {
       select: { ...accountFields, senhaHash: true },
     });
     const valid = await bcrypt.compare(input.data.password, account?.senhaHash ?? await fallbackHash);
-    if (!valid || !account?.ong) return res.status(401).json({ message: 'E-mail ou senha inválidos para uma conta de ONG.' });
+    const profile = valid && account ? identity(account) : null;
+    if (!profile) return res.status(401).json({ message: 'E-mail ou senha inválidos.' });
 
     sessions.delete(currentKey(req));
     const token = randomBytes(32).toString('hex');
     sessions.set(sessionKey(token), { accountId: account.id, expires: Date.now() + sessionDuration });
     res.cookie(cookieName, token, { ...cookieOptions, maxAge: sessionDuration });
-    return res.json({ ong: identity(account) });
+    return res.json({ account: profile });
   });
 
   router.get('/sessao', async (req, res) => {
@@ -99,11 +105,12 @@ export function authRoutes(prisma) {
       const account = await prisma.usuario.findUnique({
         where: { id: session.accountId }, select: accountFields,
       });
-      if (account?.ong) return res.json({ ong: identity(account) });
+      const profile = account && identity(account);
+      if (profile) return res.json({ account: profile });
     }
 
     sessions.delete(key);
-    return res.status(401).json({ message: 'Entre na sua conta de ONG.' });
+    return res.status(401).json({ message: 'Entre na sua conta.' });
   });
 
   router.post('/sair', (req, res) => {

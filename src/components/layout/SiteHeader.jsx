@@ -6,7 +6,7 @@ import { LuPawPrint } from 'react-icons/lu';
 import logo from '@/assets/logo-patasphere.svg';
 import { readTutorData, tutorAnimalsPath } from '@/pages/tutor/tutorStorage';
 import { ongSettingsPath, readOngSettings } from '@/pages/ong-settings/ongSettingsStorage';
-import { endOngSession, useOngSession } from '@/app/ongSession';
+import { endAccountSession, useAccountSession } from '@/app/accountSession';
 import { clearDemoRole, readDemoRole } from '@/app/demoSession';
 
 const publicLinks = [
@@ -54,7 +54,7 @@ function AccountMenu({ role, identity, closeMenu, authenticated }) {
     setError('');
     setSigningOut(true);
     try {
-      if (authenticated && !(await endOngSession()).ok) throw new Error('Falha ao sair');
+      if (authenticated && !(await endAccountSession()).ok) throw new Error('Falha ao sair');
       clearDemoRole();
       await navigate('/', { replace: true });
     } catch {
@@ -122,7 +122,8 @@ function Header({ role, identity, authenticated }) {
 
 export default function SiteHeader({ role, identity }) {
   const { pathname } = useLocation();
-  const ong = useOngSession();
-  return <Header key={pathname} role={ong ? 'ong' : role ?? readDemoRole()}
-    identity={ong ? (role === 'ong' ? identity ?? ong : ong) : identity} authenticated={Boolean(ong)} />;
+  const account = useAccountSession();
+  const currentRole = account?.role ?? role ?? readDemoRole();
+  const currentIdentity = currentRole === role ? identity ?? account : account;
+  return <Header key={pathname} role={currentRole} identity={currentIdentity} authenticated={Boolean(account)} />;
 }

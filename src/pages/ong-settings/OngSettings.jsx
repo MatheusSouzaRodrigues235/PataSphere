@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Link, Navigate, NavLink, useParams } from 'react-router-dom';
 import { FiBell, FiCamera, FiEye, FiHeart, FiLock, FiShield, FiUser, FiX } from 'react-icons/fi';
-import { useOngSession } from '@/app/ongSession';
+import { useOngSession } from '@/app/accountSession';
 import SiteHeader from '@/components/layout/SiteHeader';
 import { TutorConfirm, TutorPreferences, TutorSecurity } from '@/pages/tutor/TutorSections';
 import OngProfileForm from './OngProfileForm';
