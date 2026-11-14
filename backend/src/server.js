@@ -1,4 +1,6 @@
 import express from 'express';
+import { extname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { notificationRoutes } from './notifications.js';
 import { organizationRoutes } from './organizations.js';
 import { donationRoutes } from './donations.js';
@@ -34,7 +36,20 @@ app.use('/api/notificacoes', notificationRoutes(prisma, auth.sessionAccountId));
 app.use('/api/mapa/localizar', geocodingRoutes());
 app.use('/api/ongs', organizationRoutes(prisma));
 app.use('/api/cadastros', registrationRoutes(prisma));
-app.use((_req, res) => res.status(404).json({ message: 'Rota não encontrada.' }));
+
+const notFound = (_req, res) => res.status(404).json({ message: 'Rota não encontrada.' });
+app.use('/api', notFound);
+
+if (process.env.NODE_ENV === 'production') {
+  const distDirectory = fileURLToPath(new URL('../../dist/', import.meta.url));
+  app.use(express.static(distDirectory));
+  app.get('/{*path}', (req, res, next) => {
+    if (extname(req.path) || !req.accepts('html')) return next();
+    res.sendFile(join(distDirectory, 'index.html'));
+  });
+}
+
+app.use(notFound);
 app.use((error, _req, res, next) => {
   if (res.headersSent) return next(error);
   if (error instanceof multer.MulterError || error.status === 413) {

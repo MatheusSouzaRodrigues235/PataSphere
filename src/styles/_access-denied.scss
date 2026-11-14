@@ -1,0 +1,94 @@
+.access-denied {
+  display: grid;
+  grid-template-columns: minmax(12rem, 17%) minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--pata-fundo);
+  color: var(--pata-petroleo);
+}
+
+.access-denied-sidebar {
+  padding: 1.5rem;
+  background: var(--pata-petroleo);
+  color: white;
+  overflow-wrap: anywhere;
+
+  nav {
+    display: grid;
+    gap: .75rem;
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(255, 255, 255, .2);
+  }
+
+  a {
+    display: flex;
+    align-items: center;
+    gap: .625rem;
+    color: inherit;
+  }
+}
+
+.access-denied-workspace {
+  display: flex;
+  flex-direction: column;
+}
+
+.access-denied-breadcrumb {
+  padding: 1.15rem clamp(1rem, 4vw, 2.5rem);
+  border-bottom: 1px solid var(--pata-borda);
+  background: white;
+  color: var(--pata-texto-suave);
+
+  span { margin-inline: .5rem; }
+  strong { color: var(--pata-petroleo); }
+}
+
+.access-denied-content {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 1.25rem;
+  flex: 1;
+  padding: 3rem 1rem;
+  text-align: center;
+
+  h1 {
+    margin: 0;
+    font-size: clamp(1.65rem, 3vw, 2.6rem);
+    font-weight: 800;
+  }
+
+  p {
+    max-width: 34rem;
+    margin: 0;
+    color: var(--pata-texto-suave);
+    font-size: 1.1rem;
+  }
+}
+
+.access-denied-lock {
+  display: grid;
+  place-items: center;
+  width: clamp(5rem, 8vw, 7rem);
+  aspect-ratio: 1;
+  border-radius: 30%;
+  background: #fcebdc;
+  color: #943d09;
+  font-size: 2.5rem;
+}
+
+.access-denied-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: .75rem;
+  margin-top: .5rem;
+
+  .btn { padding: .75rem 1.4rem; }
+  .btn-light { border-color: var(--pata-borda); }
+}
+
+@media (max-width: 640px) {
+  .access-denied { grid-template-columns: minmax(0, 1fr); }
+  .access-denied-sidebar { display: none; }
+}
