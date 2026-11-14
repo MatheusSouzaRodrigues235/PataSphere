@@ -99,6 +99,14 @@ async function writePhotos(db, id, photos) {
   await db.$executeRaw`INSERT INTO public.foto_animal (animal_id, url, ordem) VALUES ${Prisma.join(rows)}`;
 }
 
+const adoptionInterest = z.strictObject({
+  confirmed: z.literal(true),
+  residence: z.enum(['Casa com quintal', 'Casa sem quintal', 'Apartamento', 'Outro']),
+  pets: z.enum(['Não tenho', 'Tenho cão', 'Tenho gato', 'Tenho mais de um pet', 'Tenho outro tipo de pet']),
+  space: z.enum(['Pequeno', 'Médio', 'Grande']),
+  responsibility: z.literal(true),
+});
+
 const publicAnimal = Prisma.sql`a.status_adocao <> 'adotado'`;
 const missing = (res) => res.status(404).json({ message: 'Animal não encontrado.' });
 const invalid = (res) => res.status(400).json({ message: 'Confira os dados e as fotos do animal.' });
@@ -128,6 +136,30 @@ export function adoptionRoutes(prisma, sessionAccountId) {
 
   router.get('/', async (_req, res) => {
     res.json({ animals: await loadAnimals(prisma, publicAnimal, true) });
+  });
+
+  router.get('/meus/solicitacoes', requireOng, async (req, res) => {
+    const rows = await prisma.$queryRaw`
+      SELECT i.animal_id, i.tutor_id, i.registrado_em, i.moradia, i.outros_animais, i.espaco, i.aceito_em,
+        a.nome AS animal, t.nome, t.sobrenome,
+        (SELECT f.id FROM public.foto_animal f WHERE f.animal_id = a.id ORDER BY f.ordem LIMIT 1) AS foto_id
+      FROM public.interesse_adocao i
+      JOIN public.animal a ON a.id = i.animal_id
+      JOIN public.tutor t ON t.usuario_id = i.tutor_id
+      WHERE a.ong_id = ${req.ongId}
+      ORDER BY i.registrado_em DESC NULLS LAST, i.animal_id DESC, i.tutor_id DESC
+      LIMIT 10
+    `;
+    res.json({ requests: rows.map((row) => ({
+      id: row.animal_id + '-' + row.tutor_id,
+      animal: {
+        name: row.animal,
+        photo: row.foto_id ? endpoint + '/' + row.animal_id + '/fotos/' + row.foto_id : null,
+      },
+      applicant: row.nome + ' ' + row.sobrenome,
+      home: row.moradia, pets: row.outros_animais, space: row.espaco,
+      createdAt: row.registrado_em, acceptedAt: row.aceito_em,
+    })) });
   });
 
   router.get('/meus', requireOng, async (req, res) => {
@@ -256,7 +288,9 @@ export function adoptionRoutes(prisma, sessionAccountId) {
   router.post('/:id/interesse', ...json, async (req, res) => {
     const userId = sessionAccountId(req);
     if (!userId) return res.status(401).json({ message: 'Entre com uma conta de tutor para continuar.' });
-    if (req.body?.confirmed !== true) return res.status(400).json({ message: 'Confirme seu interesse para continuar.' });
+    const input = adoptionInterest.safeParse(req.body);
+    if (!input.success) return res.status(400).json({ message: 'Confira as respostas e aceite o termo para enviar a solicitação.' });
+    const { residence, pets, space } = input.data;
     const id = parseId(req.params.id);
     if (!id) return missing(res);
     const tutor = await prisma.tutor.findUnique({
@@ -271,15 +305,23 @@ export function adoptionRoutes(prisma, sessionAccountId) {
       `;
       if (!animal) return false;
       const inserted = await db.$executeRaw`
-        INSERT INTO public.interesse_adocao (animal_id, tutor_id)
-        VALUES (${id}, ${userId}) ON CONFLICT DO NOTHING
+        INSERT INTO public.interesse_adocao (animal_id, tutor_id, moradia, outros_animais, espaco, aceito_em)
+        VALUES (${id}, ${userId}, ${residence}, ${pets}, ${space}, NOW()) ON CONFLICT DO NOTHING
       `;
       if (inserted) {
         await notify(db, {
           userId: animal.ong_id, category: 'adoption', title: 'Novo interesse em adoção',
           message: tutor.nome + ' registrou interesse em adotar ' + animal.nome + '.',
-          destination: '/adocao/' + req.params.id,
+          destination: '/dashboard/ong#ong-overview-requests',
         });
+      } else {
+        await db.$executeRaw`
+          UPDATE public.interesse_adocao
+          SET moradia = ${residence}, outros_animais = ${pets}, espaco = ${space},
+              aceito_em = NOW(), registrado_em = COALESCE(registrado_em, NOW())
+          WHERE animal_id = ${id} AND tutor_id = ${userId}
+            AND (moradia, outros_animais, espaco) IS DISTINCT FROM (${residence}, ${pets}, ${space})
+        `;
       }
       return true;
     });

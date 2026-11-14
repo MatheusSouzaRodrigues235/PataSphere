@@ -18,7 +18,7 @@ export default function AdoptionRequestModal({ animal, animalCode, onClose }) {
     if (interest.saving) return;
     setInterest({ saving: true });
     try {
-      await requestAdoption('/' + animal.id + '/interesse', { method: 'POST', body: { confirmed: true } });
+      await requestAdoption('/' + animal.id + '/interesse', { method: 'POST', body: { ...draft, confirmed: true, responsibility: Boolean(draft.responsibility) } });
       setInterest({ saved: true });
     } catch (error) {
       setInterest({ error: error.message });
@@ -48,6 +48,7 @@ export default function AdoptionRequestModal({ animal, animalCode, onClose }) {
 
   function reviewRequest(event) {
     event.preventDefault();
+    setInterest({});
     setDraft(Object.fromEntries(new FormData(event.currentTarget)));
     setReviewing(true);
   }
@@ -56,7 +57,7 @@ export default function AdoptionRequestModal({ animal, animalCode, onClose }) {
     <Modal
       show
       scrollable
-      onHide={onClose}
+      onHide={interest.saving ? undefined : onClose}
       className="adoption-request-modal"
       backdropClassName="adoption-request-backdrop"
       aria-labelledby="adoption-request-title"
@@ -71,7 +72,7 @@ export default function AdoptionRequestModal({ animal, animalCode, onClose }) {
               : 'Conte um pouco sobre o seu lar. Essas informações ajudam a ONG a planejar o encontro.'}
           </p>
         </div>
-        <button type="button" className="adoption-control adoption-request-close" aria-label="Fechar" onClick={onClose}>
+        <button type="button" className="adoption-control adoption-request-close" aria-label="Fechar" disabled={interest.saving} onClick={onClose}>
           <FiX aria-hidden="true" />
         </button>
       </Modal.Header>
@@ -99,13 +100,14 @@ export default function AdoptionRequestModal({ animal, animalCode, onClose }) {
                 <p className="adoption-request-note">Confirme o envio da mensagem no WhatsApp.</p>
               </>
             )}
-            {interest.saved ? <p role="status">Interesse registrado. Você pode receber atualizações sobre este animal nas notificações.</p> : (
+            {interest.saved ? <p role="status">Solicitação enviada à ONG. Você pode receber atualizações sobre este animal nas notificações.</p> : (
               <button type="button" className="adoption-control" disabled={interest.saving} onClick={registerInterest}>
-                {interest.saving ? 'Registrando…' : 'Registrar interesse e acompanhar'}
+                {interest.saving ? 'Registrando…' : 'Enviar solicitação à ONG'}
               </button>
             )}
+            {!interest.saved && <p className="adoption-request-note">Ao enviar a solicitação, seu nome e as respostas ficam disponíveis no painel da ONG.</p>}
             {interest.error && <p role="alert" className="adoption-request-note">{interest.error}</p>}
-            <button type="button" className="adoption-control adoption-request-back" onClick={() => setReviewing(false)}>
+            <button type="button" className="adoption-control adoption-request-back" disabled={interest.saving} onClick={() => setReviewing(false)}>
               Voltar e editar
             </button>
           </div>

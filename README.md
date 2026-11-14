@@ -82,3 +82,9 @@ Aplique `database/migrations/008_notificacoes.sql` após as migrações 006 e 00
 A caixa Notificações exibe avisos para ONGs e tutores conforme as preferências de cada conta. O tutor pode registrar interesse no formulário de adoção para acompanhar mudanças de status. Esse registro também pode gerar um aviso para a ONG. O WhatsApp continua disponível para enviar a mensagem com as respostas. Avistamentos que não geram notificação continuam na caixa de avistamentos do responsável.
 
 Para publicar um comunicado para as contas que ativaram Novidades, execute `npm run noticias:publicar -- "Título" "Mensagem"` em `backend/`, com acesso ao banco do ambiente que receberá o comunicado.
+
+### Solicitações de adoção no painel
+
+Aplique `database/migrations/009_solicitacoes_adocao.sql` após a migração 008. Conceda `UPDATE` em `public.interesse_adocao` à conta da API, caso ainda falte essa permissão.
+
+Na revisão do formulário de adoção, o tutor pode enviar as respostas à ONG ou abrir o WhatsApp com a mensagem pronta. A visão geral da ONG mostra as dez solicitações mais recentes dos seus animais. Há uma solicitação por tutor e animal. Reenvios com respostas diferentes atualizam a solicitação. Registros anteriores continuam disponíveis com os dados que já existiam.

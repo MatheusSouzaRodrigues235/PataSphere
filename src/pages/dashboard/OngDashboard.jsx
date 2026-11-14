@@ -94,7 +94,7 @@ export default function OngDashboard() {
           {management && !loading && !error &&
             <AnimalManagement animals={animals} setAnimals={setAnimals} dark={dark} connected={Boolean(ong)} />}
           {lostAnimals && <LostAnimals alerts={alerts} setAlerts={setAlerts} dark={dark} connected={Boolean(ong)} />}
-          {overview && !loading && !error && !donationHistory.loading && !donationHistory.error && <OngOverview demo={!ong} organization={organization} animals={animals} records={records} dark={dark} />}
+          {overview && !loading && !error && !donationHistory.loading && !donationHistory.error && <OngOverview key={ong?.id ?? 'demo'} accountId={ong?.id} demo={!ong} organization={organization} animals={animals} records={records} dark={dark} />}
         </div>
       </div>
     </div>
