@@ -60,3 +60,11 @@ Em um banco existente, aplique `database/migrations/005_registro_doacoes.sql` co
 A ONG registra manualmente doações financeiras, ração e medicamentos. A data é registrada no horário de Brasília.
 O histórico e os anexos são acessíveis apenas pela ONG responsável. Cada registro aceita até quatro imagens ou PDFs de até 5 MB cada.
 A visão geral usa as doações recentes da ONG e soma as contribuições financeiras do mês atual.
+
+### Perfis e diretório de ONGs
+
+Em um banco existente, aplique `database/migrations/006_perfis.sql` com a conta proprietária das tabelas e execute `npx prisma generate` na pasta `backend/` com a API parada. Reinicie a API após gerar o cliente.
+
+Os perfis autenticados salvam dados, imagens, privacidade e preferências pelo endpoint `/api/perfis/ong` ou `/api/perfis/tutor`. O diretório e as páginas públicas consultam `/api/ongs`. A ONG escolhe o e-mail e o WhatsApp públicos em Perfil da ONG e cadastra os itens e as orientações em Formas de recebimento.
+
+Alterações de perfil feitas antes dessa versão podem ser recuperadas nas respectivas seções, ao entrar na mesma conta pelo navegador em que foram salvas. Revise os dados antes de salvá-los.

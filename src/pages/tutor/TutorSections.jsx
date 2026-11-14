@@ -55,7 +55,7 @@ export function TutorPhoto({ photo, save, avatar }) {
       const size = Math.min(image.width, image.height);
       canvas.getContext('2d').drawImage(image, (image.width - size) / 2, (image.height - size) / 2, size, size, 0, 0, 320, 320);
       image.close();
-      save({ photo: canvas.toDataURL('image/webp', 0.85) }, 'Foto atualizada neste navegador.');
+      await save({ photo: canvas.toDataURL('image/webp', 0.85) }, 'Foto atualizada.');
     } catch {
       setError('Não foi possível abrir a imagem. Escolha outro arquivo.');
     }

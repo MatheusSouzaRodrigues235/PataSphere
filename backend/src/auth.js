@@ -15,7 +15,7 @@ const accountFields = {
   id: true, email: true, telefone: true,
   endereco: { select: { cep: true, cidade: true, uf: true } },
   ong: { select: organizationFields },
-  tutor: { select: { nome: true, sobrenome: true } },
+  tutor: { select: { nome: true, sobrenome: true, perfil: true } },
 };
 
 function identity(account) {
@@ -23,7 +23,7 @@ function identity(account) {
   if (!ong && !tutor) return null;
   const profile = ong
     ? { role: 'ong', name: ong.nome, photo: ong.logoUrl, cnpj: ong.cnpj }
-    : { role: 'tutor', name: tutor.nome + ' ' + tutor.sobrenome, firstName: tutor.nome, lastName: tutor.sobrenome };
+    : { role: 'tutor', name: tutor.nome + ' ' + tutor.sobrenome, firstName: tutor.nome, lastName: tutor.sobrenome, photo: tutor.perfil.photo ?? null };
 
   return {
     ...profile,

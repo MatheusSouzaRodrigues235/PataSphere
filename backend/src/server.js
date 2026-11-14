@@ -4,6 +4,7 @@ import { donationRoutes } from './donations.js';
 import multer from 'multer';
 import { adoptionRoutes } from './adoption.js';
 import { lostAnimalRoutes } from './lost-animals.js';
+import { profileRoutes } from './profiles.js';
 import { authRoutes } from './auth.js';
 import { PrismaClient } from '@prisma/client';
 import { logoDirectory, registrationRoutes } from './registration.js';
@@ -23,6 +24,7 @@ const auth = authRoutes(prisma);
 app.use('/api/animais-perdidos', lostAnimalRoutes(prisma, auth.sessionAccountId));
 app.use('/api/adocao', adoptionRoutes(prisma, auth.sessionAccountId));
 app.use('/api/doacoes', donationRoutes(prisma, auth.sessionAccountId));
+app.use('/api/perfis', profileRoutes(prisma, auth.sessionAccountId));
 app.use(express.json({ limit: '16kb' }));
 app.use('/api/uploads/logos', express.static(logoDirectory, { index: false }));
 app.use('/api/auth', auth.router);
@@ -34,7 +36,7 @@ app.use((error, _req, res, next) => {
   if (error instanceof multer.MulterError || error.status === 413) {
     const tooLarge = error.code === 'LIMIT_FILE_SIZE' || error.status === 413;
     return res.status(tooLarge ? 413 : 400).json({
-      message: tooLarge ? 'O cadastro excede o limite. O logo pode ter até 5 MB.' : 'O formulário contém arquivos ou campos inválidos.',
+      message: tooLarge ? 'Os dados enviados excedem o limite permitido.' : 'O formulário contém arquivos ou campos inválidos.',
     });
   }
   if (error.status === 400) return res.status(400).json({ message: 'O formulário enviado é inválido.' });

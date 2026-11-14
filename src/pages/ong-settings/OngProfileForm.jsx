@@ -62,7 +62,7 @@ export default function OngProfileForm({ profile, save }) {
     });
   }
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
     const next = Object.fromEntries(Object.entries(draft).map(([name, value]) => [name, value.trim()]));
     if (/(https?:\/\/|www\.|\b[\w-]+\.(com|net|org|br)\b|\bcupom\s*[:#-]?\s*[\w-]*\d[\w-]*)/i.test(next.bio)) {
@@ -76,7 +76,7 @@ export default function OngProfileForm({ profile, save }) {
       return;
     }
     next.cnpj = next.cnpj.toUpperCase();
-    if (save({ profile: next })) setDraft(next);
+    if (await save({ profile: next })) setDraft(next);
   }
 
   function field(name, label, props) {
@@ -98,7 +98,7 @@ export default function OngProfileForm({ profile, save }) {
         <legend>Dados da ONG</legend>
         {field('name', 'Nome da ONG', { required: true, pattern: '.*\\S.*', maxLength: 100, autoComplete: 'organization', placeholder: 'Ex.: Amor de Pet' })}
         <div className="tutor-columns">
-          {field('cnpj', 'CNPJ', { maxLength: 18, placeholder: '00.000.000/0000-00' })}
+          {field('cnpj', 'CNPJ', { required: true, maxLength: 18, placeholder: '00.000.000/0000-00' })}
           {field('founded', 'Ano de fundação', { type: 'number', min: 1000, max: new Date().getFullYear(), placeholder: 'Ex.: 2015' })}
         </div>
         {field('tagline', 'Slogan', { maxLength: 60, count: true, placeholder: 'Ex.: Todo animal merece um lar',
@@ -144,7 +144,7 @@ export default function OngProfileForm({ profile, save }) {
         {field('facebook', 'Facebook', { prefix: 'facebook.com/', placeholder: 'Nome de usuário', maxLength: 50,
           pattern: '@?[a-zA-Z0-9._]+', hint: 'Informe o nome de usuário do Facebook.' })}
         {field('pixKey', 'Chave PIX para doações', { placeholder: 'CNPJ, e-mail ou chave aleatória', maxLength: 150,
-          hint: 'A chave aparece na seção Como ajudar da prévia pública.' })}
+          hint: 'A chave aparece na seção Como ajudar do perfil público.' })}
       </fieldset>
       {error && <p className="tutor-error" role="alert">{error}</p>}
       <button className="btn btn-primary" type="submit">Salvar</button>

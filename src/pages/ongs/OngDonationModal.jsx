@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react';
 import Modal from 'react-bootstrap/Modal';
 import { FiCopy, FiInfo } from 'react-icons/fi';
-import { FaWhatsapp } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 
 export default function OngDonationModal({ ong, show, onClose }) {
@@ -13,7 +12,7 @@ export default function OngDonationModal({ ong, show, onClose }) {
   async function copyPixKey() {
     try {
       await navigator.clipboard.writeText(ong.pixKey);
-      setCopyStatus(ong.preview ? 'Chave Pix copiada.' : 'Chave demonstrativa copiada.');
+      setCopyStatus('Chave Pix copiada.');
     } catch {
       pixInput.current?.focus();
       pixInput.current?.select();
@@ -50,7 +49,7 @@ export default function OngDonationModal({ ong, show, onClose }) {
       </Modal.Header>
       <Modal.Body>
         {ong.pixKey && <div className="ong-donation-pix">
-          <label htmlFor="ong-donation-key">{ong.preview ? 'Chave Pix' : 'Chave Pix (CNPJ) · Demonstrativa'}</label>
+          <label htmlFor="ong-donation-key">Chave Pix</label>
           <div className="ong-donation-key">
             <input id="ong-donation-key" ref={pixInput} value={ong.pixKey} readOnly />
             <button className="adoption-control" type="button" onClick={copyPixKey}>
@@ -59,19 +58,14 @@ export default function OngDonationModal({ ong, show, onClose }) {
           </div>
           <span role="status">{copyStatus}</span>
         </div>}
-        {ong.preview ? (
-          ong.supplies.length > 0 && <>
-            <h3>Insumos necessários</h3>
-            <ul>{ong.supplies.map((item) => <li key={item}>{item}</li>)}</ul>
-          </>
-        ) : <>
-          <h3>Doação de ração e medicamentos</h3>
-          <p>Consulte os contatos da ONG em {ong.city} para combinar o dia e o horário da entrega.</p>
+        {ong.supplies?.length > 0 && <>
+          <h3>Insumos necessários</h3>
+          <ul>{ong.supplies.map((item) => <li key={item}>{item}</li>)}</ul>
         </>}
+        {ong.donationInstructions && <p className="ong-profile-description">{ong.donationInstructions}</p>}
         <p className="ong-donation-note">
           <FiInfo aria-hidden="true" />
-          <span>{ong.preview ? 'Você está visualizando os dados salvos neste navegador.'
-            : 'A doação é feita diretamente com a ONG. Os dados desta página são demonstrativos.'}</span>
+          <span>A doação é feita diretamente com a ONG.</span>
         </p>
       </Modal.Body>
       <Modal.Footer>
@@ -80,7 +74,7 @@ export default function OngDonationModal({ ong, show, onClose }) {
           setGoToContact(true);
           onClose();
         }}>
-          <FaWhatsapp aria-hidden="true" /> Combinar entrega
+          Combinar entrega
         </button>}
       </Modal.Footer>
     </Modal>

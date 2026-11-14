@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom';
 import AccountAccess from './AccountAccess';
+import { profileLoader } from './profileApi';
 import { loadAccountSession } from './accountSession';
 import PublicLayout from '@/layouts/PublicLayout';
 import Home from '@/pages/home/Home';
@@ -27,7 +28,10 @@ const routes = [
     element: <OngPublicLayout />,
     children: [
       { index: true, element: <OngDirectory /> },
-      { element: <AccountAccess role="ong" />, children: [{ path: 'amor-de-pet/previa', element: <OngProfilePreview /> }] },
+      { element: <AccountAccess role="ong" />, children: [
+        { path: 'previa', element: <OngProfilePreview /> },
+        { path: 'amor-de-pet/previa', element: <OngProfilePreview /> },
+      ] },
       { path: ':ongSlug', element: <OngProfile /> },
     ],
   },
@@ -43,7 +47,7 @@ const routes = [
           { path: 'animais-perdidos', element: null },
         ],
       },
-      { path: '/perfil/ong/:secao?', element: <OngSettings /> },
+      { path: '/perfil/ong/:secao?', element: <OngSettings />, loader: profileLoader('ong') },
     ],
   },
   {
@@ -63,7 +67,7 @@ const routes = [
       { path: ':animalId', element: <LostAnimalPage /> },
     ],
   },
-  { element: <AccountAccess role="tutor" />, children: [{ path: '/perfil/tutor/:secao?', element: <TutorProfile /> }] },
+  { element: <AccountAccess role="tutor" />, children: [{ path: '/perfil/tutor/:secao?', element: <TutorProfile />, loader: profileLoader('tutor') }] },
   { path: '/login', element: <Login /> },
   { path: '/cadastro', element: <ChooseProfile /> },
   { path: '/cadastro/tutor', element: <RegisterTutor /> },

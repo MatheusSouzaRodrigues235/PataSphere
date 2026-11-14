@@ -39,16 +39,32 @@ model Tutor {
   nome      String
   sobrenome String
   cpf       String  @unique
+  perfil    Json    @default("{}")
 
   @@map("tutor")
 }
 
 model Ong {
-  usuarioId BigInt  @id @map("usuario_id")
-  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  nome      String
-  cnpj      String  @unique
-  logoUrl   String? @map("logo_url")
+  usuarioId             BigInt    @id @map("usuario_id")
+  usuario               Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  nome                  String
+  cnpj                  String    @unique
+  logoUrl               String?   @map("logo_url")
+  capaUrl               String?   @map("capa_url")
+  dataFundacao          DateTime? @map("data_fundacao") @db.Date
+  slogan                String?
+  descricao             String?
+  emailPublico          String?   @map("email_publico")
+  whatsappPublico       String?   @map("whatsapp_publico")
+  siteUrl               String?   @map("site_url")
+  instagramUrl          String?   @map("instagram_url")
+  facebookUrl           String?   @map("facebook_url")
+  chavePix              String?   @map("chave_pix")
+  instrucoesDoacaoItens String?   @map("instrucoes_doacao_itens")
+  orientacoesDoacao     String?   @map("orientacoes_doacao")
+  exibirContato         Boolean   @default(true) @map("exibir_contato")
+  exibirLocalizacao     Boolean   @default(true) @map("exibir_localizacao")
+  notificacoes          Json      @default("{}")
 
   @@map("ong")
 }

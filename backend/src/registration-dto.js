@@ -19,7 +19,7 @@ const cpf = z.string().trim().regex(/^(?:\d{11}|\d{3}\.\d{3}\.\d{3}-\d{2})$/, 'I
   .transform(digits)
   .refine((value) => validDocument(value, [10,9,8,7,6,5,4,3,2], [11,10,9,8,7,6,5,4,3,2]), 'Informe um CPF válido.');
 
-const cnpj = z.string().trim().toUpperCase()
+export const cnpj = z.string().trim().toUpperCase()
   .regex(/^(?:[A-Z0-9]{12}\d{2}|[A-Z0-9]{2}\.[A-Z0-9]{3}\.[A-Z0-9]{3}\/[A-Z0-9]{4}-\d{2})$/, 'Informe um CNPJ válido.')
   .transform((value) => value.replace(/[./-]/g, ''))
   .refine((value) => validDocument(value, [5,4,3,2,9,8,7,6,5,4,3,2], [6,5,4,3,2,9,8,7,6,5,4,3,2]), 'Informe um CNPJ válido.');

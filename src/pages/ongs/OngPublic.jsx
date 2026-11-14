@@ -45,14 +45,19 @@ export function OngPublicLayout() {
   );
 }
 
+function whatsappUrl(phone) {
+  const digits = phone?.replace(/\D/g, '');
+  return /^\d{10,11}$/.test(digits ?? '') ? 'https://wa.me/55' + digits : null;
+}
+
 function OngContact({ ong }) {
   const contacts = [
-    ['Endereço', FiMapPin, ong.city && <>{ong.address && <>{ong.address}<br /></>}{ong.city}</>],
-    ['WhatsApp', FaWhatsapp, ong.whatsapp],
-    ['E-mail', FiMail, ong.email],
-    ['Instagram', FiInstagram, ong.instagram],
-    ['Facebook', FiFacebook, ong.facebook],
-    ['Site', FiGlobe, ong.website],
+    ['Localização', FiMapPin, [ong.neighborhood, ong.city].filter(Boolean).join(' · ')],
+    ['WhatsApp', FaWhatsapp, ong.whatsapp, whatsappUrl(ong.whatsapp)],
+    ['E-mail', FiMail, ong.email, ong.email && 'mailto:' + ong.email],
+    ['Instagram', FiInstagram, ong.instagram, ong.instagram],
+    ['Facebook', FiFacebook, ong.facebook, ong.facebook],
+    ['Site', FiGlobe, ong.website, ong.website],
   ].filter(([, , value]) => value);
   const mapUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(ong.city);
 
@@ -64,14 +69,14 @@ function OngContact({ ong }) {
         Ver cidade no mapa
       </a>}
       <dl>
-        {contacts.map(([label, Icon, value]) => (
+        {contacts.map(([label, Icon, value, href]) => (
           <div key={label}>
             <span className="ong-public-icon"><Icon aria-hidden="true" /></span>
-            <div><dt>{label}</dt><dd>{value}</dd></div>
+            <div><dt>{label}</dt><dd>{href ? <a href={href}>{value}</a> : value}</dd></div>
           </div>
         ))}
       </dl>
-
+      {!contacts.length && <p>Contatos e localização ainda não divulgados.</p>}
     </section>
   );
 }
@@ -105,7 +110,7 @@ function OngAnimals({ animals, boardSearch }) {
   );
 }
 
-function OngHelp({ supplies, hasPix, onDonate }) {
+function OngHelp({ supplies, hasPix, instructions, onDonate }) {
   const options = [
     ['Adote', FiHeart, 'Conheça os animais e envie sua solicitação.', '#animais'],
     hasPix && ['Doe via Pix', FiCopy, 'Confira os dados para doação.'],
@@ -130,6 +135,7 @@ function OngHelp({ supplies, hasPix, onDonate }) {
             : <button key={label} className="ong-help-card" type="button" aria-haspopup="dialog" onClick={onDonate}>{content}</button>;
         })}
       </div>
+      {instructions && <p className="ong-profile-description">{instructions}</p>}
       <ul className="ong-supplies" aria-label="Insumos necessários">
         {supplies.map((item) => <li key={item}>{item}</li>)}
       </ul>
@@ -137,9 +143,12 @@ function OngHelp({ supplies, hasPix, onDonate }) {
   );
 }
 
-export function OngProfile() {
+export function OngProfile({ preview = false }) {
   const { ongSlug } = useParams();
-  const { data, loading, error, reload } = useOrganizations(ongSlug);
+  const account = useOngSession();
+  const id = preview ? account?.id ?? null : ongSlug;
+  const { data, loading, error, reload } = useOrganizations(id);
+  if (preview && !account) return <OngDemoPreview />;
   if (loading) return <p className="ong-public-container" role="status">Carregando ONG…</p>;
   if (error) {
     return (
@@ -150,21 +159,22 @@ export function OngProfile() {
     );
   }
   const ong = data?.organization;
-  return ong ? <OngProfileView key={ongSlug} ong={ong} /> : <NotFound />;
+  return ong ? <OngProfileView key={id} ong={{ ...ong, preview }} /> : <NotFound />;
 }
 
 export function OngProfilePreview() {
-  const account = useOngSession();
-  const { profile, images, privacy, donations } = readOngSettings(account);
-  const socialLink = (domain, username) => username && domain + '/' + encodeURIComponent(username.replace(/^@/, ''));
+  return <OngProfile preview />;
+}
+
+function OngDemoPreview() {
+  const { profile, images, privacy, donations } = readOngSettings();
+  const socialLink = (domain, username) => username && 'https://www.' + domain + '/' + encodeURIComponent(username.replace(/^@/, ''));
   const ong = {
-    accountId: account?.id,
     preview: true,
     name: profile.name,
     tagline: profile.tagline,
     description: profile.bio,
     founded: profile.founded,
-    address: '',
     city: privacy.location ? [profile.city, profile.state].filter(Boolean).join(' – ') : '',
     email: privacy.contact ? profile.email : '',
     whatsapp: privacy.contact ? profile.whatsapp : '',
@@ -172,6 +182,7 @@ export function OngProfilePreview() {
     instagram: socialLink('instagram.com', profile.instagram),
     facebook: socialLink('facebook.com', profile.facebook),
     pixKey: profile.pixKey,
+    donationInstructions: donations.instructions,
     supplies: [...new Set(donations.supplies.split('\n').map((item) => item.trim()).filter(Boolean))],
     ...images,
   };
@@ -193,7 +204,7 @@ function OngProfileView({ ong }) {
   const featured = animals.slice(0, 4);
   const boardSearch = ongAdoptionSearch(ong);
 
-  const canDonate = Boolean(ong.pixKey || ong.supplies?.length);
+  const canDonate = Boolean(ong.pixKey || ong.supplies?.length || ong.donationInstructions);
   const stats = [
     ['Animais para adoção', data ? animals.length : ong.available ?? '—'],
     ['Animais adotados', ong.adopted ?? '—'],
@@ -229,7 +240,7 @@ function OngProfileView({ ong }) {
             </ul>
           </div>
           {(ong.whatsapp || canDonate) && <div className="ong-hero-actions">
-            {ong.whatsapp && <a className="adoption-action ong-whatsapp" href="#contato"><FaWhatsapp aria-hidden="true" /> Ver WhatsApp</a>}
+            {ong.whatsapp && <a className="adoption-action ong-whatsapp" href={whatsappUrl(ong.whatsapp) ?? '#contato'}><FaWhatsapp aria-hidden="true" /> Ver WhatsApp</a>}
             {canDonate && <button className="adoption-action" type="button" aria-haspopup="dialog" onClick={() => setDonationOpen(true)}>
               <FiHeart aria-hidden="true" /> Como doar
             </button>}
@@ -252,14 +263,8 @@ function OngProfileView({ ong }) {
           <Description text={ong.description || 'Descrição ainda não informada.'} />
         </section>
         <OngAnimals animals={featured} boardSearch={boardSearch} />
-        {canDonate && <OngHelp supplies={ong.supplies ?? []} hasPix={Boolean(ong.pixKey)} onDonate={() => setDonationOpen(true)} />}
-        {ong.address || ong.preview ? <OngContact ong={ong} /> : (
-          <section id="contato" className="ong-public-panel ong-contact" tabIndex={-1}>
-            <h2>Contato e localização</h2>
-            {(ong.neighborhood || ong.city) && <p>{[ong.neighborhood, ong.city].filter(Boolean).join(' · ')}</p>}
-            <p>Contatos ainda não divulgados.</p>
-          </section>
-        )}
+        {canDonate && <OngHelp supplies={ong.supplies ?? []} hasPix={Boolean(ong.pixKey)} instructions={ong.donationInstructions} onDonate={() => setDonationOpen(true)} />}
+        <OngContact ong={ong} />
       </div>
       {canDonate && <OngDonationModal ong={ong} show={donationOpen} onClose={() => setDonationOpen(false)} />}
     </div>

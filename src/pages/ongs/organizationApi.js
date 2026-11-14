@@ -6,6 +6,7 @@ export function useOrganizations(id) {
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    if (id === null) return;
     const controller = new AbortController();
     async function load() {
       try {
@@ -30,5 +31,5 @@ export function useOrganizations(id) {
   }, [id, path, attempt]);
 
   const current = result?.path === path && result.attempt === attempt ? result : null;
-  return { ...current, loading: !current, reload: () => setAttempt((value) => value + 1) };
+  return { ...current, loading: id !== null && !current, reload: () => setAttempt((value) => value + 1) };
 }

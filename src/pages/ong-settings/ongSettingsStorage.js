@@ -1,5 +1,5 @@
 export const ongSettingsPath = '/perfil/ong';
-export const ongPreviewPath = '/ongs/amor-de-pet/previa';
+export const ongPreviewPath = '/ongs/previa';
 const storageKey = 'patasphere-ong-profile';
 
 export const initialSettings = {
@@ -8,7 +8,7 @@ export const initialSettings = {
     whatsapp: '', cep: '', city: '', state: 'São Paulo', website: '', instagram: '', facebook: '', pixKey: '',
   },
   images: { logo: '', cover: '' },
-  donations: { supplies: '' },
+  donations: { supplies: '', instructions: '' },
   notifications: { adoption: true, sightings: true, donations: true, news: false },
   privacy: { contact: true, location: true },
 };

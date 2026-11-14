@@ -29,8 +29,7 @@ export function OngImages({ images, save }) {
       } finally {
         image.close();
       }
-      save((current) => ({ images: { ...current.images, [name]: canvas.toDataURL('image/webp', 0.85) } }),
-        'Imagem atualizada neste navegador.');
+      await save({ images: { [name]: canvas.toDataURL('image/webp', 0.85) } }, 'Imagem atualizada.');
     } catch {
       setError('Não foi possível abrir a imagem.');
     } finally {
@@ -50,7 +49,7 @@ export function OngImages({ images, save }) {
           {images[name] && (
             <button className="btn btn-outline-danger" type="button" disabled={busy} onClick={() => {
               setError('');
-              save({ images: { ...images, [name]: '' } }, 'Imagem removida.');
+              save({ images: { [name]: '' } }, 'Imagem removida.');
             }}>Remover {name === 'logo' ? 'logo' : 'foto'}</button>
           )}
         </div>
@@ -62,15 +61,16 @@ export function OngImages({ images, save }) {
 
 export function OngReceiving({ data, save }) {
   const [supplies, setSupplies] = useState(data.donations.supplies);
+  const [instructions, setInstructions] = useState(data.donations.instructions);
   return (
-    <form className="tutor-body" onSubmit={(event) => {
+    <form className="tutor-body" onSubmit={async (event) => {
       event.preventDefault();
       const next = supplies.trim();
-      if (save({ donations: { supplies: next } }, 'Formas de recebimento salvas neste navegador.')) setSupplies(next);
+      if (await save({ donations: { supplies: next, instructions: instructions.trim() } }, 'Formas de recebimento salvas.')) setSupplies(next);
     }}>
       <fieldset>
         <legend>Doações via Pix</legend>
-        <p>{data.profile.pixKey || 'Cadastre uma chave Pix para exibir a opção de doação na prévia.'}</p>
+        <p>{data.profile.pixKey || 'Cadastre uma chave Pix para exibir a opção de doação no perfil público.'}</p>
         <Link to={ongSettingsPath}>{data.profile.pixKey ? 'Editar chave Pix' : 'Cadastrar chave Pix'}</Link>
       </fieldset>
       <fieldset>
@@ -79,9 +79,14 @@ export function OngReceiving({ data, save }) {
           <label htmlFor="ong-supplies">Itens que a ONG precisa</label>
           <textarea id="ong-supplies" value={supplies} onChange={(event) => setSupplies(event.target.value)}
             rows={5} maxLength={600} placeholder={'Ração\nMedicamentos\nCobertores'} aria-describedby="ong-supplies-hint" />
-          <small id="ong-supplies-hint">Digite um item por linha para exibi-los na seção Como ajudar da prévia.</small>
+          <small id="ong-supplies-hint">Digite um item por linha para exibi-los na seção Como ajudar do perfil público.</small>
         </div>
       </fieldset>
+      <div className="tutor-field">
+        <label htmlFor="ong-donation-instructions">Instruções para doar</label>
+        <textarea id="ong-donation-instructions" value={instructions} onChange={(event) => setInstructions(event.target.value)}
+          rows={4} maxLength={1000} placeholder="Informe como combinar a entrega, os horários ou o ponto de coleta." />
+      </div>
       <button className="btn btn-primary" type="submit">Salvar</button>
     </form>
   );
