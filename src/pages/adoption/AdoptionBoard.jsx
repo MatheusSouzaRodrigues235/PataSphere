@@ -22,7 +22,7 @@ function AnimalTags({ animal }) {
   );
 }
 
-function AnimalCard({ animal, favorite, onFavorite, detailsUrl, boardSearch }) {
+function AnimalCard({ animal, favorite, favoritesDisabled, onFavorite, detailsUrl, boardSearch }) {
   return (
     <article className="adoption-card">
       <div className="adoption-card-photo">
@@ -32,6 +32,7 @@ function AnimalCard({ animal, favorite, onFavorite, detailsUrl, boardSearch }) {
           type="button"
           className="adoption-favorite"
           aria-pressed={favorite}
+          disabled={favoritesDisabled}
           aria-label={'Favoritar ' + animal.name}
           onClick={onFavorite}
         >
@@ -64,9 +65,10 @@ function AnimalCard({ animal, favorite, onFavorite, detailsUrl, boardSearch }) {
 export default function AdoptionBoard() {
   const [params, setParams] = useSearchParams();
   const search = params.get('busca') ?? '';
+  const favoritesOnly = params.has('favoritos');
 
   const [filterOpen, setFilterOpen] = useState(false);
-  const { favorites, toggleFavorite } = useOutletContext();
+  const { favorites, toggleFavorite, favoritesDisabled } = useOutletContext();
 
   const heading = useRef(null);
   const { data, loading, error, reload } = useAdoptionAnimals('');
@@ -87,6 +89,7 @@ export default function AdoptionBoard() {
   const searchTerm = normalize(search.trim());
   const matchingSearch = adoptionAnimals.filter((animal) =>
     normalize(animal.name).includes(searchTerm) &&
+    (!favoritesOnly || favorites.includes(animal.id)) &&
     (organizationId ? animal.organizationId === organizationId : !organization || animal.organization === organization),
   );
   const matchingFilters = (criteria) => matchingSearch.filter((animal) =>
@@ -109,6 +112,7 @@ export default function AdoptionBoard() {
     if (currentOrganization) nextParams.set('ong', currentOrganization);
     if (currentOrganization && organizationId) nextParams.set('ongId', organizationId);
     if (query) nextParams.set('busca', query);
+    if (favoritesOnly) nextParams.set('favoritos', '1');
     setParams(nextParams, { preventScrollReset: true });
     setFilterOpen(false);
   }
@@ -157,8 +161,16 @@ export default function AdoptionBoard() {
           </button>
         </div>
         <div className="adoption-quick-filters" role="group" aria-label="Filtros rápidos">
+          <button type="button" className="adoption-control" aria-pressed={favoritesOnly}
+            disabled={favoritesDisabled} onClick={() => {
+              const next = new URLSearchParams(params);
+              next.delete('pagina');
+              if (favoritesOnly) next.delete('favoritos');
+              else next.set('favoritos', '1');
+              setParams(next, { preventScrollReset: true });
+            }}><FiHeart aria-hidden="true" /> Favoritos</button>
           {quickFilters.map(([label, criteria]) => (
-            <button key={label} type="button" className="adoption-control" aria-pressed={label === activeFilter} onClick={() => applyFilters(criteria)}>
+            <button key={label} type="button" className="adoption-control" aria-pressed={!favoritesOnly && label === activeFilter} onClick={() => applyFilters(criteria)}>
               {label}
             </button>
           ))}
@@ -176,6 +188,7 @@ export default function AdoptionBoard() {
                 key={animal.id}
                 animal={animal}
                 favorite={favorites.includes(animal.id)}
+                favoritesDisabled={favoritesDisabled}
                 onFavorite={() => toggleFavorite(animal.id)}
                 detailsUrl={adoptionPath(animal)}
                 boardSearch={params.toString()}
@@ -184,8 +197,8 @@ export default function AdoptionBoard() {
           </div>
         ) : (
           <div className="adoption-empty">
-            <h2>Nenhum animal encontrado</h2>
-            <button type="button" className="adoption-control" onClick={() => applyFilters({}, '', null)}>Limpar busca e filtros</button>
+            <h2>{favoritesOnly ? 'Nenhum favorito encontrado' : 'Nenhum animal encontrado'}</h2>
+            <button type="button" className="adoption-control" onClick={() => setParams({}, { preventScrollReset: true })}>Limpar busca e filtros</button>
           </div>
         )}
         {pageCount > 1 && (

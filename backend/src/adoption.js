@@ -138,6 +138,66 @@ export function adoptionRoutes(prisma, sessionAccountId) {
     res.json({ animals: await loadAnimals(prisma, publicAnimal, true) });
   });
 
+  const favorites = Router();
+  router.use('/favoritos', favorites);
+  favorites.use(async (req, res, next) => {
+    const tutorId = sessionAccountId(req);
+    if (!tutorId) return res.status(401).json({ message: 'Entre como tutor para acessar seus favoritos.' });
+    const tutor = await prisma.tutor.findUnique({
+      where: { usuarioId: tutorId }, select: { usuarioId: true },
+    });
+    if (!tutor) return res.status(403).json({ message: 'Apenas tutores podem sincronizar favoritos.' });
+    req.tutorId = tutorId;
+    next();
+  });
+
+  favorites.get('/', async (req, res) => {
+    const rows = await prisma.$queryRaw`
+      SELECT f.animal_id FROM public.favorito_adocao f JOIN public.animal a ON a.id = f.animal_id
+      WHERE f.tutor_id = ${req.tutorId} AND ${publicAnimal}
+      ORDER BY f.animal_id
+    `;
+    res.json({ favorites: rows.map((row) => String(row.animal_id)) });
+  });
+
+  async function saveFavorites(tutorId, ids) {
+    return prisma.$queryRaw`
+      WITH available AS (
+        SELECT a.id FROM public.animal a WHERE a.id IN (${Prisma.join(ids)}) AND ${publicAnimal} FOR SHARE
+      ), saved AS (
+        INSERT INTO public.favorito_adocao (tutor_id, animal_id)
+        SELECT ${tutorId}, id FROM available ORDER BY id
+        ON CONFLICT (tutor_id, animal_id) DO NOTHING
+      )
+      SELECT id AS animal_id FROM available
+    `;
+  }
+
+  favorites.post('/importar', requireJson, express.json({ limit: '32kb' }), async (req, res) => {
+    const input = z.object({ ids: z.array(retainedPhoto).min(1).max(500) }).safeParse(req.body);
+    if (!input.success) return res.status(400).json({ message: 'Confira a lista de favoritos para importar.' });
+    const ids = [...new Set(input.data.ids)].map(BigInt);
+    const rows = await saveFavorites(req.tutorId, ids);
+    res.json({ favorites: rows.map((row) => String(row.animal_id)) });
+  });
+
+  favorites.put('/:id', async (req, res) => {
+    const id = parseId(req.params.id);
+    if (!id) return missing(res);
+    const rows = await saveFavorites(req.tutorId, [id]);
+    if (!rows.length) return missing(res);
+    res.sendStatus(204);
+  });
+
+  favorites.delete('/:id', async (req, res) => {
+    const id = parseId(req.params.id);
+    if (!id) return missing(res);
+    await prisma.$executeRaw`
+      DELETE FROM public.favorito_adocao WHERE tutor_id = ${req.tutorId} AND animal_id = ${id}
+    `;
+    res.sendStatus(204);
+  });
+
   router.get('/meus/solicitacoes', requireOng, async (req, res) => {
     const rows = await prisma.$queryRaw`
       SELECT i.animal_id, i.tutor_id, i.registrado_em, i.moradia, i.outros_animais, i.espaco, i.aceito_em,

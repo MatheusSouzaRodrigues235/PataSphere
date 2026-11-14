@@ -96,3 +96,9 @@ Aplique `database/migrations/010_gerenciamento_conta.sql` e conceda à conta da 
 Para enviar a recuperação de senha, configure `PUBLIC_APP_URL` com o endereço público do frontend, `RESEND_API_KEY` com a chave do Resend e `PASSWORD_RESET_FROM` com um remetente do domínio verificado. Em produção, use HTTPS. O link vale 30 minutos e só pode ser usado uma vez.
 
 Tutores e ONGs podem trocar a senha em Segurança da conta ou encerrar a conta no menu do perfil. O encerramento exige a senha atual e uma confirmação explícita e remove a conta e os dados associados. Trocar ou redefinir a senha encerra os logins ativos.
+
+### Favoritos de adoção
+
+Aplique `database/migrations/011_favoritos_adocao.sql` e conceda leitura, inserção e exclusão em `public.favorito_adocao` à conta da API.
+
+Ao entrar como tutor, os favoritos ficam vinculados à conta e aparecem em outros dispositivos. O filtro Favoritos fica no mural de adoção. Visitantes podem continuar salvando animais neste navegador e importar a lista ao entrar como tutor. Os animais adotados ficam fora do mural e os removidos perdem o vínculo de favorito.

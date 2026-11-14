@@ -18,7 +18,7 @@ const adoptionSteps = [
 ];
 
 function AnimalProfile({ animal, animals, boardSearch }) {
-  const { favorites, toggleFavorite } = useOutletContext();
+  const { favorites, toggleFavorite, favoritesDisabled } = useOutletContext();
   const account = useAccountSession();
   const [modal, setModal] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -80,7 +80,7 @@ function AnimalProfile({ animal, animals, boardSearch }) {
                 Entrar para adotar
               </Link>
             )}
-            <button type="button" className="adoption-favorite" aria-pressed={favorites.includes(animal.id)} aria-label={'Favoritar ' + animal.name} onClick={() => toggleFavorite(animal.id)}>
+            <button type="button" className="adoption-favorite" disabled={favoritesDisabled} aria-pressed={favorites.includes(animal.id)} aria-label={'Favoritar ' + animal.name} onClick={() => toggleFavorite(animal.id)}>
               <FiHeart aria-hidden="true" />
             </button>
           </div>
