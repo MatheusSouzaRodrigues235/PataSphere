@@ -11,7 +11,8 @@ import { useAdoptionAnimals } from '@/pages/adoption/adoptionApi';
 import NotFound from '@/pages/NotFound';
 import { ongSettingsPath, readOngSettings } from '@/pages/ong-settings/ongSettingsStorage';
 import OngDonationModal from './OngDonationModal';
-import { ongAdoptionSearch, ongProfiles } from './ongProfiles';
+import { ongAdoptionSearch } from './ongProfiles';
+import { useOrganizations } from './organizationApi';
 import '@/styles/_adoption.scss';
 import '@/styles/_ong-public.scss';
 
@@ -70,7 +71,7 @@ function OngContact({ ong }) {
           </div>
         ))}
       </dl>
-      {!ong.preview && <p className="ong-contact-note">Endereço e contatos demonstrativos.</p>}
+
     </section>
   );
 }
@@ -138,7 +139,17 @@ function OngHelp({ supplies, hasPix, onDonate }) {
 
 export function OngProfile() {
   const { ongSlug } = useParams();
-  const ong = ongProfiles.find(({ slug }) => slug === ongSlug);
+  const { data, loading, error, reload } = useOrganizations(ongSlug);
+  if (loading) return <p className="ong-public-container" role="status">Carregando ONG…</p>;
+  if (error) {
+    return (
+      <div className="ong-public-container">
+        <p role="alert">{error}</p>
+        <button type="button" className="adoption-control" onClick={reload}>Tentar novamente</button>
+      </div>
+    );
+  }
+  const ong = data?.organization;
   return ong ? <OngProfileView key={ongSlug} ong={ong} /> : <NotFound />;
 }
 
@@ -147,7 +158,7 @@ export function OngProfilePreview() {
   const { profile, images, privacy, donations } = readOngSettings(account);
   const socialLink = (domain, username) => username && domain + '/' + encodeURIComponent(username.replace(/^@/, ''));
   const ong = {
-    ...(account ? { privatePreview: true, accountId: account.id } : ongProfiles[0]),
+    accountId: account?.id,
     preview: true,
     name: profile.name,
     tagline: profile.tagline,
@@ -177,20 +188,14 @@ function Description({ text }) {
 
 function OngProfileView({ ong }) {
   const [donationOpen, setDonationOpen] = useState(false);
-  const organization = ong.preview && !ong.privatePreview ? ongProfiles[0] : ong;
-  const { data } = useAdoptionAnimals('');
-  const animals = (data?.animals ?? []).filter((animal) => ong.accountId
-    ? animal.organizationId === ong.accountId
-    : animal.organization === organization.name);
-  const featured = ong.featured
-    ? ong.featured.map((name) => animals.find((animal) => animal.name === name)).filter(Boolean)
-    : animals.slice(0, 4);
-  const boardSearch = ong.accountId
-    ? new URLSearchParams({ ong: organization.name, ongId: ong.accountId }).toString()
-    : ongAdoptionSearch(organization);
+  const { data } = useAdoptionAnimals(ong.accountId ? '' : null);
+  const animals = (data?.animals ?? []).filter((animal) => animal.organizationId === ong.accountId);
+  const featured = animals.slice(0, 4);
+  const boardSearch = ongAdoptionSearch(ong);
+
   const canDonate = Boolean(ong.pixKey || ong.supplies?.length);
   const stats = [
-    ['Animais para adoção', animals.length],
+    ['Animais para adoção', data ? animals.length : ong.available ?? '—'],
     ['Animais adotados', ong.adopted ?? '—'],
     ['Ano de fundação', ong.founded ?? '—'],
   ];
@@ -212,7 +217,7 @@ function OngProfileView({ ong }) {
       <section className="ong-hero" aria-labelledby="ong-name">
         <div className="ong-cover" aria-hidden="true">{ong.cover && <img src={ong.cover} alt="" />}</div>
         <div className="ong-identity">
-          <span className="ong-avatar" style={{ backgroundColor: ong.color }} aria-hidden="true">
+          <span className="ong-avatar" style={{ backgroundColor: '#282f3d' }} aria-hidden="true">
             {ong.logo ? <img src={ong.logo} alt="" /> : ong.name[0]}
           </span>
           <div className="ong-identity-text">
@@ -251,7 +256,7 @@ function OngProfileView({ ong }) {
         {ong.address || ong.preview ? <OngContact ong={ong} /> : (
           <section id="contato" className="ong-public-panel ong-contact" tabIndex={-1}>
             <h2>Contato e localização</h2>
-            <p>{ong.neighborhood} · {ong.city}</p>
+            {(ong.neighborhood || ong.city) && <p>{[ong.neighborhood, ong.city].filter(Boolean).join(' · ')}</p>}
             <p>Contatos ainda não divulgados.</p>
           </section>
         )}
