@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { useOngSession } from '@/app/accountSession';
 import SiteHeader from '@/components/layout/SiteHeader';
-import { NavLink, useMatch } from 'react-router-dom';
+import { Link, NavLink, useMatch } from 'react-router-dom';
 import { FiBell, FiGrid, FiHeart, FiMoon, FiSearch, FiSun, FiUser } from 'react-icons/fi';
 import { LuPawPrint } from 'react-icons/lu';
+import { useAdoptionAnimals } from '@/pages/adoption/adoptionApi';
 import { initialAnimals } from './animals';
 import { initialDonations } from './donations/donationData';
+import { useDonations } from './donations/donationApi';
 import Donations from './donations/Donations';
 import AnimalManagement from './management/AnimalManagement';
 import LostAnimals from './LostAnimals';
 import { initialAlerts } from './lostAnimalData';
 import OngOverview from './OngOverview';
+import { notificationsPath } from '@/pages/notifications/notificationApi';
 import { ongSettingsPath } from '@/pages/ong-settings/ongSettingsStorage';
 
 export default function OngDashboard() {
@@ -21,10 +24,15 @@ export default function OngDashboard() {
   const lostAnimals = Boolean(useMatch('/dashboard/ong/animais-perdidos'));
   const overview = !donations && !management && !lostAnimals;
   const [alerts, setAlerts] = useState(() => ong ? [] : initialAlerts);
-  const [animals, setAnimals] = useState(() => ong ? [] : initialAnimals);
-  const [records, setRecords] = useState(() => ong ? [] : initialDonations);
+  const [demoAnimals, setDemoAnimals] = useState(initialAnimals);
+  const { data, loading, error, reload, updateAnimals } = useAdoptionAnimals(ong ? '/meus' : null);
+  const animals = ong ? data?.animals ?? [] : demoAnimals;
+  const setAnimals = ong ? updateAnimals : setDemoAnimals;
+  const [demoRecords, setDemoRecords] = useState(initialDonations);
+  const donationHistory = useDonations(Boolean(ong));
+  const records = ong ? donationHistory.records ?? [] : demoRecords;
+  const setRecords = ong ? donationHistory.updateRecords : setDemoRecords;
   const [dark, setDark] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
 
   return (
     <div className="ong-dashboard-page">
@@ -52,13 +60,9 @@ export default function OngDashboard() {
               Dashboards <span aria-hidden="true">/</span> <strong>{lostAnimals ? 'Animais perdidos' : management ? 'Animais' : donations ? 'Doações' : 'Visão geral'}</strong>
             </div>
             <div className="ong-tools">
-              <div className="ong-notifications">
-                <button type="button" className="ong-icon" aria-label="Notificações" aria-expanded={showNotifications}
-                  onClick={() => setShowNotifications((current) => !current)}>
-                  <FiBell aria-hidden="true" />
-                </button>
-                {showNotifications && <p role="status">Nenhuma notificação.</p>}
-              </div>
+              {ong && <Link className="ong-icon" to={notificationsPath} aria-label="Notificações">
+                <FiBell aria-hidden="true" />
+              </Link>}
               {!overview && (
                 <button type="button" className="ong-icon" aria-label={dark ? 'Ativar tema claro' : 'Ativar tema escuro'}
                   onClick={() => setDark((current) => !current)}>
@@ -68,10 +72,27 @@ export default function OngDashboard() {
             </div>
           </header>
 
-          <div hidden={!donations}><Donations records={records} setRecords={setRecords} dark={dark} /></div>
-          {management && <AnimalManagement animals={animals} setAnimals={setAnimals} dark={dark} />}
-          {lostAnimals && <LostAnimals alerts={alerts} setAlerts={setAlerts} dark={dark} />}
-          {overview && <OngOverview demo={!ong} organization={organization} animals={animals} records={records} dark={dark} />}
+          {(donations || overview) && donationHistory.loading && <p role="status">Carregando doações…</p>}
+          {(donations || overview) && donationHistory.error && (
+            <div>
+              <p role="alert">{donationHistory.error}</p>
+              <button type="button" className="ong-button" onClick={donationHistory.reload}>Tentar novamente</button>
+            </div>
+          )}
+          {donations && !donationHistory.loading && !donationHistory.error && (
+            <Donations records={records} setRecords={setRecords} dark={dark} connected={Boolean(ong)} />
+          )}
+          {(management || overview) && loading && <p role="status">Carregando animais…</p>}
+          {(management || overview) && error && (
+            <div>
+              <p role="alert">{error}</p>
+              <button type="button" className="ong-button" onClick={reload}>Tentar novamente</button>
+            </div>
+          )}
+          {management && !loading && !error &&
+            <AnimalManagement animals={animals} setAnimals={setAnimals} dark={dark} connected={Boolean(ong)} />}
+          {lostAnimals && <LostAnimals alerts={alerts} setAlerts={setAlerts} dark={dark} connected={Boolean(ong)} />}
+          {overview && <OngOverview key={ong?.id ?? 'demo'} accountId={ong?.id} demo={!ong} organization={organization} animals={animals} records={records} animalsReady={!loading && !error} donationsReady={!donationHistory.loading && !donationHistory.error} dark={dark} />}
         </div>
       </div>
     </div>

@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Button, Modal } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { FiCamera } from 'react-icons/fi';
-import AuthPasswordInput from '@/components/layout/AuthPasswordInput';
 
 function Bio({ text }) {
   return <p className="tutor-bio">{text.split(/(\*\*[^*\n]+\*\*|\*[^*\n]+\*)/g).map((part, index) => {
@@ -55,7 +54,7 @@ export function TutorPhoto({ photo, save, avatar }) {
       const size = Math.min(image.width, image.height);
       canvas.getContext('2d').drawImage(image, (image.width - size) / 2, (image.height - size) / 2, size, size, 0, 0, 320, 320);
       image.close();
-      save({ photo: canvas.toDataURL('image/webp', 0.85) }, 'Foto atualizada neste navegador.');
+      await save({ photo: canvas.toDataURL('image/webp', 0.85) }, 'Foto atualizada.');
     } catch {
       setError('Não foi possível abrir a imagem. Escolha outro arquivo.');
     }
@@ -73,31 +72,6 @@ export function TutorPhoto({ photo, save, avatar }) {
       </div>
       {error && <p className="tutor-error" role="alert">{error}</p>}
     </div>
-  );
-}
-
-export function TutorSecurity() {
-  return (
-    <form className="tutor-body" onSubmit={(event) => event.preventDefault()}>
-      <fieldset disabled>
-        <legend>Alterar senha</legend>
-        <div className="tutor-field">
-          <label htmlFor="tutor-current-password">Senha atual</label>
-          <AuthPasswordInput id="tutor-current-password" autoComplete="current-password" />
-        </div>
-        <div className="tutor-columns">
-          <div className="tutor-field">
-            <label htmlFor="tutor-new-password">Nova senha</label>
-            <AuthPasswordInput id="tutor-new-password" autoComplete="new-password" />
-          </div>
-          <div className="tutor-field">
-            <label htmlFor="tutor-confirm-password">Confirmar nova senha</label>
-            <AuthPasswordInput id="tutor-confirm-password" autoComplete="new-password" />
-          </div>
-        </div>
-      </fieldset>
-      <p>A alteração de senha ficará disponível após a integração com a autenticação.</p>
-    </form>
   );
 }
 

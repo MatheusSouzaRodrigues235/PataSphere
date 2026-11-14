@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom';
 import AccountAccess from './AccountAccess';
+import { profileLoader } from './profileApi';
 import { loadAccountSession } from './accountSession';
 import PublicLayout from '@/layouts/PublicLayout';
 import Home from '@/pages/home/Home';
@@ -9,7 +10,10 @@ import AdoptionLayout from '@/pages/adoption/AdoptionLayout';
 import LostAnimalsLayout from '@/pages/lost-animals/LostAnimalsLayout';
 import LostAnimalsBoard from '@/pages/lost-animals/LostAnimalsBoard';
 import LostAnimalForm from '@/pages/lost-animals/LostAnimalForm';
+import SightingsInbox from '@/pages/lost-animals/SightingsInbox';
+import { sightingsInboxPath } from '@/pages/lost-animals/lostAnimalsApi';
 import LostAnimalPage from '@/pages/lost-animals/LostAnimalPage';
+import PasswordRecovery from '@/pages/login/PasswordRecovery';
 import Login from '@/pages/login/Login';
 import ChooseProfile from '@/pages/register/ChooseProfile';
 import RegisterTutor from '@/pages/register/RegisterTutor';
@@ -19,6 +23,8 @@ import { OngProfile, OngProfilePreview, OngPublicLayout } from '@/pages/ongs/Ong
 import OngSettings from '@/pages/ong-settings/OngSettings';
 import OngDirectory from '@/pages/ongs/OngDirectory';
 import TutorProfile from '@/pages/tutor/TutorProfile';
+import NotificationsInbox from '@/pages/notifications/NotificationsInbox';
+import { notificationsPath } from '@/pages/notifications/notificationApi';
 import NotFound from '@/pages/NotFound';
 
 const routes = [
@@ -27,7 +33,10 @@ const routes = [
     element: <OngPublicLayout />,
     children: [
       { index: true, element: <OngDirectory /> },
-      { element: <AccountAccess role="ong" />, children: [{ path: 'amor-de-pet/previa', element: <OngProfilePreview /> }] },
+      { element: <AccountAccess role="ong" />, children: [
+        { path: 'previa', element: <OngProfilePreview /> },
+        { path: 'amor-de-pet/previa', element: <OngProfilePreview /> },
+      ] },
       { path: ':ongSlug', element: <OngProfile /> },
     ],
   },
@@ -43,7 +52,7 @@ const routes = [
           { path: 'animais-perdidos', element: null },
         ],
       },
-      { path: '/perfil/ong/:secao?', element: <OngSettings /> },
+      { path: '/perfil/ong/:secao?', element: <OngSettings />, loader: profileLoader('ong') },
     ],
   },
   {
@@ -63,7 +72,11 @@ const routes = [
       { path: ':animalId', element: <LostAnimalPage /> },
     ],
   },
-  { element: <AccountAccess role="tutor" />, children: [{ path: '/perfil/tutor/:secao?', element: <TutorProfile /> }] },
+  { element: <AccountAccess role="tutor" />, children: [{ path: '/perfil/tutor/:secao?', element: <TutorProfile />, loader: profileLoader('tutor') }] },
+  { path: notificationsPath, element: <NotificationsInbox /> },
+  { path: sightingsInboxPath, element: <SightingsInbox /> },
+  { path: '/recuperar-senha', element: <PasswordRecovery key="recovery" /> },
+  { path: '/redefinir-senha', element: <PasswordRecovery key="reset" reset /> },
   { path: '/login', element: <Login /> },
   { path: '/cadastro', element: <ChooseProfile /> },
   { path: '/cadastro/tutor', element: <RegisterTutor /> },

@@ -1,17 +1,22 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { FiCamera, FiCheck, FiChevronLeft, FiChevronRight, FiSend, FiX } from 'react-icons/fi';
-import { Link, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import useMapLocation from '@/app/useMapLocation';
+import useCepLookup from '@/app/useCepLookup';
+import { useAccountSession } from '@/app/accountSession';
+import { requestLostAnimals } from './lostAnimalsApi';
 import { ages, sexes, sizes, species, urgencies } from '@/pages/dashboard/animals';
 import formatOnBlur from '@/pages/register/formatOnBlur';
 import { lostAnimalsPath, todayDate } from './lostAnimalsData';
 import { tutorAnimalsPath } from '@/pages/tutor/tutorStorage';
 import '@/styles/_lost-registration.scss';
 
+const ongAlertsPath = '/dashboard/ong/animais-perdidos';
 const OccurrenceMap = lazy(() => import('./OccurrenceMap'));
 const steps = ['Dados básicos', 'Detalhes e fotos', 'Local da ocorrência'];
 const photoTypes = ['image/jpeg', 'image/png', 'image/webp'];
 const formatPhone = formatOnBlur(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3');
-const formatCep = formatOnBlur(/^(\d{5})(\d{3})$/, '$1-$2');
+const occurrenceAddress = { street: 'logradouro', neighborhood: 'bairro', city: 'localidade', region: 'uf' };
 const states = 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ');
 
 async function readPhoto(file) {
@@ -28,16 +33,17 @@ async function readPhoto(file) {
   }
 }
 
-function Field({ label, options, wide, value = '', ...props }) {
+function Field({ label, options, wide, controlled, value = '', ...props }) {
+  const inputValue = controlled ? { value } : { defaultValue: value };
   return (
     <label className={wide ? 'lost-registration-wide' : undefined}>
       {label}
       {options ? (
-        <select className="form-select" defaultValue={value} {...props}>
+        <select className="form-select" {...inputValue} {...props}>
           <option value="" disabled>Selecione</option>
           {options.map((option) => <option key={option}>{option}</option>)}
         </select>
-      ) : <input className="form-control" defaultValue={value} {...props} />}
+      ) : <input className="form-control" {...inputValue} {...props} />}
     </label>
   );
 }
@@ -94,15 +100,33 @@ function PhotoPicker({ photos, onChange, loading, setLoading }) {
 }
 
 export default function LostAnimalForm() {
-  const { addAlert } = useOutletContext();
-  const { state } = useLocation();
+  const account = useAccountSession();
+  const { state, search } = useLocation();
   const navigate = useNavigate();
   const heading = useRef(null);
+  const publicationKey = useRef(null);
+  const submitting = useRef(false);
   const [step, setStep] = useState(0);
-  const [kind, setKind] = useState(state?.boardSearch && new URLSearchParams(state.boardSearch).get('tipo') === 'encontrados' ? 'found' : 'lost');
+  const [kind, setKind] = useState(() => new URLSearchParams(search || state?.boardSearch).get('tipo') === 'encontrados' ? 'found' : 'lost');
   const [draft, setDraft] = useState({});
   const [photos, setPhotos] = useState([]);
-  const [point, setPoint] = useState(null);
+  const [selection, setSelection] = useState(null);
+  const [cepChanged, setCepChanged] = useState(false);
+  const { lookup, message: cepMessage, reset: resetCepLookup } = useCepLookup(occurrenceAddress, (address) => {
+    setDraft((current) => ({ ...current, ...address }));
+    setCepChanged(false);
+  });
+  const cep = /^\d{5}-?\d{3}$/.test(draft.cep ?? '') ? draft.cep : '';
+  const typedAddress = draft.city && draft.region
+    ? [draft.street, draft.neighborhood, draft.city, draft.region].filter(Boolean).join(', ')
+    : '';
+  const address = step === 2 && account
+    ? (cepChanged && cep ? cep : typedAddress || cep)
+    : '';
+  const { location, loading: locating, error: mapError, retry: retryMap } = useMapLocation(address, cep);
+  const locationKey = JSON.stringify([address, cep]);
+  const point = selection?.key === locationKey ? selection.point : null;
+  const mapLocation = selection?.key === locationKey ? null : location;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const found = kind === 'found';
@@ -118,14 +142,15 @@ export default function LostAnimalForm() {
   }
 
   function back(form) {
+    resetCepLookup();
     setDraft({ ...draft, ...readFields(form) });
     setError('');
     setStep(step - 1);
   }
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
-    if (loading) return;
+    if (loading || submitting.current) return;
     const values = { ...draft, ...readFields(event.currentTarget) };
     if (step === 1 && (!values.description || !photos.length)) {
       setError(!values.description ? 'Descreva o animal antes de continuar.' : 'Adicione pelo menos uma foto para continuar.');
@@ -137,25 +162,46 @@ export default function LostAnimalForm() {
       setStep(step + 1);
       return;
     }
-    const id = crypto.randomUUID();
-    const name = values.name || (values.species + ' sem nome identificado');
+    submitting.current = true;
+    setLoading(true);
+    setError('');
+    let alert;
     try {
-      addAlert({ ...values, id, name, kind, photos, point });
-    } catch {
-      setError('Não foi possível salvar o anúncio neste navegador. Libere espaço ou use menos fotos.');
+      publicationKey.current ??= crypto.randomUUID();
+      ({ alert } = await requestLostAnimals('', {
+        method: 'POST', body: { ...values, key: publicationKey.current, kind, photos, point },
+      }));
+    } catch (requestError) {
+      setError(requestError.message);
+      return;
+    } finally {
+      submitting.current = false;
+      setLoading(false);
+    }
+    if (state?.returnToOng) {
+      navigate(ongAlertsPath, { replace: true, state: { registeredAnimal: alert.name } });
       return;
     }
     if (state?.returnToTutor) {
-      navigate(tutorAnimalsPath, { replace: true, state: { registeredAnimal: name } });
+      navigate(tutorAnimalsPath, { replace: true, state: { registeredAnimal: alert.name } });
       return;
     }
-    navigate(lostAnimalsPath + '/' + id, {
+    navigate(lostAnimalsPath + '/' + alert.id, {
       replace: true,
       state: { boardSearch: found ? 'tipo=encontrados' : '', published: true },
     });
   }
 
-  const field = (props) => <Field {...props} value={draft[props.name]} />;
+  if (!account) return <Navigate to="/login" replace state={{ returnTo: lostAnimalsPath + '/cadastro' + (found ? '?tipo=encontrados' : ''), lostAnimalForm: state }} />;
+
+  const field = (props) => Object.hasOwn(occurrenceAddress, props.name) || props.name === 'cep'
+    ? <Field {...props} controlled value={draft[props.name]} onChange={(event) => {
+        const value = event.target.value;
+        setCepChanged(props.name === 'cep');
+        setDraft((current) => ({ ...current, [props.name]: value }));
+        props.onChange?.(event);
+      }} />
+    : <Field {...props} value={draft[props.name]} />;
   const title = step === 0 ? (found ? 'Cadastrar animal encontrado' : 'Cadastrar animal perdido') : steps[step];
 
   return (
@@ -221,8 +267,9 @@ export default function LostAnimalForm() {
             <>
               <div className="lost-registration-columns">
                 <div className="lost-registration-address">
-                  {field({ name: 'cep', label: 'CEP (opcional)', inputMode: 'numeric', placeholder: '00000-000', pattern: '[0-9]{5}-?[0-9]{3}', onBlur: formatCep, maxLength: 9 })}
+                  {field({ name: 'cep', label: 'CEP (opcional)', inputMode: 'numeric', autoComplete: 'postal-code', placeholder: '00000-000', pattern: '[0-9]{5}-?[0-9]{3}', onChange: lookup, onBlur: lookup, maxLength: 9 })}
                   {field({ name: 'date', label: 'Data da ocorrência', type: 'date', max: todayDate, required: true })}
+                  <p className="lost-registration-wide mb-0" role="status" hidden={!cepMessage}>{cepMessage}</p>
                   {field({ name: 'street', label: 'Nome da rua (opcional)', placeholder: 'Ex.: Rua Ipanema', maxLength: 120, wide: true })}
                   {field({ name: 'neighborhood', label: 'Bairro', placeholder: 'Ex.: Jardim Satélite', pattern: String.raw`.*\S.*`, maxLength: 80, required: true })}
                   {field({ name: 'city', label: 'Cidade', pattern: String.raw`.*\S.*`, maxLength: 80, required: true })}
@@ -230,19 +277,20 @@ export default function LostAnimalForm() {
                   <label className="lost-registration-wide">Complemento (opcional)<textarea className="form-control" name="reference" rows={3} defaultValue={draft.reference} placeholder="Ponto de referência" maxLength={240} /></label>
                 </div>
                 <Suspense fallback={<p role="status">Carregando mapa…</p>}>
-                  <OccurrenceMap point={point} onChange={setPoint} />
+                  <OccurrenceMap point={point} location={mapLocation} loading={selection?.key !== locationKey && locating} error={selection?.key !== locationKey && mapError}
+                    onRetry={retryMap} onChange={(next) => setSelection({ key: locationKey, point: next })} />
                 </Suspense>
               </div>
-              <p className="lost-registration-note">O anúncio será salvo neste navegador e ficará disponível em Meus animais.</p>
+              <p className="lost-registration-note">O anúncio e os dados de contato serão exibidos no mural público.</p>
             </>
           )}
           {error && <p className="text-danger mt-3 mb-0" role="alert">{error}</p>}
           <div className="lost-registration-actions">
-            {step === 0 ? <Link className="adoption-control" to={state?.returnToTutor ? tutorAnimalsPath : boardUrl}>Cancelar</Link> : (
+            {step === 0 ? <Link className="adoption-control" to={state?.returnToOng ? ongAlertsPath : state?.returnToTutor ? tutorAnimalsPath : boardUrl}>Cancelar</Link> : (
               <button type="button" className="adoption-control" disabled={loading} onClick={(event) => back(event.currentTarget.form)}><FiChevronLeft aria-hidden="true" /> Voltar</button>
             )}
             <button type="submit" className="adoption-action" disabled={loading}>
-              {step === 2 ? <><FiSend aria-hidden="true" /> Publicar</> : <>Próximo <FiChevronRight aria-hidden="true" /></>}
+              {step === 2 ? <><FiSend aria-hidden="true" /> {loading ? 'Publicando…' : 'Publicar'}</> : <>Próximo <FiChevronRight aria-hidden="true" /></>}
             </button>
           </div>
         </form>

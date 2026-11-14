@@ -37,7 +37,12 @@ function DonationDetails({ record }) {
       <p className="donation-description">{record.description || 'Nenhuma descrição informada.'}</p>
       {record.attachments.length > 0 ? (
         <div className="donation-attachments" role="group" aria-label="Anexos">
-          {record.attachments.map(({ id, file }) => <Attachment key={id} file={file} />)}
+          {record.attachments.map(({ id, file, name, type, url }) => file
+            ? <Attachment key={id} file={file} />
+            : <a key={id} className="donation-attachment" href={url} download={name}
+                title={name} aria-label={'Baixar ' + name}>
+                {type.startsWith('image/') ? <img src={url} alt="" /> : <FiFile aria-hidden="true" />}
+              </a>)}
         </div>
       ) : record.id === '0' && (
         <div className="donation-attachments" role="img" aria-label="Quatro espaços ilustrativos para anexos">
@@ -48,21 +53,27 @@ function DonationDetails({ record }) {
   );
 }
 
-function DonationForm({ record, onSave }) {
+function DonationForm({ record, onSave, connected, busy }) {
   const [type, setType] = useState(record?.type ?? 'money');
   const [attachments, setAttachments] = useState(record?.attachments ?? []);
   const [fileError, setFileError] = useState('');
+  const [registrationId] = useState(() => record?.id ?? crypto.randomUUID());
 
   function addFiles(event) {
     const files = Array.from(event.target.files);
+    event.target.value = '';
+    if (connected && (attachments.length + files.length > 4 || files.some(({ size }) => size > 5 * 1024 * 1024))) {
+      setFileError('Envie até quatro anexos de no máximo 5 MB cada.');
+      return;
+    }
     const accepted = files.filter((file) => attachmentTypes.includes(file.type));
     setAttachments((current) => [...current, ...accepted.map((file) => ({ id: crypto.randomUUID(), file }))]);
     setFileError(accepted.length < files.length ? 'Selecione imagens JPG, PNG, WebP, GIF ou arquivos PDF.' : '');
-    event.target.value = '';
   }
 
   function submit(event) {
     event.preventDefault();
+    if (busy) return;
     const form = event.currentTarget;
     const data = new FormData(form);
     const name = data.get('name').trim();
@@ -83,14 +94,16 @@ function DonationForm({ record, onSave }) {
       return;
     }
     const valid = type === 'medicine' ? /^\d+$/.test(raw) : decimalPattern.test(raw) || formattedMoney;
-    if (!valid || amount <= 0 || !Number.isFinite(amount) || amount > Number.MAX_SAFE_INTEGER) {
+    const maxAmount = connected ? { money: 99_999_999_999_999, food: 99_999_999_999.999, medicine: 99_999_999_999 }[type]
+      : Number.MAX_SAFE_INTEGER;
+    if (!valid || amount <= 0 || !Number.isFinite(amount) || amount > maxAmount) {
       amountInput.setCustomValidity(type === 'medicine' ? 'Informe uma quantidade inteira maior que zero.' : 'Informe um valor válido maior que zero.');
       amountInput.reportValidity();
       return;
     }
 
     onSave({
-      id: record?.id ?? crypto.randomUUID(), name, email: data.get('email').trim(),
+      id: registrationId, name, email: data.get('email').trim(),
       type, amount, unit: type === 'food' ? 'kg' : data.get('unit') ?? '',
       payment: type === 'money' ? data.get('payment') : delivery,
       date: record?.date ?? today(), description: data.get('description').trim(), attachments,
@@ -140,14 +153,14 @@ function DonationForm({ record, onSave }) {
           rows={3} maxLength={2000} />
       </label>
       <label className="donation-upload">
-        <input className="visually-hidden" type="file" accept={attachmentTypes.join(',')} multiple onChange={addFiles} />
+        <input className="visually-hidden" type="file" accept={attachmentTypes.join(',')} multiple disabled={busy} onChange={addFiles} />
         <span><FiCamera aria-hidden="true" /></span> Clique para anexar fotos ou comprovante
       </label>
       {fileError && <p role="alert" className="donation-file-error">{fileError}</p>}
       {attachments.length > 0 && <ul className="donation-files">
-        {attachments.map(({ id, file }) => <li key={id}>
-          <span>{file.name}</span>
-          <button type="button" className="ong-icon" aria-label={`Remover ${file.name}`}
+        {attachments.map(({ id, file, name = file?.name }) => <li key={id}>
+          <span>{name}</span>
+          <button type="button" className="ong-icon" disabled={busy} aria-label={`Remover ${name}`}
             onClick={() => setAttachments((current) => current.filter((item) => item.id !== id))}><FiX aria-hidden="true" /></button>
         </li>)}
       </ul>}
@@ -179,23 +192,41 @@ function DonationFilters({ filters, onFilter }) {
   );
 }
 
-export default function DonationModal({ dialog, dark, filters, onClose, onSave, onDelete, onEdit, onFilter }) {
+export default function DonationModal({ dialog, dark, filters, connected, onClose, onSave, onDelete, onEdit, onFilter }) {
   const { type, record } = dialog;
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const close = () => { if (!busy) onClose(); };
+
+  async function persist(action) {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      await action();
+    } catch (failure) {
+      setError(failure.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const titles = { details: 'Descrição da doação', form: record ? 'Editar doação' : 'Cadastrar doação', filters: 'Filtros' };
   const subtitle = type === 'details' ? 'Registrada no histórico da ONG'
     : type === 'form' ? (record ? 'Atualize as informações da doação.' : 'Registre uma doação recebida para o controle da ONG.') : '';
 
   return (
-    <Modal show onHide={onClose} scrollable className={`donation-modal donation-modal--${type}`}
+    <Modal show onHide={close} scrollable className={`donation-modal donation-modal--${type}`}
       backdropClassName="donation-backdrop" data-bs-theme={dark ? 'dark' : 'light'} aria-labelledby="donation-modal-title">
       {type === 'delete' ? (
         <Modal.Body>
           <span className="donation-warning"><FiAlertTriangle aria-hidden="true" /></span>
           <Modal.Title as="h2" id="donation-modal-title">Excluir esta doação?</Modal.Title>
           <p>A doação de <strong>{record.name}</strong> ({formatAmount(record)}) será removida do histórico. Esta ação não pode ser desfeita.</p>
+          {error && <p role="alert" className="donation-file-error">{error}</p>}
           <div className="donation-confirm">
-            <button type="button" className="ong-button" onClick={onClose}>Cancelar</button>
-            <button type="button" className="ong-button ong-primary donation-danger" onClick={onDelete}>Sim, excluir</button>
+            <button type="button" className="ong-button" onClick={close} disabled={busy}>Cancelar</button>
+            <button type="button" className="ong-button ong-primary donation-danger" onClick={() => persist(onDelete)} disabled={busy}>Sim, excluir</button>
           </div>
         </Modal.Body>
       ) : (
@@ -205,10 +236,11 @@ export default function DonationModal({ dialog, dark, filters, onClose, onSave, 
               <Modal.Title as="h2" id="donation-modal-title">{titles[type]}</Modal.Title>
               {subtitle && <p>{subtitle}</p>}
             </div>
-            <button type="button" className="ong-icon donation-close" onClick={onClose} aria-label="Fechar"><FiX aria-hidden="true" /></button>
+            <button type="button" className="ong-icon donation-close" onClick={close} disabled={busy} aria-label="Fechar"><FiX aria-hidden="true" /></button>
           </Modal.Header>
           <Modal.Body>
-            {type === 'form' && <DonationForm record={record} onSave={onSave} />}
+            {type === 'form' && <DonationForm record={record} onSave={(values) => persist(() => onSave(values))} connected={connected} busy={busy} />}
+            {error && <p role="alert" className="donation-file-error">{error}</p>}
             {type === 'details' && <DonationDetails record={record} />}
             {type === 'filters' && <DonationFilters filters={filters} onFilter={onFilter} />}
           </Modal.Body>
@@ -216,9 +248,9 @@ export default function DonationModal({ dialog, dark, filters, onClose, onSave, 
             {type === 'filters' ? (
               <button type="reset" form="donation-filters" className="ong-button">Limpar filtros</button>
             ) : (
-              <button type="button" className="ong-button" onClick={onClose}>{type === 'details' ? 'Fechar' : 'Cancelar'}</button>
+              <button type="button" className="ong-button" onClick={close} disabled={busy}>{type === 'details' ? 'Fechar' : 'Cancelar'}</button>
             )}
-            {type === 'form' && <button type="submit" form="donation-form" className="ong-button ong-primary">Salvar doação</button>}
+            {type === 'form' && <button type="submit" form="donation-form" className="ong-button ong-primary" disabled={busy}>{busy ? 'Salvando…' : 'Salvar doação'}</button>}
             {type === 'details' && <button type="button" className="ong-button ong-primary" onClick={onEdit}>Editar doação</button>}
             {type === 'filters' && <button type="submit" form="donation-filters" className="ong-button ong-primary">Aplicar filtros</button>}
           </Modal.Footer>

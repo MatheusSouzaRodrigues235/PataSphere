@@ -7,6 +7,8 @@ import logo from '@/assets/logo-patasphere.svg';
 import { readTutorData, tutorAnimalsPath } from '@/pages/tutor/tutorStorage';
 import { ongSettingsPath, readOngSettings } from '@/pages/ong-settings/ongSettingsStorage';
 import { endAccountSession, useAccountSession } from '@/app/accountSession';
+import { sightingsInboxPath } from '@/pages/lost-animals/lostAnimalsApi';
+import { notificationsPath, useNotifications } from '@/pages/notifications/notificationApi';
 import { clearDemoRole, readDemoRole } from '@/app/demoSession';
 
 const publicLinks = [
@@ -20,7 +22,7 @@ const accountLinks = {
   tutor: [
     ['/perfil/tutor', 'Meu perfil', FiUser],
     [tutorAnimalsPath, 'Meus animais', LuPawPrint],
-    ['/perfil/tutor/notificacoes', 'Notificações', FiBell],
+    ['/perfil/tutor/notificacoes', 'Preferências de notificação', FiBell],
   ],
   ong: [
     ['/dashboard/ong', 'Painel da ONG', FiGrid],
@@ -47,6 +49,9 @@ function readIdentity(role) {
 
 function AccountMenu({ role, identity, closeMenu, authenticated }) {
   const navigate = useNavigate();
+  const account = useAccountSession();
+  const { data } = useNotifications(account?.id, '/nao-lidas');
+  const unread = data?.unread ?? 0;
   const [signingOut, setSigningOut] = useState(false);
   const [error, setError] = useState('');
 
@@ -69,9 +74,10 @@ function AccountMenu({ role, identity, closeMenu, authenticated }) {
 
   return (
     <Dropdown align="end" className="site-account" onSelect={closeMenu} autoClose="outside">
-      <Dropdown.Toggle id="site-account-toggle" className="site-account-toggle" aria-label={`Menu da conta de ${name}`}>
+      <Dropdown.Toggle id="site-account-toggle" className="site-account-toggle" aria-label={`Menu da conta de ${name}${unread ? ', notificações não lidas: ' + unread : ''}`}>
         {photo ? <img src={photo} alt="" /> : initial}
       </Dropdown.Toggle>
+      {unread > 0 && <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger pe-none" aria-hidden="true">{unread > 99 ? '99+' : unread}</span>}
       <Dropdown.Menu aria-labelledby="site-account-toggle">
         <div className="site-account-identity">
           <strong>{name}</strong>
@@ -82,6 +88,12 @@ function AccountMenu({ role, identity, closeMenu, authenticated }) {
             <Icon aria-hidden="true" /> {label}
           </Dropdown.Item>
         ))}
+        {authenticated && <Dropdown.Item as={NavLink} to={notificationsPath} eventKey={notificationsPath}>
+          <FiBell aria-hidden="true" /> Notificações{unread > 0 && ' (' + unread + ')'}
+        </Dropdown.Item>}
+        {authenticated && <Dropdown.Item as={NavLink} to={sightingsInboxPath} eventKey={sightingsInboxPath}>
+          <FiBell aria-hidden="true" /> Avistamentos recebidos
+        </Dropdown.Item>}
         <Dropdown.Item as="button" type="button" disabled={signingOut} className="site-account-signout" onClick={signOut}>
           <FiLogOut aria-hidden="true" /> {signingOut ? 'Saindo…' : 'Sair'}
         </Dropdown.Item>

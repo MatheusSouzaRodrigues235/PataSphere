@@ -24,6 +24,15 @@ export function useTutorSession() {
   return account?.role === 'tutor' ? account : null;
 }
 
+export async function manageAccount(action, fields) {
+  const response = await fetch('/api/auth/' + action, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fields),
+  }).catch(() => { throw new Error('Não foi possível conectar ao PataSphere. Tente novamente.'); });
+  const result = response.status === 204 ? null : await response.json().catch(() => null);
+  if (!response.ok) throw new Error(result?.message ?? 'Não foi possível concluir a operação. Tente novamente.');
+  return result;
+}
+
 export function endAccountSession() {
   return fetch('/api/auth/sair', {
     method: 'POST',

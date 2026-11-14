@@ -1,30 +1,31 @@
 import { useRef, useState } from 'react';
 import { FiChevronLeft, FiChevronRight, FiFilter, FiMapPin, FiSearch } from 'react-icons/fi';
 import { Link, useSearchParams } from 'react-router-dom';
+import AddressSearch from '@/components/layout/AddressSearch';
+import { locationSearch } from '@/app/locationSearch';
 import AdoptionFilterModal from '@/pages/adoption/AdoptionFilterModal';
-import { adoptionAnimals } from '@/pages/adoption/adoptionData';
-import { ongAdoptionSearch, ongProfilePath, ongProfiles } from './ongProfiles';
+import { useOrganizations } from './organizationApi';
+import { ongAdoptionSearch, ongProfilePath } from './ongProfiles';
 
 const pageSize = 6;
-const neighborhoods = [...new Set(ongProfiles.map(({ neighborhood }) => neighborhood))]
-  .sort((first, second) => first.localeCompare(second, 'pt-BR'));
-const filterFields = [['bairro', 'Bairro', neighborhoods]];
 const filterToggles = [['disponiveis', 'Somente ONGs com animais para adoção']];
 
 function normalize(value) {
   return value.trim().normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR');
 }
 
-function OngCard({ ong, available }) {
+function OngCard({ ong }) {
+  const { available } = ong;
+  const location = [ong.neighborhood, ong.city].filter(Boolean).join(' · ');
   return (
     <article className="ong-public-panel ong-directory-card">
       <div className="ong-directory-identity">
-        <span className="ong-directory-avatar" style={{ backgroundColor: ong.color }} aria-hidden="true">{ong.name[0]}</span>
-        <div><h2>{ong.name}</h2><p>{ong.tagline}</p></div>
+        <span className="ong-directory-avatar" aria-hidden="true">{ong.logo ? <img src={ong.logo} alt="" loading="lazy" /> : ong.name[0]}</span>
+        <div><h2>{ong.name}</h2>{ong.tagline && <p>{ong.tagline}</p>}</div>
       </div>
-      <p className="ong-directory-location">
-        <FiMapPin aria-hidden="true" /> {ong.neighborhood} · {ong.city.replace(' – SP', '')}
-      </p>
+      {location && <p className="ong-directory-location">
+        <FiMapPin aria-hidden="true" /> {location}
+      </p>}
       <span className="ong-directory-count" data-available={available > 0}>
         {available === 1 ? '1 animal para adoção' : available + ' animais para adoção'}
       </span>
@@ -45,16 +46,20 @@ export default function OngDirectory() {
   const [filterOpen, setFilterOpen] = useState(false);
   const heading = useRef(null);
   const search = params.get('busca') ?? '';
+  const address = params.get('endereco') ?? '';
+  const matchesAddress = locationSearch(address);
   const neighborhood = params.get('bairro');
   const availableOnly = params.has('disponiveis');
   const term = normalize(search);
-  const results = ongProfiles.map((ong) => ({
-    ong,
-    available: adoptionAnimals.filter(({ organization }) => organization === ong.name).length,
-  })).filter(({ ong, available }) => (
-    normalize(ong.name).includes(term) &&
+  const { data, loading, error, reload } = useOrganizations();
+  const organizations = data?.organizations ?? [];
+  const neighborhoods = [...new Set(organizations.map(({ neighborhood }) => neighborhood).filter(Boolean))]
+    .sort((first, second) => first.localeCompare(second, 'pt-BR'));
+  const filterFields = [['bairro', 'Bairro', neighborhoods]];
+  const results = organizations.filter((ong) => (
+    normalize(ong.name).includes(term) && matchesAddress(ong) &&
     (!neighborhood || ong.neighborhood === neighborhood) &&
-    (!availableOnly || available > 0)
+    (!availableOnly || ong.available > 0)
   ));
   const pageCount = Math.max(1, Math.ceil(results.length / pageSize));
   const page = Math.min(pageCount, Math.max(1, Number.parseInt(params.get('pagina'), 10) || 1));
@@ -78,8 +83,8 @@ export default function OngDirectory() {
 
   return (
     <section className="adoption-container ong-directory-page" aria-labelledby="ong-directory-title">
-      <h1 id="ong-directory-title" tabIndex={-1} ref={heading}>ONGs de São José dos Campos</h1>
-      <p className="adoption-intro">Conheça as organizações que cuidam dos animais da região e veja como ajudar.</p>
+      <h1 id="ong-directory-title" tabIndex={-1} ref={heading}>ONGs cadastradas</h1>
+      <p className="adoption-intro">Conheça as organizações que cuidam dos animais e veja como ajudar.</p>
       <div className="adoption-search-row">
         <label className="adoption-search">
           <FiSearch aria-hidden="true" />
@@ -90,15 +95,22 @@ export default function OngDirectory() {
           <FiFilter aria-hidden="true" /> {neighborhood || availableOnly ? 'Filtros ativos' : 'Filtros'}
         </button>
       </div>
+      <AddressSearch label="Buscar pela localização pública da ONG" placeholder="Bairro, cidade ou UF da ONG"
+        value={address} onChange={(value) => updateParams({ endereco: value }, { replace: true, preventScrollReset: true })} />
       <p className="visually-hidden" role="status">{results.length} ONGs encontradas</p>
-      {entries.length > 0 ? (
+      {loading ? <p role="status">Carregando ONGs…</p> : error ? (
+        <div className="adoption-empty ong-directory-empty">
+          <p role="alert">{error}</p>
+          <button type="button" className="adoption-control" onClick={reload}>Tentar novamente</button>
+        </div>
+      ) : entries.length > 0 ? (
         <div className="ong-directory">
-          {entries.map(({ ong, available }) => <OngCard key={ong.slug} ong={ong} available={available} />)}
+          {entries.map((ong) => <OngCard key={ong.accountId} ong={ong} />)}
         </div>
       ) : (
         <div className="adoption-empty ong-directory-empty">
-          <h2>Nenhuma ONG encontrada</h2>
-          <button type="button" className="adoption-control" onClick={() => setParams({})}>Limpar busca e filtros</button>
+          <h2>{organizations.length ? 'Nenhuma ONG encontrada' : 'Nenhuma ONG cadastrada'}</h2>
+          {organizations.length > 0 && <button type="button" className="adoption-control" onClick={() => setParams({})}>Limpar busca e filtros</button>}
         </div>
       )}
       {pageCount > 1 && (

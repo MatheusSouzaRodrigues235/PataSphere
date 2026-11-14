@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import Modal from 'react-bootstrap/Modal';
 import { FiX } from 'react-icons/fi';
-import { filterGroups, neighborhoods } from './adoptionData';
+import { filterGroups } from './adoptionData';
 import '@/styles/_adoption-board-filter.scss';
 
-export default function AdoptionBoardFilterModal({ filters, countMatches, onApply, onClose }) {
+export default function AdoptionBoardFilterModal({ filters, neighborhoods, countMatches, onApply, onClose }) {
   const [draft, setDraft] = useState(filters);
   const count = countMatches(draft);
   const resultLabel = count === 1 ? '1 animal' : count + ' animais';
@@ -59,7 +59,7 @@ export default function AdoptionBoardFilterModal({ filters, countMatches, onAppl
         <label className="adoption-board-filter-location">
           Local
           <select className="form-select" value={draft.neighborhood ?? ''} onChange={({ target }) => updateCriterion('neighborhood', target.value)}>
-            <option value="">Todos os bairros</option>
+            <option value="">Todos os locais</option>
             {neighborhoods.map((neighborhood) => <option key={neighborhood}>{neighborhood}</option>)}
           </select>
         </label>

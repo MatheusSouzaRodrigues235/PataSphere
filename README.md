@@ -36,4 +36,81 @@ O Vite encaminha o caminho `/api` para a porta 3000 durante o desenvolvimento.
 - `POST /api/cadastros/ong` recebe os campos comuns e `organization`, `cnpj`, `street`, `district` e `number`. Aceita JSON ou formulário multipart com `logo` opcional em JPG ou PNG (até 5 MB). No formulário multipart, a caixa de consentimento envia `on`. Os logos ficam em `backend/uploads/logos/`.
 - As duas rotas são públicas. Retornam `201` com `id` e `role`, `400` para dados inválidos, `409` para e-mail ou documento em uso e `413` quando o envio excede o limite.
 
+### Publicação de animais perdidos e encontrados
+
+Em um banco existente, execute `database/migrations/003_detalhes_ocorrencia.sql` no banco `patasphere` com a conta proprietária da tabela `ocorrencia_pet` antes de iniciar a API atualizada. Em um banco novo, o passo acima que aplica as migrações em ordem já inclui esse arquivo.
+
+O mural público consulta `/api/animais-perdidos`. Entre com uma conta de tutor ou ONG para publicar e gerenciar seus anúncios. As fotos são armazenadas no PostgreSQL com a ocorrência.
+
 Em uma publicação, encaminhe `/api` ao Express no mesmo domínio do frontend e use armazenamento persistente para os logos. Os textos de Termos de Uso e Política de Privacidade precisam estar disponíveis antes de abrir os cadastros ao público.
+
+### Animais para adoção
+
+Em um banco existente, aplique `database/migrations/004_publicacao_adocao.sql` antes de usar a API de adoção.
+O painel da ONG cadastra, edita, altera o status e exclui seus próprios animais. As fotos JPG ou PNG (até 4, de 3 MB cada) são convertidas para WebP e armazenadas no PostgreSQL.
+O mural público consulta `/api/adocao`, exclui os adotados e mostra os animais de urgência alta primeiro.
+
+### Interesse em adoção
+
+Um tutor autenticado pode revisar as respostas e abrir o WhatsApp da ONG responsável, com uma mensagem pronta. O tutor confirma o envio no WhatsApp. Para o destino, a API usa o WhatsApp público da ONG ou o telefone informado no cadastro, conforme a configuração de exibição de contato.
+
+### Doações recebidas
+
+Em um banco existente, aplique `database/migrations/005_registro_doacoes.sql` com a conta proprietária das tabelas.
+A ONG registra manualmente doações financeiras, ração e medicamentos. A data é registrada no horário de Brasília.
+O histórico e os anexos são acessíveis apenas pela ONG responsável. Cada registro aceita até quatro imagens ou PDFs de até 5 MB cada.
+A visão geral usa as doações recentes da ONG e soma as contribuições financeiras do mês atual.
+
+### Perfis e diretório de ONGs
+
+Em um banco existente, aplique `database/migrations/006_perfis.sql` com a conta proprietária das tabelas e execute `npx prisma generate` na pasta `backend/` com a API parada. Reinicie a API após gerar o cliente.
+
+Os perfis autenticados salvam dados, imagens, privacidade e preferências pelo endpoint `/api/perfis/ong` ou `/api/perfis/tutor`. O diretório e as páginas públicas consultam `/api/ongs`. A ONG escolhe o e-mail e o WhatsApp públicos em Perfil da ONG e cadastra os itens e as orientações em Formas de recebimento.
+
+Alterações de perfil feitas antes dessa versão podem ser recuperadas nas respectivas seções, ao entrar na mesma conta pelo navegador em que foram salvas. Revise os dados antes de salvá-los.
+
+### Avistamentos de animais
+
+Em um banco existente, aplique `database/migrations/007_avistamentos.sql` com a conta proprietária do schema e da tabela de ocorrências. Conceda à conta da API acesso de leitura, inserção e atualização em `public.avistamento_pet` e acesso à sequência se essas permissões não forem herdadas.
+
+Qualquer visitante pode registrar um avistamento em um anúncio aberto de animal perdido. O responsável recebe o aviso em Avistamentos recebidos, no menu da conta, e pode marcar o aviso como lido ou conversar com quem o enviou pelo WhatsApp. O menu mostra a quantidade de notificações não lidas.
+
+### Notificações
+
+Aplique `database/migrations/008_notificacoes.sql` após as migrações 006 e 007. A conta da API precisa de acesso de leitura e inserção em `public.interesse_adocao`, leitura, inserção e atualização em `public.notificacao` e acesso à sequência `public.notificacao_id_seq`.
+
+A caixa Notificações exibe avisos para ONGs e tutores conforme as preferências de cada conta. O tutor pode registrar interesse no formulário de adoção para acompanhar mudanças de status. Esse registro também pode gerar um aviso para a ONG. O WhatsApp continua disponível para enviar a mensagem com as respostas. Avistamentos que não geram notificação continuam na caixa de avistamentos do responsável.
+
+Para publicar um comunicado para as contas que ativaram Novidades, execute `npm run noticias:publicar -- "Título" "Mensagem"` em `backend/`, com acesso ao banco do ambiente que receberá o comunicado.
+
+### Solicitações de adoção no painel
+
+Aplique `database/migrations/009_solicitacoes_adocao.sql` após a migração 008. Conceda `UPDATE` em `public.interesse_adocao` à conta da API, caso ainda falte essa permissão.
+
+Na revisão do formulário de adoção, o tutor pode enviar as respostas à ONG ou abrir o WhatsApp com a mensagem pronta. A visão geral da ONG mostra as dez solicitações mais recentes dos seus animais. Há uma solicitação por tutor e animal. Reenvios com respostas diferentes atualizam a solicitação. Registros anteriores continuam disponíveis com os dados que já existiam.
+
+### Gerenciamento de conta
+
+Aplique `database/migrations/010_gerenciamento_conta.sql` e conceda à conta da API leitura, inserção, atualização e exclusão em `public.recuperacao_senha`. Para encerrar contas, a API também precisa excluir de `usuario`, `endereco`, `ocorrencia_pet`, `animal` e `doacao`.
+
+Para enviar a recuperação de senha, configure `PUBLIC_APP_URL` com o endereço público do frontend, `RESEND_API_KEY` com a chave do Resend e `PASSWORD_RESET_FROM` com um remetente do domínio verificado. Em produção, use HTTPS. O link vale 30 minutos e só pode ser usado uma vez.
+
+Tutores e ONGs podem trocar a senha em Segurança da conta ou encerrar a conta no menu do perfil. O encerramento exige a senha atual e uma confirmação explícita e remove a conta e os dados associados. Trocar ou redefinir a senha encerra os logins ativos.
+
+### Favoritos de adoção
+
+Aplique `database/migrations/011_favoritos_adocao.sql` e conceda leitura, inserção e exclusão em `public.favorito_adocao` à conta da API.
+
+Ao entrar como tutor, os favoritos ficam vinculados à conta e aparecem em outros dispositivos. O filtro Favoritos fica no mural de adoção. Visitantes podem continuar salvando animais neste navegador e importar a lista ao entrar como tutor. Os animais adotados ficam fora do mural e os removidos perdem o vínculo de favorito.
+
+### Mapas
+
+O ViaCEP preenche os campos do endereço. O mapa usa Leaflet e OpenStreetMap, e a API consulta o Photon para localizar o CEP ou endereço após uma pausa na digitação. No cadastro de uma ocorrência, o usuário pode confirmar o centro do mapa ou ajustar o ponto manualmente. Nas páginas públicas de ONGs, a prévia usa somente a localização divulgada.
+
+O padrão é o servidor público de demonstração do Photon, que tem disponibilidade limitada. Defina `PHOTON_URL` no backend para usar outra instância compatível. A publicação de uma ocorrência aceita endereço sem ponto no mapa.
+
+### Sessões persistentes
+
+Antes de iniciar a API atualizada, aplique `database/migrations/012_sessoes_persistentes.sql` e conceda `SELECT`, `INSERT`, `UPDATE` e `DELETE` em `public.sessao_usuario` à conta da API (`UPDATE` permite a leitura com bloqueio durante alterações da conta).
+
+O login grava no PostgreSQL somente o hash do identificador da sessão. A sessão expira oito horas após o login e funciona após reinícios da API. Sair invalida a sessão atual. Trocar ou redefinir a senha e encerrar a conta invalidam todas as sessões da conta. Na primeira atualização, quem ainda tinha uma sessão em memória precisa entrar novamente.

@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { FiChevronRight, FiFacebook, FiHeart, FiLink, FiMapPin } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Link, useLocation, useOutletContext, useParams } from 'react-router-dom';
+import { useAccountSession } from '@/app/accountSession';
 import AnimalGallery from './AnimalGallery';
 import AdoptionDetailModal from './AdoptionDetailModal';
 import AdoptionRequestModal from './AdoptionRequestModal';
-import { ongProfiles, ongProfilePath } from '@/pages/ongs/ongProfiles';
-import { adoptionAnimals, adoptionDetails, adoptionPath } from './adoptionData';
+import { adoptionPath } from './adoptionData';
+import { useAdoptionAnimals } from './adoptionApi';
+import AdoptionPhoto from './AdoptionPhoto';
 import '@/styles/_adoption-detail.scss';
 
 const adoptionSteps = [
@@ -15,19 +17,16 @@ const adoptionSteps = [
   ['Conheça e adote', 'A ONG combina o encontro e a entrega responsável.'],
 ];
 
-function AnimalProfile({ animal, boardSearch }) {
-  const { favorites, toggleFavorite } = useOutletContext();
+function AnimalProfile({ animal, animals, boardSearch }) {
+  const { favorites, toggleFavorite, favoritesDisabled } = useOutletContext();
+  const account = useAccountSession();
   const [modal, setModal] = useState(null);
   const [copied, setCopied] = useState(false);
-  const detail = adoptionDetails[animal.name] ?? {};
-  const organization = ongProfiles.find(({ name }) => name === animal.organization);
-  const animalCode = detail.code ?? String(100245 + animal.id);
+  const animalCode = animal.id;
+  const location = [animal.neighborhood, animal.city, animal.region].filter(Boolean).join(' · ');
   const shareUrl = new URL(adoptionPath(animal), window.location.origin).href;
   const boardUrl = { pathname: '/adocao', search: boardSearch ? '?' + boardSearch : '' };
-  const related = ['Marshmallow', 'Gilson', 'Mimi', 'Thor']
-    .map((name) => adoptionAnimals.find((candidate) => candidate.name === name))
-    .filter((candidate) => candidate && candidate.id !== animal.id)
-    .slice(0, 3);
+  const related = animals.filter((candidate) => candidate.id !== animal.id).slice(0, 3);
 
   async function copyLink() {
     try {
@@ -50,15 +49,15 @@ function AnimalProfile({ animal, boardSearch }) {
 
       <div className="adoption-profile-grid">
         <section className="adoption-detail-panel adoption-profile-summary" aria-labelledby="adoption-profile-title">
-          <span className="adoption-status" data-urgent={animal.urgent}>{animal.urgent ? 'Urgente' : 'Disponível'}</span>
+          <span className="adoption-status" data-urgent={animal.urgent}>{animal.status === 'Disponível' && animal.urgent ? 'Urgente' : animal.status}</span>
           <h1 id="adoption-profile-title">{animal.name} procura um lar</h1>
-          <p>{detail.introduction ?? animal.description}</p>
+          <p>{animal.description}</p>
           <ul className="adoption-tags" aria-label="Características">
             {[animal.sex, animal.size, animal.ageLabel].map((label) => <li key={label}>{label}</li>)}
           </ul>
-          {detail.traits && (
+          {animal.traits.length > 0 && (
             <ul className="adoption-tags adoption-traits" aria-label="Temperamento">
-              {detail.traits.map((trait) => <li key={trait}>{trait}</li>)}
+              {animal.traits.map((trait) => <li key={trait}>{trait}</li>)}
             </ul>
           )}
           <dl className="adoption-profile-facts">
@@ -72,8 +71,16 @@ function AnimalProfile({ animal, boardSearch }) {
             ))}
           </dl>
           <div className="adoption-profile-actions">
-            <button type="button" className="adoption-action" onClick={() => setModal('request')}>Quero adotar</button>
-            <button type="button" className="adoption-favorite" aria-pressed={favorites.includes(animal.id)} aria-label={'Favoritar ' + animal.name} onClick={() => toggleFavorite(animal.id)}>
+            {account?.role === 'tutor' ? (
+              <button type="button" className="adoption-action" onClick={() => setModal('request')}>Quero adotar</button>
+            ) : account ? (
+              <p>Entre com uma conta de tutor para manifestar interesse.</p>
+            ) : (
+              <Link className="adoption-action" to="/login" state={{ returnTo: adoptionPath(animal) }}>
+                Entrar para adotar
+              </Link>
+            )}
+            <button type="button" className="adoption-favorite" disabled={favoritesDisabled} aria-pressed={favorites.includes(animal.id)} aria-label={'Favoritar ' + animal.name} onClick={() => toggleFavorite(animal.id)}>
               <FiHeart aria-hidden="true" />
             </button>
           </div>
@@ -91,11 +98,11 @@ function AnimalProfile({ animal, boardSearch }) {
       <div className="adoption-information-grid">
         <section className="adoption-detail-panel">
           <h2>Sobre {animal.name}</h2>
-          <p>{detail.about ?? animal.description}</p>
+          <p>{animal.description ?? 'Descrição ainda não informada.'}</p>
         </section>
         <section className="adoption-detail-panel">
           <h2>Saúde e cuidados</h2>
-          <p>{detail.care ?? 'Informações sobre saúde e cuidados ainda não cadastradas.'}</p>
+          <p>{animal.health ?? 'Informações sobre saúde e cuidados ainda não cadastradas.'}</p>
         </section>
       </div>
 
@@ -115,28 +122,27 @@ function AnimalProfile({ animal, boardSearch }) {
         <h2>ONG responsável</h2>
         <div className="adoption-organization">
           <span aria-hidden="true">{animal.organization[0]}</span>
-          <div><strong>{animal.organization}</strong><p><FiMapPin aria-hidden="true" /> São José dos Campos – SP</p></div>
+          <div><strong>{animal.organization}</strong>{location && <p><FiMapPin aria-hidden="true" /> {location}</p>}</div>
         </div>
         <div className="adoption-organization-links">
-          {organization && <Link className="adoption-control" to={ongProfilePath(organization)}>Ver perfil da ONG</Link>}
-          <Link className="adoption-control" to={{ pathname: '/adocao', search: '?' + new URLSearchParams({ ong: animal.organization }) }}>
+          <Link className="adoption-control" to={{ pathname: '/adocao', search: '?' + new URLSearchParams({ ong: animal.organization, ongId: animal.organizationId }) }}>
             Ver todos os animais desta ONG
           </Link>
         </div>
       </section>
 
-      <section className="adoption-detail-panel">
+      {related.length > 0 && <section className="adoption-detail-panel">
         <h2>Outros animais para adoção</h2>
         <div className="adoption-related">
           {related.map((candidate) => (
             <Link key={candidate.id} to={adoptionPath(candidate)} state={{ boardSearch }}>
-              <img src={candidate.photo} alt="" loading="lazy" />
+              <AdoptionPhoto src={candidate.photo} alt="" loading="lazy" />
               <div><strong>{candidate.name}</strong><p>{candidate.species} · {candidate.ageLabel} · {candidate.size}</p></div>
             </Link>
           ))}
         </div>
-      </section>
-      {modal === 'request' && <AdoptionRequestModal animal={animal} animalCode={animalCode} onClose={() => setModal(null)} />}
+      </section>}
+      {modal === 'request' && account?.role === 'tutor' && <AdoptionRequestModal animal={animal} animalCode={animalCode} onClose={() => setModal(null)} />}
       {modal === 'share' && <AdoptionDetailModal shareUrl={shareUrl} onClose={() => setModal(null)} />}
     </div>
   );
@@ -145,7 +151,22 @@ function AnimalProfile({ animal, boardSearch }) {
 export default function AdoptionAnimalPage() {
   const { animalId } = useParams();
   const { state } = useLocation();
-  const animal = adoptionAnimals.find(({ id }) => String(id) === animalId);
+  const { data, loading, error, status, reload } = useAdoptionAnimals('/' + encodeURIComponent(animalId));
+  const { data: board } = useAdoptionAnimals('');
+  const animal = data?.animal;
+
+  if (loading || (error && status !== 404)) {
+    return (
+      <section className="adoption-detail">
+        {loading ? <p role="status">Carregando animal…</p> : (
+          <div className="adoption-detail-panel">
+            <p role="alert">{error}</p>
+            <button type="button" className="adoption-control" onClick={reload}>Tentar novamente</button>
+          </div>
+        )}
+      </section>
+    );
+  }
 
   if (!animal) {
     return (
@@ -158,5 +179,5 @@ export default function AdoptionAnimalPage() {
     );
   }
 
-  return <AnimalProfile key={animal.id} animal={animal} boardSearch={state?.boardSearch} />;
+  return <AnimalProfile key={animal.id} animal={animal} animals={board?.animals ?? []} boardSearch={state?.boardSearch} />;
 }

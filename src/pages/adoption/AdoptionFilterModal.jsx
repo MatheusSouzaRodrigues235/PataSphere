@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import Modal from 'react-bootstrap/Modal';
 
-export default function AdoptionFilterModal({ filters, onApply, onClose, fields, toggles = [] }) {
+export default function AdoptionFilterModal({ filters, onApply, onClose, fields, toggles = [], dateRange }) {
   const [draft, setDraft] = useState(filters);
+  const dateError = dateRange?.validate(draft);
 
   return (
     <Modal show onHide={onClose} centered scrollable className="adoption-modal" aria-labelledby="adoption-filter-title">
@@ -23,6 +24,18 @@ export default function AdoptionFilterModal({ filters, onApply, onClose, fields,
             </select>
           </label>
         ))}
+        {dateRange && <fieldset className="d-grid gap-2">
+          <legend className="fs-6">Data da ocorrência</legend>
+          {Object.entries({ de: 'Data inicial', ate: 'Data final' }).map(([key, label]) => (
+            <label key={key}>
+              {label}
+              <input type="date" className="form-control" value={draft[key] ?? ''}
+                aria-invalid={Boolean(dateError)} aria-describedby={dateError ? 'occurrence-date-error' : undefined}
+                onChange={({ target }) => setDraft({ ...draft, [key]: target.value })} />
+            </label>
+          ))}
+          {dateError && <p id="occurrence-date-error" role="alert" className="text-danger mb-0">{dateError}</p>}
+        </fieldset>}
         {toggles.map(([key, label]) => (
           <label key={key} className="adoption-checkbox">
             <input
@@ -40,6 +53,7 @@ export default function AdoptionFilterModal({ filters, onApply, onClose, fields,
         <button
           type="button"
           className="adoption-action"
+          disabled={Boolean(dateError)}
           onClick={() => onApply(Object.fromEntries(Object.entries(draft).filter(([, value]) => value)))}
         >
           Aplicar filtros

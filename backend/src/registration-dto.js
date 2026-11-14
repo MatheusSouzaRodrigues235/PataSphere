@@ -19,12 +19,15 @@ const cpf = z.string().trim().regex(/^(?:\d{11}|\d{3}\.\d{3}\.\d{3}-\d{2})$/, 'I
   .transform(digits)
   .refine((value) => validDocument(value, [10,9,8,7,6,5,4,3,2], [11,10,9,8,7,6,5,4,3,2]), 'Informe um CPF válido.');
 
-const cnpj = z.string().trim().toUpperCase()
+export const cnpj = z.string().trim().toUpperCase()
   .regex(/^(?:[A-Z0-9]{12}\d{2}|[A-Z0-9]{2}\.[A-Z0-9]{3}\.[A-Z0-9]{3}\/[A-Z0-9]{4}-\d{2})$/, 'Informe um CNPJ válido.')
   .transform((value) => value.replace(/[./-]/g, ''))
   .refine((value) => validDocument(value, [5,4,3,2,9,8,7,6,5,4,3,2], [6,5,4,3,2,9,8,7,6,5,4,3,2]), 'Informe um CNPJ válido.');
 
 const location = /^(.+?)\s*(?:[–—,/|-]\s*|\s+)(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)$/i;
+export const newPassword = z.string().regex(/^(?=.*\p{L})(?=.*[0-9]).{8,}$/u, 'Use pelo menos 8 caracteres, incluindo letras e números.')
+  .refine((value) => Buffer.byteLength(value) <= 72, 'A senha excede o tamanho máximo de 72 bytes.');
+
 const account = z.object({
   email: z.string().trim().toLowerCase().max(254).pipe(z.email({ error: 'Informe um e-mail válido.' })),
   phone: z.string().trim().regex(/^(?:\d{10,11}|\(\d{2}\) \d{4,5}-\d{4})$/, 'Informe um telefone com DDD.').transform(digits),
@@ -34,8 +37,7 @@ const account = z.object({
       const [, cidade, uf] = location.exec(value);
       return { cidade: cidade.trim(), uf: uf.toUpperCase() };
     }),
-  password: z.string().regex(/^(?=.*\p{L})(?=.*[0-9]).{8,}$/u, 'Use pelo menos 8 caracteres, incluindo letras e números.')
-    .refine((value) => Buffer.byteLength(value) <= 72, 'A senha excede o tamanho máximo de 72 bytes.'),
+  password: newPassword,
   consent: z.union([z.literal(true), z.literal('on')], { error: 'Aceite os termos para continuar.' }),
 });
 

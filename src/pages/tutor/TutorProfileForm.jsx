@@ -45,7 +45,7 @@ export default function TutorProfileForm({ profile, save }) {
     });
   }
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
     if (!draft.firstName.trim() || !draft.lastName.trim()) {
       setError('Informe seu nome e sobrenome.');
@@ -61,7 +61,7 @@ export default function TutorProfileForm({ profile, save }) {
       return;
     }
     const profile = { ...draft, firstName: draft.firstName.trim(), lastName: draft.lastName.trim() };
-    if (save({ profile })) setDraft(profile);
+    if (await save({ profile })) setDraft(profile);
   }
 
   function field(name, label, props) {
@@ -87,7 +87,7 @@ export default function TutorProfileForm({ profile, save }) {
               <button type="button" aria-label="Negrito" onClick={() => format('**')}><b>B</b></button>
               <button type="button" aria-label="Itálico" onClick={() => format('*')}><i>I</i></button>
             </div>
-            <textarea ref={bio} id="bio" name="bio" value={draft.bio} onChange={change}
+            <textarea ref={bio} id="bio" name="bio" maxLength={3000} value={draft.bio} onChange={change}
               aria-describedby="bio-hint" placeholder="Conte um pouco sobre você e seus animais" />
           </div>
           <small id="bio-hint">Selecione um trecho para formatá-lo. Use a seção Links para compartilhar endereços.</small>

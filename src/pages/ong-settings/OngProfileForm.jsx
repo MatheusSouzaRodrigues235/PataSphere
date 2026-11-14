@@ -1,4 +1,7 @@
 import { useRef, useState } from 'react';
+import useCepLookup from '@/app/useCepLookup';
+
+const profileAddress = { city: 'localidade', state: 'estado' };
 
 const states = [
   'Acre', 'Alagoas', 'Amapá', 'Amazonas', 'Bahia', 'Ceará', 'Distrito Federal',
@@ -34,6 +37,10 @@ export default function OngProfileForm({ profile, save }) {
   const [error, setError] = useState('');
   const bio = useRef(null);
 
+  const { lookup, message: cepMessage } = useCepLookup(profileAddress, (address) => {
+    setDraft((current) => ({ ...current, ...address }));
+  });
+
   function update(name, value) {
     setError('');
     setDraft((current) => ({ ...current, [name]: value }));
@@ -55,7 +62,7 @@ export default function OngProfileForm({ profile, save }) {
     });
   }
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
     const next = Object.fromEntries(Object.entries(draft).map(([name, value]) => [name, value.trim()]));
     if (/(https?:\/\/|www\.|\b[\w-]+\.(com|net|org|br)\b|\bcupom\s*[:#-]?\s*[\w-]*\d[\w-]*)/i.test(next.bio)) {
@@ -69,16 +76,18 @@ export default function OngProfileForm({ profile, save }) {
       return;
     }
     next.cnpj = next.cnpj.toUpperCase();
-    if (save({ profile: next })) setDraft(next);
+    if (await save({ profile: next })) setDraft(next);
   }
 
   function field(name, label, props) {
     const mask = masks[name];
     return (
       <Field name={name} label={label} value={draft[name]} onChange={change}
-        onBlur={mask ? ({ target }) => {
+        onBlur={mask ? (event) => {
+          const { target } = event;
           const compact = target.value.replace(/[()./\s-]/g, '');
           if (mask[0].test(compact)) update(name, compact.replace(...mask));
+          if (name === 'cep') lookup(event);
         } : undefined} {...props} />
     );
   }
@@ -89,7 +98,7 @@ export default function OngProfileForm({ profile, save }) {
         <legend>Dados da ONG</legend>
         {field('name', 'Nome da ONG', { required: true, pattern: '.*\\S.*', maxLength: 100, autoComplete: 'organization', placeholder: 'Ex.: Amor de Pet' })}
         <div className="tutor-columns">
-          {field('cnpj', 'CNPJ', { maxLength: 18, placeholder: '00.000.000/0000-00' })}
+          {field('cnpj', 'CNPJ', { required: true, maxLength: 18, placeholder: '00.000.000/0000-00' })}
           {field('founded', 'Ano de fundação', { type: 'number', min: 1000, max: new Date().getFullYear(), placeholder: 'Ex.: 2015' })}
         </div>
         {field('tagline', 'Slogan', { maxLength: 60, count: true, placeholder: 'Ex.: Todo animal merece um lar',
@@ -112,7 +121,10 @@ export default function OngProfileForm({ profile, save }) {
         <div className="tutor-columns">
           {field('email', 'E-mail de contato', { type: 'email', autoComplete: 'email', placeholder: 'contato@ong.org.br' })}
           {field('whatsapp', 'WhatsApp', { type: 'tel', autoComplete: 'tel-national', maxLength: 15, placeholder: '(99) 99999-9999' })}
-          {field('cep', 'CEP', { inputMode: 'numeric', autoComplete: 'postal-code', maxLength: 9, placeholder: '00000-000' })}
+          {field('cep', 'CEP', { inputMode: 'numeric', autoComplete: 'postal-code', maxLength: 9, placeholder: '00000-000', pattern: '[0-9]{5}-?[0-9]{3}',
+            hint: cepMessage ? <span role="status">{cepMessage}</span> : undefined,
+            onChange: (event) => { change(event); lookup(event); },
+          })}
           {field('city', 'Cidade', { autoComplete: 'address-level2', maxLength: 100 })}
           <div className="tutor-field">
             <label htmlFor="ong-state">Estado</label>
@@ -132,7 +144,7 @@ export default function OngProfileForm({ profile, save }) {
         {field('facebook', 'Facebook', { prefix: 'facebook.com/', placeholder: 'Nome de usuário', maxLength: 50,
           pattern: '@?[a-zA-Z0-9._]+', hint: 'Informe o nome de usuário do Facebook.' })}
         {field('pixKey', 'Chave PIX para doações', { placeholder: 'CNPJ, e-mail ou chave aleatória', maxLength: 150,
-          hint: 'A chave aparece na seção Como ajudar da prévia pública.' })}
+          hint: 'A chave aparece na seção Como ajudar do perfil público.' })}
       </fieldset>
       {error && <p className="tutor-error" role="alert">{error}</p>}
       <button className="btn btn-primary" type="submit">Salvar</button>

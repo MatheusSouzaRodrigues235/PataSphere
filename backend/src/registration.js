@@ -77,6 +77,12 @@ function register(prisma, role, schema) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         return res.status(409).json({ message: 'Já existe um cadastro com este e-mail ou documento.' });
       }
+      const code = error.errorCode ?? error.code;
+      const connectionFailed = error instanceof Prisma.PrismaClientInitializationError && !code;
+      if (connectionFailed || ['P1001', 'P1002', 'P1008', 'P1017', 'P2024'].includes(code)) {
+        console.error('Banco indisponível durante o cadastro:', code ?? error.name);
+        return res.status(503).json({ message: 'O banco de dados está temporariamente indisponível. Tente novamente em instantes.' });
+      }
       throw error;
     }
 

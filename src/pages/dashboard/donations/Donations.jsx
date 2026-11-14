@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { Dropdown } from 'react-bootstrap';
 import { FiChevronLeft, FiChevronRight, FiFilter, FiMoreHorizontal, FiPlus, FiSearch } from 'react-icons/fi';
 import { currency, formatAmount, formatDate, quantity, searchable, types } from './donationData';
+import { requestDonations, saveDonation } from './donationApi';
 import DonationModal from './DonationModal';
 import '@/styles/_ong-donations.scss';
 
 const categories = { all: 'Todas', money: 'Financeiras', food: 'Ração', medicine: 'Medicamentos' };
 
-export default function Donations({ records, setRecords, dark }) {
+export default function Donations({ records, setRecords, dark, connected }) {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
   const [filters, setFilters] = useState({});
@@ -32,11 +33,12 @@ export default function Donations({ records, setRecords, dark }) {
   const first = currentPage * pageSize;
   const close = () => setDialog(null);
 
-  function save(record) {
+  async function save(record) {
     const editing = dialog.record;
+    const saved = connected ? (await saveDonation(record, Boolean(editing))).record : record;
     setRecords((current) => editing
-      ? current.map((item) => item.id === record.id ? record : item)
-      : [record, ...current]);
+      ? current.map((item) => item.id === saved.id ? saved : item)
+      : [saved, ...current.filter(({ id }) => id !== saved.id)]);
     if (!editing) {
       setQuery('');
       setCategory('all');
@@ -47,7 +49,8 @@ export default function Donations({ records, setRecords, dark }) {
     close();
   }
 
-  function remove() {
+  async function remove() {
+    if (connected) await requestDonations('/' + dialog.record.id, { method: 'DELETE' });
     setRecords((current) => current.filter(({ id }) => id !== dialog.record.id));
     setPage(currentPage);
     setFeedback('Doação excluída.');
@@ -67,9 +70,9 @@ export default function Donations({ records, setRecords, dark }) {
       </div>
 
       <dl className="donation-totals">
-        <div><dt>Doações financeiras (exemplo)</dt><dd>{currency.format(totals.money / 100)}</dd></div>
-        <div><dt>Ração recebida (exemplo)</dt><dd>{quantity.format(totals.food)} kg</dd></div>
-        <div><dt>Medicamentos (exemplo)</dt><dd>{quantity.format(totals.medicine)} {totals.medicine === 1 ? 'item' : 'itens'}</dd></div>
+        <div><dt>Doações financeiras{!connected && ' (exemplo)'}</dt><dd>{currency.format(totals.money / 100)}</dd></div>
+        <div><dt>Ração recebida{!connected && ' (exemplo)'}</dt><dd>{quantity.format(totals.food)} kg</dd></div>
+        <div><dt>Medicamentos{!connected && ' (exemplo)'}</dt><dd>{quantity.format(totals.medicine)} {totals.medicine === 1 ? 'item' : 'itens'}</dd></div>
       </dl>
 
       <div className="ong-controls">
@@ -150,7 +153,7 @@ export default function Donations({ records, setRecords, dark }) {
       </div>
       <span className="visually-hidden" role="status">{feedback}</span>
 
-      {dialog && <DonationModal key={dialog.type} dialog={dialog} dark={dark} filters={filters} onClose={close}
+      {dialog && <DonationModal key={dialog.type} dialog={dialog} dark={dark} connected={connected} filters={filters} onClose={close}
         onSave={save} onDelete={remove} onEdit={() => setDialog({ type: 'form', record: dialog.record })}
         onFilter={(next) => { setFilters(next); setPage(0); close(); }} />}
     </main>

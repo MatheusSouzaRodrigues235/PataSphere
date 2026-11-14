@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import useCepLookup from '@/app/useCepLookup';
 import formatOnBlur from './formatOnBlur';
 
 const formatPhone = formatOnBlur(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3');
@@ -38,7 +39,10 @@ export function RegistrationPhoneField() {
   );
 }
 
+const registrationAddress = { street: 'logradouro', district: 'bairro', city: 'cityWithUf' };
+
 export function RegistrationCepField() {
+  const { lookup, message } = useCepLookup(registrationAddress);
   return (
     <RegistrationField
       name="cep"
@@ -46,9 +50,12 @@ export function RegistrationCepField() {
       inputMode="numeric"
       autoComplete="postal-code"
       pattern="[0-9]{5}-?[0-9]{3}"
-      onBlur={formatCep}
+      maxLength={9}
+      onChange={lookup}
+      onBlur={(event) => { formatCep(event); lookup(event); }}
       placeholder="00000-000"
       title="Informe os 8 dígitos do CEP."
+      help={message ? <span role="status">{message}</span> : undefined}
     />
   );
 }

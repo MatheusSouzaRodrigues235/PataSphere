@@ -1,10 +1,15 @@
 import { useRef, useState } from 'react';
 import { FiChevronLeft, FiChevronRight, FiChevronsLeft, FiChevronsRight, FiFilter, FiHeart, FiMapPin, FiSearch } from 'react-icons/fi';
 import { Link, Navigate, useOutletContext, useSearchParams } from 'react-router-dom';
+import AddressSearch from '@/components/layout/AddressSearch';
+import { locationSearch } from '@/app/locationSearch';
 import AdoptionBoardFilterModal from './AdoptionBoardFilterModal';
-import { adoptionAnimals, adoptionPath, filterGroups, neighborhoods, quickFilters } from './adoptionData';
+import { adoptionPath, filterGroups, quickFilters } from './adoptionData';
+import { useAdoptionAnimals } from './adoptionApi';
+import AdoptionPhoto from './AdoptionPhoto';
 
 const pageSize = 8;
+const animalLocation = (animal) => animal.neighborhood ?? [animal.city, animal.region].filter(Boolean).join(' · ');
 function normalize(value) {
   return value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR');
 }
@@ -19,16 +24,17 @@ function AnimalTags({ animal }) {
   );
 }
 
-function AnimalCard({ animal, favorite, onFavorite, detailsUrl, boardSearch }) {
+function AnimalCard({ animal, favorite, favoritesDisabled, onFavorite, detailsUrl, boardSearch }) {
   return (
     <article className="adoption-card">
       <div className="adoption-card-photo">
-        <img src={animal.photo} alt={animal.name} />
-        <span className="adoption-status" data-urgent={animal.urgent}>{animal.urgent ? 'Urgente' : 'Disponível'}</span>
+        <AdoptionPhoto src={animal.photo} alt={animal.name} loading="lazy" />
+        <span className="adoption-status" data-urgent={animal.urgent}>{animal.status === 'Disponível' && animal.urgent ? 'Urgente' : animal.status}</span>
         <button
           type="button"
           className="adoption-favorite"
           aria-pressed={favorite}
+          disabled={favoritesDisabled}
           aria-label={'Favoritar ' + animal.name}
           onClick={onFavorite}
         >
@@ -47,7 +53,7 @@ function AnimalCard({ animal, favorite, onFavorite, detailsUrl, boardSearch }) {
         <div className="adoption-card-footer">
           <div className="adoption-location">
             <FiMapPin aria-hidden="true" />
-            <div><strong>{animal.organization}</strong>{animal.neighborhood}</div>
+            <div><strong>{animal.organization}</strong>{animalLocation(animal)}</div>
           </div>
           <Link to={detailsUrl} className="adoption-action" aria-label={'Quero adotar ' + animal.name} state={{ boardSearch }}>
             Quero adotar
@@ -61,28 +67,37 @@ function AnimalCard({ animal, favorite, onFavorite, detailsUrl, boardSearch }) {
 export default function AdoptionBoard() {
   const [params, setParams] = useSearchParams();
   const search = params.get('busca') ?? '';
+  const address = params.get('endereco') ?? '';
+  const matchesAddress = locationSearch(address);
+  const favoritesOnly = params.has('favoritos');
 
   const [filterOpen, setFilterOpen] = useState(false);
-  const { favorites, toggleFavorite } = useOutletContext();
+  const { favorites, toggleFavorite, favoritesDisabled } = useOutletContext();
 
   const heading = useRef(null);
+  const { data, loading, error, reload } = useAdoptionAnimals('');
+  const adoptionAnimals = data?.animals ?? [];
+  const neighborhoods = [...new Set(adoptionAnimals.map(animalLocation).filter(Boolean))]
+    .sort((first, second) => first.localeCompare(second, 'pt-BR'));
 
   const filters = Object.fromEntries([...filterGroups, ['neighborhood', 'Local', neighborhoods]].flatMap(([key, , options]) => {
     const value = params.get(key);
     return options.includes(value) ? [[key, value]] : [];
   }));
   const organization = params.get('ong');
+  const organizationId = params.get('ongId');
 
   if (!filters.urgency && params.has('urgent')) filters.urgency = 'Alta';
   if (params.has('puppy')) filters.puppy = true;
 
   const searchTerm = normalize(search.trim());
   const matchingSearch = adoptionAnimals.filter((animal) =>
-    normalize(animal.name).includes(searchTerm) &&
-    (!organization || animal.organization === organization),
+    normalize(animal.name).includes(searchTerm) && matchesAddress(animal) &&
+    (!favoritesOnly || favorites.includes(animal.id)) &&
+    (organizationId ? animal.organizationId === organizationId : !organization || animal.organization === organization),
   );
   const matchingFilters = (criteria) => matchingSearch.filter((animal) =>
-    Object.entries(criteria).every(([key, value]) => animal[key] === value),
+    Object.entries(criteria).every(([key, value]) => (key === 'neighborhood' ? animalLocation(animal) : animal[key]) === value),
   );
   const filtered = matchingFilters(filters);
   const pageCount = Math.ceil(filtered.length / pageSize);
@@ -99,16 +114,19 @@ export default function AdoptionBoard() {
     const nextParams = new URLSearchParams(Object.entries(next));
 
     if (currentOrganization) nextParams.set('ong', currentOrganization);
+    if (organizationId && currentOrganization !== null) nextParams.set('ongId', organizationId);
     if (query) nextParams.set('busca', query);
+    if (address) nextParams.set('endereco', address);
+    if (favoritesOnly) nextParams.set('favoritos', '1');
     setParams(nextParams, { preventScrollReset: true });
     setFilterOpen(false);
   }
 
-  function changeSearch(value) {
+  function changeSearch(key, value) {
     const nextParams = new URLSearchParams(params);
     nextParams.delete('pagina');
-    if (value) nextParams.set('busca', value);
-    else nextParams.delete('busca');
+    if (value) nextParams.set(key, value);
+    else nextParams.delete(key);
     setParams(nextParams, { replace: true, preventScrollReset: true });
   }
 
@@ -130,7 +148,7 @@ export default function AdoptionBoard() {
     <section className="adoption-board" aria-labelledby="adoption-title">
       <div className="adoption-container">
         <h1 id="adoption-title" ref={heading} tabIndex={-1}>Adote um amigo</h1>
-        <p className="adoption-intro">Animais disponíveis de todas as ONGs de São José dos Campos. Os casos urgentes aparecem primeiro.</p>
+        <p className="adoption-intro">Animais para adoção das ONGs cadastradas. Os casos urgentes aparecem primeiro.</p>
         {organization && <p>Animais da ONG <strong>{organization}</strong> · <Link to="/adocao">Voltar ao mural completo</Link></p>}
         <div className="adoption-search-row">
           <label className="adoption-search">
@@ -140,28 +158,44 @@ export default function AdoptionBoard() {
               aria-label="Buscar pelo nome do animal"
               placeholder="Buscar pelo nome do animal"
               value={search}
-              onChange={({ target }) => changeSearch(target.value)}
+              onChange={({ target }) => changeSearch('busca', target.value)}
             />
           </label>
           <button type="button" className="adoption-control" aria-haspopup="dialog" onClick={() => setFilterOpen(true)}>
             <FiFilter aria-hidden="true" /> Filtros
           </button>
         </div>
+        <AddressSearch label="Buscar pela localização pública da ONG" placeholder="Bairro, cidade ou UF da ONG"
+          value={address} onChange={(value) => changeSearch('endereco', value)} />
         <div className="adoption-quick-filters" role="group" aria-label="Filtros rápidos">
+          <button type="button" className="adoption-control" aria-pressed={favoritesOnly}
+            disabled={favoritesDisabled} onClick={() => {
+              const next = new URLSearchParams(params);
+              next.delete('pagina');
+              if (favoritesOnly) next.delete('favoritos');
+              else next.set('favoritos', '1');
+              setParams(next, { preventScrollReset: true });
+            }}><FiHeart aria-hidden="true" /> Favoritos</button>
           {quickFilters.map(([label, criteria]) => (
-            <button key={label} type="button" className="adoption-control" aria-pressed={label === activeFilter} onClick={() => applyFilters(criteria)}>
+            <button key={label} type="button" className="adoption-control" aria-pressed={!favoritesOnly && label === activeFilter} onClick={() => applyFilters(criteria)}>
               {label}
             </button>
           ))}
         </div>
         <p className="visually-hidden" role="status">{filtered.length === 1 ? '1 animal encontrado' : filtered.length + ' animais encontrados'}</p>
-        {currentAnimals.length > 0 ? (
+        {loading ? <p role="status">Carregando animais…</p> : error ? (
+          <div className="adoption-empty">
+            <p role="alert">{error}</p>
+            <button type="button" className="adoption-control" onClick={reload}>Tentar novamente</button>
+          </div>
+        ) : currentAnimals.length > 0 ? (
           <div className="adoption-grid">
             {currentAnimals.map((animal) => (
               <AnimalCard
                 key={animal.id}
                 animal={animal}
                 favorite={favorites.includes(animal.id)}
+                favoritesDisabled={favoritesDisabled}
                 onFavorite={() => toggleFavorite(animal.id)}
                 detailsUrl={adoptionPath(animal)}
                 boardSearch={params.toString()}
@@ -170,8 +204,8 @@ export default function AdoptionBoard() {
           </div>
         ) : (
           <div className="adoption-empty">
-            <h2>Nenhum animal encontrado</h2>
-            <button type="button" className="adoption-control" onClick={() => applyFilters({}, '', null)}>Limpar busca e filtros</button>
+            <h2>{favoritesOnly ? 'Nenhum favorito encontrado' : 'Nenhum animal encontrado'}</h2>
+            <button type="button" className="adoption-control" onClick={() => setParams({}, { preventScrollReset: true })}>Limpar busca e filtros</button>
           </div>
         )}
         {pageCount > 1 && (
@@ -186,6 +220,7 @@ export default function AdoptionBoard() {
       </div>
       {filterOpen && <AdoptionBoardFilterModal
         filters={filters}
+        neighborhoods={neighborhoods}
         countMatches={(criteria) => matchingFilters(criteria).length}
         onApply={applyFilters}
         onClose={() => setFilterOpen(false)}

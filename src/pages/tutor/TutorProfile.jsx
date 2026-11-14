@@ -1,13 +1,15 @@
-import { useRef, useState } from 'react';
-import { Link, Navigate, NavLink, useLocation, useParams } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, Navigate, NavLink, useLoaderData, useRevalidator, useLocation, useParams } from 'react-router-dom';
 import { FiBell, FiCamera, FiEye, FiLock, FiPlus, FiShield, FiUser, FiX } from 'react-icons/fi';
 import { LuPawPrint } from 'react-icons/lu';
 import { useTutorSession } from '@/app/accountSession';
+import { legacyProfileChanges, readLegacyProfile, useProfileSave } from '@/app/profileApi';
+import { AccountSecurity, CloseAccount } from '@/pages/tutor/AccountSecurity';
 import SiteHeader from '@/components/layout/SiteHeader';
 import TutorProfileForm from './TutorProfileForm';
-import { TutorConfirm, TutorPhoto, TutorPreferences, TutorPreview, TutorSecurity } from './TutorSections';
+import { TutorConfirm, TutorPhoto, TutorPreferences, TutorPreview } from './TutorSections';
 import TutorAnimals from './TutorAnimals';
-import { readTutorData, resetTutorData, saveTutorData, tutorExampleAlerts } from './tutorStorage';
+import { readTutorAlerts, readTutorData, resetTutorData, saveTutorData, tutorExampleAlerts } from './tutorStorage';
 import { lostAnimalsPath } from '@/pages/lost-animals/lostAnimalsData';
 import '@/styles/_tutor-profile.scss';
 
@@ -30,13 +32,13 @@ const sections = {
   foto: ['Foto', 'Foto do perfil', 'Atualize a imagem que aparece no seu perfil.', FiCamera],
   seguranca: ['Segurança da conta', 'Segurança da conta', 'Gerencie a senha da sua conta.', FiLock],
   animais: ['Meus animais', 'Meus animais', 'Animais perdidos e encontrados que você cadastrou', LuPawPrint],
-  notificacoes: ['Preferências de notificação', 'Preferências de notificação', 'Escolha os avisos que deseja receber quando o envio estiver disponível.', FiBell],
+  notificacoes: ['Preferências de notificação', 'Preferências de notificação', 'Escolha os avisos que deseja receber no PataSphere.', FiBell],
   privacidade: ['Privacidade', 'Privacidade', 'Escolha quais informações aparecem na prévia do perfil público.', FiShield],
 };
 
 const notificationOptions = [
   ['sightings', 'Avistamentos', 'Avisos sobre animais perdidos que você cadastrou.'],
-  ['adoption', 'Adoção', 'Atualizações sobre suas solicitações de adoção.'],
+  ['adoption', 'Adoção', 'Mudanças de status dos animais que você quer acompanhar.'],
   ['news', 'Novidades', 'Comunicados do PataSphere.'],
 ];
 
@@ -45,17 +47,10 @@ const privacyOptions = [
   ['contact', 'Contato', 'Mostrar e-mail e WhatsApp no perfil público.'],
 ];
 
-function readData(tutor) {
-  const defaults = tutor ? {
-    ...initialData,
-    profile: {
-      ...initialData.profile, firstName: tutor.firstName, lastName: tutor.lastName,
-      email: tutor.email, phone: tutor.phone, city: tutor.city, state: tutor.state,
-    },
-    alerts: [],
-  } : initialData;
+function readData() {
+  const defaults = initialData;
   try {
-    const stored = readTutorData(tutor?.id);
+    const stored = readTutorData();
     return {
       ...defaults, ...stored,
       profile: { ...defaults.profile, ...stored.profile },
@@ -76,14 +71,27 @@ function Avatar({ photo, initials }) {
 }
 
 export default function TutorProfile() {
+  const account = useTutorSession();
+  const { settings, error } = useLoaderData();
+  const { revalidate, state } = useRevalidator();
+  if (account && !settings) {
+    return <><SiteHeader /><main className="tutor-page">
+      <p role="alert">{error}</p>
+      <button type="button" disabled={state === 'loading'} onClick={revalidate}>Tentar novamente</button>
+    </main></>;
+  }
+  return <SettingsForm key={account?.id ?? 'demo'} tutor={account} initial={account ? settings : readData()} />;
+}
+
+function SettingsForm({ tutor, initial }) {
   const { secao = 'perfil' } = useParams();
   const { state } = useLocation();
-  const tutor = useTutorSession();
-  const [data, setData] = useState(() => readData(tutor));
-  const currentData = useRef(data);
+  const [data, setData] = useState(initial);
+  const [restored, setRestored] = useState(null);
+  const [alerts, setAlerts] = useState(() => readTutorAlerts(tutor?.id));
   const [revision, setRevision] = useState(0);
   const [confirm, setConfirm] = useState(false);
-  const [feedback, setFeedback] = useState(null);
+  const { save, saving, feedback, setFeedback } = useProfileSave('tutor', secao, setData, tutor ? null : saveLocal);
 
   if (!Object.hasOwn(sections, secao)) return <Navigate to={base} replace />;
 
@@ -91,14 +99,25 @@ export default function TutorProfile() {
   const firstSurname = profile.lastName.split(/\s+/)[0];
   const initials = [profile.firstName[0], firstSurname[0]].join('').toLocaleUpperCase('pt-BR');
   const avatar = <Avatar photo={photo} initials={initials} />;
+  const imported = tutor ? legacyProfileChanges(secao, readLegacyProfile('tutor', tutor.id), data) : null;
+
+  function reviewLegacy() {
+    if (secao === 'foto') {
+      save(imported, 'Foto importada.');
+      return;
+    }
+    setRestored({ section: secao, changes: imported });
+    setRevision((value) => value + 1);
+    setFeedback({ section: secao, message: 'Confira os dados recuperados e clique em Salvar.' });
+  }
+
   const [, title, subtitle] = sections[secao];
 
-  function save(changes, message = 'Perfil salvo neste navegador.') {
-    const next = { ...currentData.current, ...changes };
+  function saveLocal(changes, message) {
     try {
       saveTutorData(changes, tutor?.id);
-      currentData.current = next;
-      setData(next);
+      if (changes.alerts) setAlerts(changes.alerts);
+      else setData({ ...data, ...changes });
       setFeedback({ section: secao, message });
       return true;
     } catch {
@@ -110,8 +129,8 @@ export default function TutorProfile() {
   function reset() {
     try {
       resetTutorData(tutor?.id);
-      currentData.current = readData(tutor);
-      setData(currentData.current);
+      setData(readData());
+      setAlerts(readTutorAlerts());
       setRevision((current) => current + 1);
       setConfirm(false);
       setFeedback({ section: secao, message: 'Os dados locais do perfil foram apagados.' });
@@ -121,16 +140,17 @@ export default function TutorProfile() {
     }
   }
 
+  const draft = restored?.section === secao ? { ...data, ...restored.changes } : data;
   const content = {
-    perfil: <TutorProfileForm profile={profile} save={save} />,
+    perfil: <TutorProfileForm profile={draft.profile} save={save} />,
     publico: <TutorPreview data={data} avatar={avatar} />,
     foto: <TutorPhoto photo={photo} save={save} avatar={avatar} />,
-    seguranca: <TutorSecurity />,
-    animais: <TutorAnimals alerts={data.alerts} save={save} />,
-    notificacoes: <TutorPreferences options={notificationOptions} values={data.notifications}
-      onSave={(notifications) => save({ notifications }, 'Preferências salvas neste navegador.')} />,
-    privacidade: <TutorPreferences options={privacyOptions} values={data.privacy}
-      onSave={(privacy) => save({ privacy }, 'Preferências salvas neste navegador.')} />,
+    seguranca: <AccountSecurity account={tutor} />,
+    animais: <TutorAnimals alerts={alerts} save={saveLocal} notify={(message) => setFeedback({ section: secao, message })} />,
+    notificacoes: <TutorPreferences options={notificationOptions} values={draft.notifications}
+      onSave={(notifications) => save({ notifications }, 'Preferências salvas.')} />,
+    privacidade: <TutorPreferences options={privacyOptions} values={draft.privacy}
+      onSave={(privacy) => save({ privacy }, 'Preferências salvas.')} />,
   };
 
   return (
@@ -147,12 +167,12 @@ export default function TutorProfile() {
           <nav className="tutor-nav" aria-label="Configurações do tutor">
             {Object.entries(sections).map(([id, [label, , , Icon]]) => (
               <NavLink key={id} to={id === 'perfil' ? base : base + '/' + id} end
-                onClick={() => setFeedback(null)}>
+                onClick={() => { setFeedback(null); setRestored(null); }}>
                 <Icon aria-hidden="true" />{label}
               </NavLink>
             ))}
             <button type="button" className="tutor-danger" onClick={() => setConfirm(true)}>
-              <FiX aria-hidden="true" />Encerrar conta
+              <FiX aria-hidden="true" />{tutor ? 'Encerrar conta' : 'Apagar dados da demonstração'}
             </button>
           </nav>
         </aside>
@@ -168,17 +188,24 @@ export default function TutorProfile() {
             )}
           </header>
           {secao === 'animais' && state?.registeredAnimal && !feedback && (
-            <p className="tutor-animal-notice" role="status">Anúncio de {state.registeredAnimal} cadastrado neste navegador.</p>
+            <p className="tutor-animal-notice" role="status">Anúncio de {state.registeredAnimal} publicado no mural.</p>
           )}
-          <div key={secao + revision}>{content[secao]}</div>
+          <fieldset className="border-0 p-0 m-0" key={secao + revision} disabled={saving}>
+            {imported && (secao !== 'foto' || data.photo !== imported.photo) &&
+              <button type="button" className="btn btn-link" onClick={reviewLegacy}>
+                {secao === 'foto' ? 'Importar foto deste navegador' : 'Revisar dados deste navegador'}
+              </button>}
+            {content[secao]}
+          </fieldset>
           {feedback?.section === secao && (
             <p className={'tutor-feedback' + (feedback.error ? ' tutor-error' : '')}
               role={feedback.error ? 'alert' : 'status'}>{feedback.message}</p>
           )}
         </section>
       </main>
-      {confirm && (
-        <TutorConfirm title="Encerrar conta" confirm="Apagar dados locais" close={() => setConfirm(false)} action={reset}>
+      {confirm && tutor && <CloseAccount role="tutor" close={() => setConfirm(false)} />}
+      {confirm && !tutor && (
+        <TutorConfirm title="Apagar dados da demonstração" confirm="Apagar dados locais" close={() => setConfirm(false)} action={reset}>
           Nesta versão, essa ação apaga as alterações do perfil, a foto, os animais e as preferências salvos neste navegador.
         </TutorConfirm>
       )}

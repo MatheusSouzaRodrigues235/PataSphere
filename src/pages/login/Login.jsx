@@ -42,8 +42,12 @@ export default function Login() {
       if (role !== 'tutor' && role !== 'ong') throw new Error('Perfil da conta indisponível');
       clearDemoRole();
       const returnTo = state?.returnTo;
-      const dashboardPath = /^\/dashboard\/ong(?:[/?]|$)/.test(returnTo) ? returnTo : '/dashboard/ong';
-      await navigate(role === 'tutor' ? '/adocao' : dashboardPath, { replace: true });
+      const commonDestination = /^\/(?:animais-perdidos\/cadastro|notificacoes|avistamentos)(?:\?[^#]*)?$/.test(returnTo);
+      const roleDestination = role === 'tutor'
+        ? /^\/(?:perfil\/tutor(?:\/[a-z-]+)?|adocao\/[1-9]\d*)(?:\?[^#]*)?$/.test(returnTo)
+        : /^\/(?:dashboard\/ong(?:\/(?:doacoes|animais|animais-perdidos))?|perfil\/ong(?:\/[a-z-]+)?|ongs\/(?:previa|amor-de-pet\/previa))(?:\?[^#]*)?$/.test(returnTo);
+      const destination = commonDestination || roleDestination ? returnTo : role === 'tutor' ? '/adocao' : '/dashboard/ong';
+      await navigate(destination, { replace: true, state: state?.lostAnimalForm });
     } catch {
       setFeedback('Não foi possível acessar o serviço de login. Tente novamente.');
     } finally {
@@ -89,13 +93,7 @@ export default function Login() {
             />
           </div>
 
-          <button
-            className="auth-action login-forgot"
-            type="button"
-            onClick={() => setFeedback('A recuperação de senha estará disponível em breve.')}
-          >
-            Esqueci minha senha
-          </button>
+          <Link className="auth-action login-forgot" to="/recuperar-senha">Esqueci minha senha</Link>
 
           <button className="auth-submit" type="submit" disabled={pending}>
             {pending ? 'Entrando…' : 'Entrar'} <FiArrowRight aria-hidden="true" />
@@ -108,7 +106,7 @@ export default function Login() {
         </p>
         {!account && <p className="auth-switch"><Link to="/perfil/tutor" onClick={() => startDemoRole('tutor')} className="auth-action">Experimentar perfil do tutor</Link></p>}
         {!account && <p className="auth-switch"><Link to="/perfil/ong" onClick={() => startDemoRole('ong')} className="auth-action">Experimentar perfil da ONG</Link></p>}
-        <p className="auth-feedback" role="status">{feedback}</p>
+        <p className="auth-feedback" role="status">{feedback || state?.accountMessage}</p>
       </div>
     </AuthLayout>
   );

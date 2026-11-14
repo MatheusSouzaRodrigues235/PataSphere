@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { requestAdoption } from '@/pages/adoption/adoptionApi';
 import Modal from 'react-bootstrap/Modal';
 import { FiPlus } from 'react-icons/fi';
 import { LuPawPrint } from 'react-icons/lu';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { initialAnimals, statuses } from './animals';
 import { formatAmount, today, types } from './donations/donationData';
 import '@/styles/_ong-overview.scss';
@@ -16,7 +18,10 @@ const requests = [
 }));
 
 const monthlyCurrency = new Intl.NumberFormat('pt-BR', {
-  style: 'currency', currency: 'BRL', minimumFractionDigits: 0,
+  style: 'currency', currency: 'BRL',
+});
+const requestDate = new Intl.DateTimeFormat('pt-BR', {
+  dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo',
 });
 const monthFormatter = new Intl.DateTimeFormat('pt-BR', { month: 'long', timeZone: 'UTC' });
 
@@ -28,23 +33,33 @@ function AnimalThumbnail({ animal }) {
   );
 }
 
-export default function OngOverview({ demo, organization, animals, records, dark }) {
+export default function OngOverview({ accountId, demo, organization, animals, records, animalsReady, donationsReady, dark }) {
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash === '#ong-overview-requests') document.getElementById('ong-overview-requests')?.focus();
+  }, [hash]);
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const requestsQuery = useQuery({
+    queryKey: ['adoption-requests', accountId],
+    queryFn: ({ signal }) => requestAdoption('/meus/solicitacoes', { signal }),
+    enabled: Boolean(accountId),
+    refetchInterval: 15_000,
+  });
   const urgent = animals.filter((animal) => animal.urgency === 'Alta');
   const recentDonations = records.toSorted((first, second) => second.date.localeCompare(first.date));
-  const month = (recentDonations[0]?.date ?? today()).slice(0, 7);
+  const month = (demo ? recentDonations[0]?.date ?? today() : today()).slice(0, 7);
   const monthName = monthFormatter.format(new Date(`${month}-01T00:00:00Z`));
   const monthlyTotal = records.reduce((total, record) =>
     record.type === 'money' && record.date.startsWith(month) ? total + record.amount : total, 0);
-  const recentRequests = (demo ? requests : []).flatMap((request) => {
+  const recentRequests = demo ? requests.flatMap((request) => {
     const animal = animals.find(({ id }) => id === request.animalId);
-    return animal ? [{ ...request, animal }] : [];
-  });
+    return animal ? [{ ...request, id: request.animalId, animal }] : [];
+  }) : requestsQuery.data?.requests ?? [];
   const metrics = [
-    ['Animais disponíveis', animals.filter(({ status }) => status === statuses[0].label).length],
-    ['Urgência alta', urgent.length],
-    ['Em processo de adoção', animals.filter(({ status }) => status === statuses[2].label).length],
-    [`Doações em ${monthName}${demo ? ' (exemplo)' : ''}`, monthlyCurrency.format(monthlyTotal / 100)],
+    ['Animais disponíveis', animals.filter(({ status }) => status === statuses[0].label).length, animalsReady],
+    ['Urgência alta', urgent.length, animalsReady],
+    ['Em processo de adoção', animals.filter(({ status }) => status === statuses[2].label).length, animalsReady],
+    [`Doações em ${monthName}${demo ? ' (exemplo)' : ''}`, monthlyCurrency.format(monthlyTotal / 100), donationsReady],
   ];
 
   return (
@@ -52,7 +67,7 @@ export default function OngOverview({ demo, organization, animals, records, dark
       <div className="ong-title">
         <div>
           <h1>Visão geral</h1>
-          <p>Resumo da {organization} nesta semana</p>
+          <p>Resumo da {organization}</p>
         </div>
         <Link className="ong-button ong-primary" to="animais?cadastrar=1">
           <FiPlus aria-hidden="true" /> Cadastrar animal
@@ -60,8 +75,8 @@ export default function OngOverview({ demo, organization, animals, records, dark
       </div>
 
       <dl className="ong-overview-metrics">
-        {metrics.map(([label, value]) => (
-          <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+        {metrics.map(([label, value, ready]) => (
+          <div key={label}><dt>{label}</dt><dd>{ready ? value : '—'}</dd></div>
         ))}
       </dl>
 
@@ -88,7 +103,7 @@ export default function OngOverview({ demo, organization, animals, records, dark
                 </li>
               ))}
             </ul>
-          ) : <p className="ong-overview-empty">Nenhum animal com urgência alta.</p>}
+          ) : animalsReady && <p className="ong-overview-empty">Nenhum animal com urgência alta.</p>}
         </section>
 
         <section className="ong-overview-panel" aria-labelledby="ong-overview-donations">
@@ -114,27 +129,32 @@ export default function OngOverview({ demo, organization, animals, records, dark
                 );
               })}
             </ul>
-          ) : <p className="ong-overview-empty">Nenhuma doação cadastrada.</p>}
+          ) : donationsReady && <p className="ong-overview-empty">Nenhuma doação cadastrada.</p>}
         </section>
       </div>
 
       <section className="ong-overview-panel" aria-labelledby="ong-overview-requests">
-        <header><h2 id="ong-overview-requests">Solicitações de adoção recentes</h2></header>
-        {recentRequests.length ? (
+        <header><h2 id="ong-overview-requests" tabIndex={-1}>Solicitações de adoção recentes</h2></header>
+        {!demo && requestsQuery.isPending && <p className="ong-overview-empty" role="status">Carregando solicitações…</p>}
+        {!demo && requestsQuery.isError && <p className="ong-overview-empty" role="alert">
+          Não foi possível carregar as solicitações. <button type="button" className="ong-button" onClick={() => requestsQuery.refetch()}>Tentar novamente</button>
+        </p>}
+        {recentRequests.length > 0 && (
           <ul>
             {recentRequests.map((request) => (
-              <li key={request.animalId} className="ong-overview-request">
+              <li key={request.id} className="ong-overview-request">
                 <AnimalThumbnail animal={request.animal} />
                 <div className="ong-overview-row-info">
                   <strong>{request.animal.name}</strong>
-                  <small>{[`Solicitação de ${request.applicant}`, request.home, request.pets].filter(Boolean).join(' · ')}</small>
+                  <small>{[`Solicitação de ${request.applicant}`, request.createdAt && requestDate.format(new Date(request.createdAt)), request.home].filter(Boolean).join(' · ')}</small>
                 </div>
                 <button type="button" className="ong-button" onClick={() => setSelectedRequest(request)}
-                  aria-label={`Ver solicitação de adoção de ${request.animal.name}`}>Ver solicitação</button>
+                  aria-label={`Ver solicitação de ${request.applicant} para ${request.animal.name}`}>Ver solicitação</button>
               </li>
             ))}
           </ul>
-        ) : <p className="ong-overview-empty">Nenhuma solicitação recente.</p>}
+        )}
+        {!recentRequests.length && (demo || requestsQuery.isSuccess) && <p className="ong-overview-empty">Nenhuma solicitação recente.</p>}
       </section>
 
       {selectedRequest && (
@@ -147,8 +167,12 @@ export default function OngOverview({ demo, organization, animals, records, dark
             <dl className="ong-overview-request-details">
               <dt>Animal</dt><dd>{selectedRequest.animal.name}</dd>
               <dt>Solicitante</dt><dd>{selectedRequest.applicant}</dd>
-              <dt>Moradia</dt><dd>{selectedRequest.home}</dd>
+              {selectedRequest.createdAt && <><dt>Recebida em</dt><dd>{requestDate.format(new Date(selectedRequest.createdAt))}</dd></>}
+              {selectedRequest.home && <><dt>Moradia</dt><dd>{selectedRequest.home}</dd></>}
               {selectedRequest.pets && <><dt>Animais na residência</dt><dd>{selectedRequest.pets}</dd></>}
+              {selectedRequest.space && <><dt>Espaço disponível</dt><dd>{selectedRequest.space}</dd></>}
+              {selectedRequest.acceptedAt && <><dt>Termo de adoção responsável</dt><dd>Aceito em {requestDate.format(new Date(selectedRequest.acceptedAt))}</dd></>}
+              {!demo && !selectedRequest.home && <><dt>Respostas do formulário</dt><dd>Indisponíveis para este registro anterior à integração.</dd></>}
             </dl>
           </Modal.Body>
         </Modal>

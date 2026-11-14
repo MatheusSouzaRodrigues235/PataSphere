@@ -6,8 +6,10 @@ import AnimalGallery from '@/pages/adoption/AnimalGallery';
 import '@/styles/_adoption-detail.scss';
 import { Link, useLocation, useOutletContext, useParams } from 'react-router-dom';
 import { tutorAnimalsPath } from '@/pages/tutor/tutorStorage';
+import PublishedLocationMap from './PublishedLocationMap';
 import SightingModal from './SightingModal';
-import { formatAlertDate, lostAnimalsPath } from './lostAnimalsData';
+import { isPublishedAlert, useLostAnimals } from './lostAnimalsApi';
+import { exampleAlerts, formatAlertDate, lostAnimalsPath } from './lostAnimalsData';
 
 function LostAnimalProfile({ animal, boardUrl, published, returnToTutor }) {
   const found = animal.kind === 'found';
@@ -37,7 +39,7 @@ function LostAnimalProfile({ animal, boardUrl, published, returnToTutor }) {
         </nav>
 
         {returnToTutor && <Link className="adoption-control mb-3" to={tutorAnimalsPath}>Voltar para Meus animais</Link>}
-        {published && <p className="alert alert-success" role="status">Anúncio salvo neste navegador.</p>}
+        {published && <p className="alert alert-success" role="status">Anúncio publicado no mural.</p>}
 
         <div className="adoption-profile-grid">
           <section className="adoption-detail-panel adoption-profile-summary">
@@ -54,7 +56,7 @@ function LostAnimalProfile({ animal, boardUrl, published, returnToTutor }) {
               {animal.breed && <div><dt>Raça</dt><dd>{animal.breed}</dd></div>}
               <div><dt>{found ? 'Data do encontro' : 'Data do desaparecimento'}</dt><dd><time dateTime={animal.date}>{formatAlertDate(animal.date)}</time></dd></div>
             </dl>
-            {!found && !animal.closed && <div className="adoption-profile-actions">
+            {!found && !animal.closed && isPublishedAlert(animal.id) && <div className="adoption-profile-actions">
               <button type="button" className="adoption-action" onClick={() => setModal('sighting')}>
                 <FiEye aria-hidden="true" /> Você viu este animal?
               </button>
@@ -84,19 +86,19 @@ function LostAnimalProfile({ animal, boardUrl, published, returnToTutor }) {
           )}
         </section>
 
-        {(animal.street || animal.cep || animal.reference || animal.point) && (
+        {(!animal.example && (animal.city || animal.point || animal.reference)) && (
           <section className="adoption-detail-panel">
             <h2>Local da ocorrência</h2>
             <p>{[animal.street, animal.neighborhood, animal.city, animal.region, animal.cep].filter(Boolean).join(', ')}</p>
             {animal.reference && <p>{animal.reference}</p>}
-            {animal.point && <a className="adoption-control mt-3" href={'https://www.openstreetmap.org/?mlat=' + animal.point[0] + '&mlon=' + animal.point[1] + '#map=17/' + animal.point.join('/')} target="_blank" rel="noreferrer">Ver ponto no mapa</a>}
+            <PublishedLocationMap point={animal.point} cep={animal.cep} address={[animal.street, animal.neighborhood, animal.city, animal.region].filter(Boolean).join(', ') || animal.cep || ''} />
           </section>
         )}
 
         {!animal.closed && <section className="adoption-detail-panel">
           <h2>Contato do responsável pelo anúncio</h2>
           {animal.example ? (
-            <p>Alerta de exemplo. Use o botão “Você viu este animal?” para testar o formulário.</p>
+            <p>Alerta de exemplo.</p>
           ) : (
             <>
               <dl className="adoption-profile-facts lost-contact-facts">
@@ -113,7 +115,7 @@ function LostAnimalProfile({ animal, boardUrl, published, returnToTutor }) {
           </nav>
         </section>}
       </article>
-      {modal === 'sighting' && <SightingModal name={animal.name} onClose={() => setModal(null)} />}
+      {modal === 'sighting' && <SightingModal animal={animal} onClose={() => setModal(null)} />}
       {modal === 'share' && (
         <Modal show centered onHide={() => setModal(null)} className="adoption-modal" aria-labelledby="lost-share-title">
           <Modal.Header closeButton closeLabel="Fechar"><Modal.Title as="h2" id="lost-share-title">Compartilhar alerta</Modal.Title></Modal.Header>
@@ -125,10 +127,11 @@ function LostAnimalProfile({ animal, boardUrl, published, returnToTutor }) {
 }
 
 export default function LostAnimalPage() {
-  const { alerts } = useOutletContext();
+  const { tutorAlerts } = useOutletContext();
   const { animalId } = useParams();
   const { state } = useLocation();
-  const animal = alerts.find(({ id }) => id === animalId);
+  const { data, loading, error, reload } = useLostAnimals(isPublishedAlert(animalId) ? '/' + animalId : null);
+  const animal = data?.alert ?? [...tutorAlerts, ...exampleAlerts].find(({ id }) => id === animalId);
   const boardUrl = { pathname: lostAnimalsPath, search: state?.boardSearch ?? (animal?.kind === 'found' ? 'tipo=encontrados' : '') };
 
   if (animal) return <LostAnimalProfile key={animal.id} animal={animal} boardUrl={boardUrl} published={state?.published} returnToTutor={state?.returnToTutor} />;
@@ -136,7 +139,8 @@ export default function LostAnimalPage() {
   return (
     <div className="adoption-board">
       <div className="adoption-container adoption-empty">
-        <h1>Alerta indisponível</h1>
+        <h1>{loading ? 'Carregando anúncio…' : error || 'Alerta indisponível'}</h1>
+        {error && <button type="button" className="adoption-control" onClick={reload}>Tentar novamente</button>}
         <Link to={lostAnimalsPath} className="adoption-control">Voltar à vitrine</Link>
       </div>
     </div>
