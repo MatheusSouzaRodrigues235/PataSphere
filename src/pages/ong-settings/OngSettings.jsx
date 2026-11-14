@@ -3,8 +3,9 @@ import { Link, Navigate, NavLink, useLoaderData, useRevalidator, useParams } fro
 import { FiBell, FiCamera, FiEye, FiHeart, FiLock, FiShield, FiUser, FiX } from 'react-icons/fi';
 import { useOngSession } from '@/app/accountSession';
 import { legacyProfileChanges, readLegacyProfile, useProfileSave } from '@/app/profileApi';
+import { AccountSecurity, CloseAccount } from '@/pages/tutor/AccountSecurity';
 import SiteHeader from '@/components/layout/SiteHeader';
-import { TutorConfirm, TutorPreferences, TutorSecurity } from '@/pages/tutor/TutorSections';
+import { TutorConfirm, TutorPreferences } from '@/pages/tutor/TutorSections';
 import OngProfileForm from './OngProfileForm';
 import { OngImages, OngReceiving } from './OngSettingsSections';
 import { ongPreviewPath, ongSettingsPath, readOngSettings, writeOngSettings } from './ongSettingsStorage';
@@ -105,7 +106,7 @@ function SettingsForm({ ong, initial }) {
   const content = {
     perfil: <OngProfileForm profile={draft.profile} save={save} />,
     fotos: <OngImages images={data.images} save={save} />,
-    seguranca: <TutorSecurity />,
+    seguranca: <AccountSecurity account={ong} />,
     recebimento: <OngReceiving data={draft} save={save} />,
     notificacoes: <TutorPreferences options={notificationOptions} values={draft.notifications}
       onSave={(notifications) => save({ notifications }, 'Preferências salvas.')} />,
@@ -132,9 +133,9 @@ function SettingsForm({ ong, initial }) {
                 <Icon aria-hidden="true" />{label}
               </NavLink>
             ))}
-            {!ong && <button type="button" className="tutor-danger" onClick={() => setConfirm(true)}>
-              <FiX aria-hidden="true" />Apagar dados da demonstração
-            </button>}
+            <button type="button" className="tutor-danger" onClick={() => setConfirm(true)}>
+              <FiX aria-hidden="true" />{ong ? 'Encerrar conta' : 'Apagar dados da demonstração'}
+            </button>
           </nav>
         </aside>
         <section className="tutor-card tutor-panel" aria-labelledby="ong-settings-title">
@@ -158,7 +159,8 @@ function SettingsForm({ ong, initial }) {
           )}
         </section>
       </main>
-      {confirm && (
+      {confirm && ong && <CloseAccount role="ong" close={() => setConfirm(false)} />}
+      {confirm && !ong && (
         <TutorConfirm title="Apagar dados da demonstração" confirm="Apagar dados locais" close={() => setConfirm(false)} action={reset}>
           Apagar as informações, imagens e preferências da ONG salvas neste navegador?
         </TutorConfirm>

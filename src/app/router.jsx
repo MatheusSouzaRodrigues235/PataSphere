@@ -13,6 +13,7 @@ import LostAnimalForm from '@/pages/lost-animals/LostAnimalForm';
 import SightingsInbox from '@/pages/lost-animals/SightingsInbox';
 import { sightingsInboxPath } from '@/pages/lost-animals/lostAnimalsApi';
 import LostAnimalPage from '@/pages/lost-animals/LostAnimalPage';
+import PasswordRecovery from '@/pages/login/PasswordRecovery';
 import Login from '@/pages/login/Login';
 import ChooseProfile from '@/pages/register/ChooseProfile';
 import RegisterTutor from '@/pages/register/RegisterTutor';
@@ -74,6 +75,8 @@ const routes = [
   { element: <AccountAccess role="tutor" />, children: [{ path: '/perfil/tutor/:secao?', element: <TutorProfile />, loader: profileLoader('tutor') }] },
   { path: notificationsPath, element: <NotificationsInbox /> },
   { path: sightingsInboxPath, element: <SightingsInbox /> },
+  { path: '/recuperar-senha', element: <PasswordRecovery key="recovery" /> },
+  { path: '/redefinir-senha', element: <PasswordRecovery key="reset" reset /> },
   { path: '/login', element: <Login /> },
   { path: '/cadastro', element: <ChooseProfile /> },
   { path: '/cadastro/tutor', element: <RegisterTutor /> },

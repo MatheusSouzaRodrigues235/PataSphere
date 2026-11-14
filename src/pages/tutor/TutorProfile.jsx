@@ -4,9 +4,10 @@ import { FiBell, FiCamera, FiEye, FiLock, FiPlus, FiShield, FiUser, FiX } from '
 import { LuPawPrint } from 'react-icons/lu';
 import { useTutorSession } from '@/app/accountSession';
 import { legacyProfileChanges, readLegacyProfile, useProfileSave } from '@/app/profileApi';
+import { AccountSecurity, CloseAccount } from '@/pages/tutor/AccountSecurity';
 import SiteHeader from '@/components/layout/SiteHeader';
 import TutorProfileForm from './TutorProfileForm';
-import { TutorConfirm, TutorPhoto, TutorPreferences, TutorPreview, TutorSecurity } from './TutorSections';
+import { TutorConfirm, TutorPhoto, TutorPreferences, TutorPreview } from './TutorSections';
 import TutorAnimals from './TutorAnimals';
 import { readTutorAlerts, readTutorData, resetTutorData, saveTutorData, tutorExampleAlerts } from './tutorStorage';
 import { lostAnimalsPath } from '@/pages/lost-animals/lostAnimalsData';
@@ -144,7 +145,7 @@ function SettingsForm({ tutor, initial }) {
     perfil: <TutorProfileForm profile={draft.profile} save={save} />,
     publico: <TutorPreview data={data} avatar={avatar} />,
     foto: <TutorPhoto photo={photo} save={save} avatar={avatar} />,
-    seguranca: <TutorSecurity />,
+    seguranca: <AccountSecurity account={tutor} />,
     animais: <TutorAnimals alerts={alerts} save={saveLocal} notify={(message) => setFeedback({ section: secao, message })} />,
     notificacoes: <TutorPreferences options={notificationOptions} values={draft.notifications}
       onSave={(notifications) => save({ notifications }, 'Preferências salvas.')} />,
@@ -170,9 +171,9 @@ function SettingsForm({ tutor, initial }) {
                 <Icon aria-hidden="true" />{label}
               </NavLink>
             ))}
-            {!tutor && <button type="button" className="tutor-danger" onClick={() => setConfirm(true)}>
-              <FiX aria-hidden="true" />Apagar dados da demonstração
-            </button>}
+            <button type="button" className="tutor-danger" onClick={() => setConfirm(true)}>
+              <FiX aria-hidden="true" />{tutor ? 'Encerrar conta' : 'Apagar dados da demonstração'}
+            </button>
           </nav>
         </aside>
         <section className="tutor-card tutor-panel" aria-labelledby="tutor-title">
@@ -202,7 +203,8 @@ function SettingsForm({ tutor, initial }) {
           )}
         </section>
       </main>
-      {confirm && (
+      {confirm && tutor && <CloseAccount role="tutor" close={() => setConfirm(false)} />}
+      {confirm && !tutor && (
         <TutorConfirm title="Apagar dados da demonstração" confirm="Apagar dados locais" close={() => setConfirm(false)} action={reset}>
           Nesta versão, essa ação apaga as alterações do perfil, a foto, os animais e as preferências salvos neste navegador.
         </TutorConfirm>

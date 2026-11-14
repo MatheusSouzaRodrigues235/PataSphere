@@ -88,3 +88,11 @@ Para publicar um comunicado para as contas que ativaram Novidades, execute `npm 
 Aplique `database/migrations/009_solicitacoes_adocao.sql` após a migração 008. Conceda `UPDATE` em `public.interesse_adocao` à conta da API, caso ainda falte essa permissão.
 
 Na revisão do formulário de adoção, o tutor pode enviar as respostas à ONG ou abrir o WhatsApp com a mensagem pronta. A visão geral da ONG mostra as dez solicitações mais recentes dos seus animais. Há uma solicitação por tutor e animal. Reenvios com respostas diferentes atualizam a solicitação. Registros anteriores continuam disponíveis com os dados que já existiam.
+
+### Gerenciamento de conta
+
+Aplique `database/migrations/010_gerenciamento_conta.sql` e conceda à conta da API leitura, inserção, atualização e exclusão em `public.recuperacao_senha`. Para encerrar contas, a API também precisa excluir de `usuario`, `endereco`, `ocorrencia_pet`, `animal` e `doacao`.
+
+Para enviar a recuperação de senha, configure `PUBLIC_APP_URL` com o endereço público do frontend, `RESEND_API_KEY` com a chave do Resend e `PASSWORD_RESET_FROM` com um remetente do domínio verificado. Em produção, use HTTPS. O link vale 30 minutos e só pode ser usado uma vez.
+
+Tutores e ONGs podem trocar a senha em Segurança da conta ou encerrar a conta no menu do perfil. O encerramento exige a senha atual e uma confirmação explícita e remove a conta e os dados associados. Trocar ou redefinir a senha encerra os logins ativos.
