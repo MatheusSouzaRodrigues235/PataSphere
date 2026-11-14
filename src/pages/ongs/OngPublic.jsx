@@ -6,6 +6,7 @@ import { AdoptionFooter } from '@/pages/adoption/AdoptionNavigation';
 import { useOngSession } from '@/app/accountSession';
 import SiteHeader from '@/components/layout/SiteHeader';
 import { adoptionPath } from '@/pages/adoption/adoptionData';
+import PublishedLocationMap from '@/pages/lost-animals/PublishedLocationMap';
 import AdoptionPhoto from '@/pages/adoption/AdoptionPhoto';
 import { useAdoptionAnimals } from '@/pages/adoption/adoptionApi';
 import NotFound from '@/pages/NotFound';
@@ -59,15 +60,11 @@ function OngContact({ ong }) {
     ['Facebook', FiFacebook, ong.facebook, ong.facebook],
     ['Site', FiGlobe, ong.website, ong.website],
   ].filter(([, , value]) => value);
-  const mapUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(ong.city);
 
   return (
     <section id="contato" className="ong-public-panel ong-contact" tabIndex={-1}>
       <h2>Contato e localização</h2>
-      {ong.city && <a className="ong-map" href={mapUrl} target="_blank" rel="noreferrer">
-        <FiMapPin aria-hidden="true" />
-        Ver cidade no mapa
-      </a>}
+
       <dl>
         {contacts.map(([label, Icon, value, href]) => (
           <div key={label}>
@@ -76,6 +73,7 @@ function OngContact({ ong }) {
           </div>
         ))}
       </dl>
+      {ong.city && <PublishedLocationMap address={[ong.neighborhood, ong.city].filter(Boolean).join(', ').replace(' – ', ', ')} />}
       {!contacts.length && <p>Contatos e localização ainda não divulgados.</p>}
     </section>
   );

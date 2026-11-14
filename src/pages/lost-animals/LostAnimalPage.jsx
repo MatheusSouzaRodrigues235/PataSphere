@@ -6,6 +6,7 @@ import AnimalGallery from '@/pages/adoption/AnimalGallery';
 import '@/styles/_adoption-detail.scss';
 import { Link, useLocation, useOutletContext, useParams } from 'react-router-dom';
 import { tutorAnimalsPath } from '@/pages/tutor/tutorStorage';
+import PublishedLocationMap from './PublishedLocationMap';
 import SightingModal from './SightingModal';
 import { isPublishedAlert, useLostAnimals } from './lostAnimalsApi';
 import { exampleAlerts, formatAlertDate, lostAnimalsPath } from './lostAnimalsData';
@@ -85,12 +86,12 @@ function LostAnimalProfile({ animal, boardUrl, published, returnToTutor }) {
           )}
         </section>
 
-        {(animal.street || animal.cep || animal.reference || animal.point) && (
+        {(!animal.example && (animal.city || animal.point || animal.reference)) && (
           <section className="adoption-detail-panel">
             <h2>Local da ocorrência</h2>
             <p>{[animal.street, animal.neighborhood, animal.city, animal.region, animal.cep].filter(Boolean).join(', ')}</p>
             {animal.reference && <p>{animal.reference}</p>}
-            {animal.point && <a className="adoption-control mt-3" href={'https://www.openstreetmap.org/?mlat=' + animal.point[0] + '&mlon=' + animal.point[1] + '#map=17/' + animal.point.join('/')} target="_blank" rel="noreferrer">Ver ponto no mapa</a>}
+            <PublishedLocationMap point={animal.point} cep={animal.cep} address={[animal.street, animal.neighborhood, animal.city, animal.region].filter(Boolean).join(', ') || animal.cep || ''} />
           </section>
         )}
 

@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { FiCamera, FiCheck, FiChevronLeft, FiChevronRight, FiSend, FiX } from 'react-icons/fi';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import useMapLocation from '@/app/useMapLocation';
 import useCepLookup from '@/app/useCepLookup';
 import { useAccountSession } from '@/app/accountSession';
 import { requestLostAnimals } from './lostAnimalsApi';
@@ -16,7 +17,6 @@ const steps = ['Dados básicos', 'Detalhes e fotos', 'Local da ocorrência'];
 const photoTypes = ['image/jpeg', 'image/png', 'image/webp'];
 const formatPhone = formatOnBlur(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3');
 const occurrenceAddress = { street: 'logradouro', neighborhood: 'bairro', city: 'localidade', region: 'uf' };
-const formatCep = formatOnBlur(/^(\d{5})(\d{3})$/, '$1-$2');
 const states = 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ');
 
 async function readPhoto(file) {
@@ -33,16 +33,17 @@ async function readPhoto(file) {
   }
 }
 
-function Field({ label, options, wide, value = '', ...props }) {
+function Field({ label, options, wide, controlled, value = '', ...props }) {
+  const inputValue = controlled ? { value } : { defaultValue: value };
   return (
     <label className={wide ? 'lost-registration-wide' : undefined}>
       {label}
       {options ? (
-        <select className="form-select" defaultValue={value} {...props}>
+        <select className="form-select" {...inputValue} {...props}>
           <option value="" disabled>Selecione</option>
           {options.map((option) => <option key={option}>{option}</option>)}
         </select>
-      ) : <input className="form-control" defaultValue={value} {...props} />}
+      ) : <input className="form-control" {...inputValue} {...props} />}
     </label>
   );
 }
@@ -100,7 +101,6 @@ function PhotoPicker({ photos, onChange, loading, setLoading }) {
 
 export default function LostAnimalForm() {
   const account = useAccountSession();
-  const { lookup, message: cepMessage, reset: resetCepLookup } = useCepLookup(occurrenceAddress);
   const { state, search } = useLocation();
   const navigate = useNavigate();
   const heading = useRef(null);
@@ -110,7 +110,23 @@ export default function LostAnimalForm() {
   const [kind, setKind] = useState(() => new URLSearchParams(search || state?.boardSearch).get('tipo') === 'encontrados' ? 'found' : 'lost');
   const [draft, setDraft] = useState({});
   const [photos, setPhotos] = useState([]);
-  const [point, setPoint] = useState(null);
+  const [selection, setSelection] = useState(null);
+  const [cepChanged, setCepChanged] = useState(false);
+  const { lookup, message: cepMessage, reset: resetCepLookup } = useCepLookup(occurrenceAddress, (address) => {
+    setDraft((current) => ({ ...current, ...address }));
+    setCepChanged(false);
+  });
+  const cep = /^\d{5}-?\d{3}$/.test(draft.cep ?? '') ? draft.cep : '';
+  const typedAddress = draft.city && draft.region
+    ? [draft.street, draft.neighborhood, draft.city, draft.region].filter(Boolean).join(', ')
+    : '';
+  const address = step === 2 && account
+    ? (cepChanged && cep ? cep : typedAddress || cep)
+    : '';
+  const { location, loading: locating, error: mapError, retry: retryMap } = useMapLocation(address, cep);
+  const locationKey = JSON.stringify([address, cep]);
+  const point = selection?.key === locationKey ? selection.point : null;
+  const mapLocation = selection?.key === locationKey ? null : location;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const found = kind === 'found';
@@ -178,7 +194,14 @@ export default function LostAnimalForm() {
 
   if (!account) return <Navigate to="/login" replace state={{ returnTo: lostAnimalsPath + '/cadastro' + (found ? '?tipo=encontrados' : ''), lostAnimalForm: state }} />;
 
-  const field = (props) => <Field {...props} value={draft[props.name]} />;
+  const field = (props) => Object.hasOwn(occurrenceAddress, props.name) || props.name === 'cep'
+    ? <Field {...props} controlled value={draft[props.name]} onChange={(event) => {
+        const value = event.target.value;
+        setCepChanged(props.name === 'cep');
+        setDraft((current) => ({ ...current, [props.name]: value }));
+        props.onChange?.(event);
+      }} />
+    : <Field {...props} value={draft[props.name]} />;
   const title = step === 0 ? (found ? 'Cadastrar animal encontrado' : 'Cadastrar animal perdido') : steps[step];
 
   return (
@@ -244,7 +267,7 @@ export default function LostAnimalForm() {
             <>
               <div className="lost-registration-columns">
                 <div className="lost-registration-address">
-                  {field({ name: 'cep', label: 'CEP (opcional)', inputMode: 'numeric', autoComplete: 'postal-code', placeholder: '00000-000', pattern: '[0-9]{5}-?[0-9]{3}', onChange: lookup, onBlur: (event) => { formatCep(event); lookup(event); }, maxLength: 9 })}
+                  {field({ name: 'cep', label: 'CEP (opcional)', inputMode: 'numeric', autoComplete: 'postal-code', placeholder: '00000-000', pattern: '[0-9]{5}-?[0-9]{3}', onChange: lookup, onBlur: lookup, maxLength: 9 })}
                   {field({ name: 'date', label: 'Data da ocorrência', type: 'date', max: todayDate, required: true })}
                   <p className="lost-registration-wide mb-0" role="status" hidden={!cepMessage}>{cepMessage}</p>
                   {field({ name: 'street', label: 'Nome da rua (opcional)', placeholder: 'Ex.: Rua Ipanema', maxLength: 120, wide: true })}
@@ -254,7 +277,8 @@ export default function LostAnimalForm() {
                   <label className="lost-registration-wide">Complemento (opcional)<textarea className="form-control" name="reference" rows={3} defaultValue={draft.reference} placeholder="Ponto de referência" maxLength={240} /></label>
                 </div>
                 <Suspense fallback={<p role="status">Carregando mapa…</p>}>
-                  <OccurrenceMap point={point} onChange={setPoint} />
+                  <OccurrenceMap point={point} location={mapLocation} loading={selection?.key !== locationKey && locating} error={selection?.key !== locationKey && mapError}
+                    onRetry={retryMap} onChange={(next) => setSelection({ key: locationKey, point: next })} />
                 </Suspense>
               </div>
               <p className="lost-registration-note">O anúncio e os dados de contato serão exibidos no mural público.</p>

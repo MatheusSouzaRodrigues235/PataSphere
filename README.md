@@ -103,6 +103,12 @@ Aplique `database/migrations/011_favoritos_adocao.sql` e conceda leitura, inser�
 
 Ao entrar como tutor, os favoritos ficam vinculados à conta e aparecem em outros dispositivos. O filtro Favoritos fica no mural de adoção. Visitantes podem continuar salvando animais neste navegador e importar a lista ao entrar como tutor. Os animais adotados ficam fora do mural e os removidos perdem o vínculo de favorito.
 
+### Mapas
+
+O ViaCEP preenche os campos do endereço. O mapa usa Leaflet e OpenStreetMap, e a API consulta o Photon para localizar o CEP ou endereço após uma pausa na digitação. No cadastro de uma ocorrência, o usuário pode confirmar o centro do mapa ou ajustar o ponto manualmente. Nas páginas públicas de ONGs, a prévia usa somente a localização divulgada.
+
+O padrão é o servidor público de demonstração do Photon, que tem disponibilidade limitada. Defina `PHOTON_URL` no backend para usar outra instância compatível. A publicação de uma ocorrência aceita endereço sem ponto no mapa.
+
 ### Sessões persistentes
 
 Antes de iniciar a API atualizada, aplique `database/migrations/012_sessoes_persistentes.sql` e conceda `SELECT`, `INSERT`, `UPDATE` e `DELETE` em `public.sessao_usuario` à conta da API (`UPDATE` permite a leitura com bloqueio durante alterações da conta).
