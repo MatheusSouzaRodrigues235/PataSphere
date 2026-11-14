@@ -1,4 +1,7 @@
 import { useRef, useState } from 'react';
+import useCepLookup from '@/app/useCepLookup';
+
+const profileAddress = { city: 'localidade', state: 'estado' };
 
 const states = [
   'Acre', 'Alagoas', 'Amapá', 'Amazonas', 'Bahia', 'Ceará', 'Distrito Federal',
@@ -33,6 +36,10 @@ export default function OngProfileForm({ profile, save }) {
   const [draft, setDraft] = useState(profile);
   const [error, setError] = useState('');
   const bio = useRef(null);
+
+  const { lookup, message: cepMessage } = useCepLookup(profileAddress, (address) => {
+    setDraft((current) => ({ ...current, ...address }));
+  });
 
   function update(name, value) {
     setError('');
@@ -76,9 +83,11 @@ export default function OngProfileForm({ profile, save }) {
     const mask = masks[name];
     return (
       <Field name={name} label={label} value={draft[name]} onChange={change}
-        onBlur={mask ? ({ target }) => {
+        onBlur={mask ? (event) => {
+          const { target } = event;
           const compact = target.value.replace(/[()./\s-]/g, '');
           if (mask[0].test(compact)) update(name, compact.replace(...mask));
+          if (name === 'cep') lookup(event);
         } : undefined} {...props} />
     );
   }
@@ -112,7 +121,10 @@ export default function OngProfileForm({ profile, save }) {
         <div className="tutor-columns">
           {field('email', 'E-mail de contato', { type: 'email', autoComplete: 'email', placeholder: 'contato@ong.org.br' })}
           {field('whatsapp', 'WhatsApp', { type: 'tel', autoComplete: 'tel-national', maxLength: 15, placeholder: '(99) 99999-9999' })}
-          {field('cep', 'CEP', { inputMode: 'numeric', autoComplete: 'postal-code', maxLength: 9, placeholder: '00000-000' })}
+          {field('cep', 'CEP', { inputMode: 'numeric', autoComplete: 'postal-code', maxLength: 9, placeholder: '00000-000', pattern: '[0-9]{5}-?[0-9]{3}',
+            hint: cepMessage ? <span role="status">{cepMessage}</span> : undefined,
+            onChange: (event) => { change(event); lookup(event); },
+          })}
           {field('city', 'Cidade', { autoComplete: 'address-level2', maxLength: 100 })}
           <div className="tutor-field">
             <label htmlFor="ong-state">Estado</label>

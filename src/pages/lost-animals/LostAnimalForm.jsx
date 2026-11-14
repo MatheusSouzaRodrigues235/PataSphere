@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { FiCamera, FiCheck, FiChevronLeft, FiChevronRight, FiSend, FiX } from 'react-icons/fi';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import useCepLookup from '@/app/useCepLookup';
 import { useAccountSession } from '@/app/accountSession';
 import { requestLostAnimals } from './lostAnimalsApi';
 import { ages, sexes, sizes, species, urgencies } from '@/pages/dashboard/animals';
@@ -14,6 +15,7 @@ const OccurrenceMap = lazy(() => import('./OccurrenceMap'));
 const steps = ['Dados básicos', 'Detalhes e fotos', 'Local da ocorrência'];
 const photoTypes = ['image/jpeg', 'image/png', 'image/webp'];
 const formatPhone = formatOnBlur(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3');
+const occurrenceAddress = { street: 'logradouro', neighborhood: 'bairro', city: 'localidade', region: 'uf' };
 const formatCep = formatOnBlur(/^(\d{5})(\d{3})$/, '$1-$2');
 const states = 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ');
 
@@ -98,6 +100,7 @@ function PhotoPicker({ photos, onChange, loading, setLoading }) {
 
 export default function LostAnimalForm() {
   const account = useAccountSession();
+  const { lookup, message: cepMessage, reset: resetCepLookup } = useCepLookup(occurrenceAddress);
   const { state } = useLocation();
   const navigate = useNavigate();
   const heading = useRef(null);
@@ -123,6 +126,7 @@ export default function LostAnimalForm() {
   }
 
   function back(form) {
+    resetCepLookup();
     setDraft({ ...draft, ...readFields(form) });
     setError('');
     setStep(step - 1);
@@ -240,8 +244,9 @@ export default function LostAnimalForm() {
             <>
               <div className="lost-registration-columns">
                 <div className="lost-registration-address">
-                  {field({ name: 'cep', label: 'CEP (opcional)', inputMode: 'numeric', placeholder: '00000-000', pattern: '[0-9]{5}-?[0-9]{3}', onBlur: formatCep, maxLength: 9 })}
+                  {field({ name: 'cep', label: 'CEP (opcional)', inputMode: 'numeric', autoComplete: 'postal-code', placeholder: '00000-000', pattern: '[0-9]{5}-?[0-9]{3}', onChange: lookup, onBlur: (event) => { formatCep(event); lookup(event); }, maxLength: 9 })}
                   {field({ name: 'date', label: 'Data da ocorrência', type: 'date', max: todayDate, required: true })}
+                  <p className="lost-registration-wide mb-0" role="status" hidden={!cepMessage}>{cepMessage}</p>
                   {field({ name: 'street', label: 'Nome da rua (opcional)', placeholder: 'Ex.: Rua Ipanema', maxLength: 120, wide: true })}
                   {field({ name: 'neighborhood', label: 'Bairro', placeholder: 'Ex.: Jardim Satélite', pattern: String.raw`.*\S.*`, maxLength: 80, required: true })}
                   {field({ name: 'city', label: 'Cidade', pattern: String.raw`.*\S.*`, maxLength: 80, required: true })}
