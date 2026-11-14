@@ -4,6 +4,7 @@ import SiteHeader from '@/components/layout/SiteHeader';
 import { NavLink, useMatch } from 'react-router-dom';
 import { FiBell, FiGrid, FiHeart, FiMoon, FiSearch, FiSun, FiUser } from 'react-icons/fi';
 import { LuPawPrint } from 'react-icons/lu';
+import { useAdoptionAnimals } from '@/pages/adoption/adoptionApi';
 import { initialAnimals } from './animals';
 import { initialDonations } from './donations/donationData';
 import Donations from './donations/Donations';
@@ -21,7 +22,10 @@ export default function OngDashboard() {
   const lostAnimals = Boolean(useMatch('/dashboard/ong/animais-perdidos'));
   const overview = !donations && !management && !lostAnimals;
   const [alerts, setAlerts] = useState(() => ong ? [] : initialAlerts);
-  const [animals, setAnimals] = useState(() => ong ? [] : initialAnimals);
+  const [demoAnimals, setDemoAnimals] = useState(initialAnimals);
+  const { data, loading, error, reload, updateAnimals } = useAdoptionAnimals(ong ? '/meus' : null);
+  const animals = ong ? data?.animals ?? [] : demoAnimals;
+  const setAnimals = ong ? updateAnimals : setDemoAnimals;
   const [records, setRecords] = useState(() => ong ? [] : initialDonations);
   const [dark, setDark] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -69,9 +73,17 @@ export default function OngDashboard() {
           </header>
 
           <div hidden={!donations}><Donations records={records} setRecords={setRecords} dark={dark} /></div>
-          {management && <AnimalManagement animals={animals} setAnimals={setAnimals} dark={dark} />}
+          {(management || overview) && loading && <p role="status">Carregando animais…</p>}
+          {(management || overview) && error && (
+            <div>
+              <p role="alert">{error}</p>
+              <button type="button" className="ong-button" onClick={reload}>Tentar novamente</button>
+            </div>
+          )}
+          {management && !loading && !error &&
+            <AnimalManagement animals={animals} setAnimals={setAnimals} dark={dark} connected={Boolean(ong)} />}
           {lostAnimals && <LostAnimals alerts={alerts} setAlerts={setAlerts} dark={dark} connected={Boolean(ong)} />}
-          {overview && <OngOverview demo={!ong} organization={organization} animals={animals} records={records} dark={dark} />}
+          {overview && !loading && !error && <OngOverview demo={!ong} organization={organization} animals={animals} records={records} dark={dark} />}
         </div>
       </div>
     </div>

@@ -5,7 +5,9 @@ import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
 import { AdoptionFooter } from '@/pages/adoption/AdoptionNavigation';
 import { useOngSession } from '@/app/accountSession';
 import SiteHeader from '@/components/layout/SiteHeader';
-import { adoptionAnimals, adoptionPath } from '@/pages/adoption/adoptionData';
+import { adoptionPath } from '@/pages/adoption/adoptionData';
+import AdoptionPhoto from '@/pages/adoption/AdoptionPhoto';
+import { useAdoptionAnimals } from '@/pages/adoption/adoptionApi';
 import NotFound from '@/pages/NotFound';
 import { ongSettingsPath, readOngSettings } from '@/pages/ong-settings/ongSettingsStorage';
 import OngDonationModal from './OngDonationModal';
@@ -85,8 +87,8 @@ function OngAnimals({ animals, boardSearch }) {
         {animals.map((animal) => (
           <article className="ong-animal-card" key={animal.id}>
             <div className="ong-animal-photo">
-              <img src={animal.photo} alt={animal.name} loading="lazy" />
-              <span className="adoption-status" data-urgent={animal.urgent}>{animal.urgent ? 'Urgente' : 'Disponível'}</span>
+              <AdoptionPhoto src={animal.photo} alt={animal.name} loading="lazy" />
+              <span className="adoption-status" data-urgent={animal.urgent}>{animal.status === 'Disponível' && animal.urgent ? 'Urgente' : animal.status}</span>
             </div>
             <div className="ong-animal-body">
               <h3>{animal.name}</h3>
@@ -145,7 +147,7 @@ export function OngProfilePreview() {
   const { profile, images, privacy, donations } = readOngSettings(account);
   const socialLink = (domain, username) => username && domain + '/' + encodeURIComponent(username.replace(/^@/, ''));
   const ong = {
-    ...(account ? { privatePreview: true } : ongProfiles[0]),
+    ...(account ? { privatePreview: true, accountId: account.id } : ongProfiles[0]),
     preview: true,
     name: profile.name,
     tagline: profile.tagline,
@@ -176,11 +178,16 @@ function Description({ text }) {
 function OngProfileView({ ong }) {
   const [donationOpen, setDonationOpen] = useState(false);
   const organization = ong.preview && !ong.privatePreview ? ongProfiles[0] : ong;
-  const animals = ong.privatePreview ? [] : adoptionAnimals.filter((animal) => animal.organization === organization.name);
+  const { data } = useAdoptionAnimals('');
+  const animals = (data?.animals ?? []).filter((animal) => ong.accountId
+    ? animal.organizationId === ong.accountId
+    : animal.organization === organization.name);
   const featured = ong.featured
     ? ong.featured.map((name) => animals.find((animal) => animal.name === name)).filter(Boolean)
     : animals.slice(0, 4);
-  const boardSearch = ongAdoptionSearch(organization);
+  const boardSearch = ong.accountId
+    ? new URLSearchParams({ ong: organization.name, ongId: ong.accountId }).toString()
+    : ongAdoptionSearch(organization);
   const canDonate = Boolean(ong.pixKey || ong.supplies?.length);
   const stats = [
     ['Animais para adoção', animals.length],

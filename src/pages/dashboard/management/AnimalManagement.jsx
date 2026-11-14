@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { FiChevronLeft, FiChevronRight, FiFilter, FiPlus, FiSearch, FiTrash2 } from 'react-icons/fi';
 import { LuArrowLeftRight, LuPawPrint, LuPencil } from 'react-icons/lu';
+import { requestAdoption } from '@/pages/adoption/adoptionApi';
 import { statuses } from '../animals';
 import AnimalFilterModal from '../AnimalFilterModal';
 import { matchesAnimalFilters } from '../animalFilters';
@@ -11,7 +12,7 @@ import '@/styles/_ong-animal-management.scss';
 const urgencyTones = { Alta: 'red', Média: 'orange', Baixa: 'muted' };
 const normalize = (value) => value.trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/\p{M}/gu, '');
 
-export default function AnimalManagement({ animals, setAnimals, dark }) {
+export default function AnimalManagement({ animals, setAnimals, dark, connected }) {
   const [params, setParams] = useSearchParams();
   const registering = params.get('cadastrar') === '1';
   const [query, setQuery] = useState('');
@@ -51,35 +52,41 @@ export default function AnimalManagement({ animals, setAnimals, dark }) {
     applyFilters(nextFilters);
   }
 
-  function saveAnimal(values) {
+  async function saveAnimal({ key, ...values }) {
     if (dialog.type === 'add') {
-      const animal = {
-        ...values,
-        id: crypto.randomUUID(),
-        status: statuses[0].label,
-        medicalCare: false,
-        registeredAt: new Date().toLocaleDateString('pt-BR'),
-      };
-      setAnimals((current) => [animal, ...current]);
+      const animal = connected
+        ? (await requestAdoption('/meus', { method: 'POST', body: { ...values, key } })).animal
+        : {
+          ...values,
+          id: crypto.randomUUID(),
+          status: statuses[0].label,
+          medicalCare: false,
+          registeredAt: new Date().toLocaleDateString('pt-BR'),
+        };
+      setAnimals((current) => [animal, ...current.filter(({ id }) => id !== animal.id)]);
       setQuery('');
       applyFilters({});
-      setMessage(`${animal.name} foi cadastrado.`);
+      setMessage(animal.name + ' foi cadastrado.');
     } else {
-      setAnimals((current) => current.map((animal) =>
-        animal.id === dialog.animal.id ? { ...animal, ...values } : animal,
-      ));
+      const id = dialog.animal.id;
+      const updated = connected
+        ? (await requestAdoption('/meus/' + id, { method: 'PATCH', body: values })).animal
+        : { ...values, ...(values.status && { medicalCare: values.status === 'Em tratamento' }) };
+      setAnimals((current) => current.map((animal) => animal.id === id ? { ...animal, ...updated } : animal));
       setPage(currentPage);
       setMessage(dialog.type === 'status' ? 'Status atualizado.' : 'Alterações salvas.');
     }
     closeDialog();
   }
 
-  function deleteAnimal() {
+  async function deleteAnimal() {
+    if (connected) await requestAdoption('/meus/' + dialog.animal.id, { method: 'DELETE' });
     setAnimals((current) => current.filter((animal) => animal.id !== dialog.animal.id));
     setPage(Math.min(currentPage, Math.max(1, Math.ceil((results.length - 1) / pageSize))));
-    setMessage(`${dialog.animal.name} foi removido.`);
+    setMessage(dialog.animal.name + ' foi removido.');
     closeDialog();
   }
+
 
   return (
     <main className="ong-main ong-animal-management">
@@ -179,7 +186,7 @@ export default function AnimalManagement({ animals, setAnimals, dark }) {
         <AnimalFilterModal filters={filters} animals={animals} dark={dark} onClose={closeDialog}
           onApply={(nextFilters) => { applyFilters(nextFilters); closeDialog(); }} />
       ) : dialog && (
-        <AnimalManagementModal dialog={dialog} dark={dark} onClose={closeDialog} onSave={saveAnimal} onDelete={deleteAnimal} />
+        <AnimalManagementModal dialog={dialog} dark={dark} onClose={closeDialog} onSave={saveAnimal} onDelete={deleteAnimal} connected={connected} />
       )}
     </main>
   );

@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { FiChevronLeft, FiChevronRight, FiFilter, FiMapPin, FiSearch } from 'react-icons/fi';
 import { Link, useSearchParams } from 'react-router-dom';
 import AdoptionFilterModal from '@/pages/adoption/AdoptionFilterModal';
-import { adoptionAnimals } from '@/pages/adoption/adoptionData';
+import { useAdoptionAnimals } from '@/pages/adoption/adoptionApi';
 import { ongAdoptionSearch, ongProfilePath, ongProfiles } from './ongProfiles';
 
 const pageSize = 6;
@@ -48,9 +48,11 @@ export default function OngDirectory() {
   const neighborhood = params.get('bairro');
   const availableOnly = params.has('disponiveis');
   const term = normalize(search);
+  const { data } = useAdoptionAnimals('');
+  const animals = data?.animals ?? [];
   const results = ongProfiles.map((ong) => ({
     ong,
-    available: adoptionAnimals.filter(({ organization }) => organization === ong.name).length,
+    available: animals.filter(({ organization }) => organization === ong.name).length,
   })).filter(({ ong, available }) => (
     normalize(ong.name).includes(term) &&
     (!neighborhood || ong.neighborhood === neighborhood) &&

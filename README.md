@@ -43,3 +43,9 @@ Em um banco existente, execute `database/migrations/003_detalhes_ocorrencia.sql`
 O mural público consulta `/api/animais-perdidos`. Entre com uma conta de tutor ou ONG para publicar e gerenciar seus anúncios. As fotos são armazenadas no PostgreSQL com a ocorrência.
 
 Em uma publicação, encaminhe `/api` ao Express no mesmo domínio do frontend e use armazenamento persistente para os logos. Os textos de Termos de Uso e Política de Privacidade precisam estar disponíveis antes de abrir os cadastros ao público.
+
+### Animais para adoção
+
+Em um banco existente, aplique `database/migrations/004_publicacao_adocao.sql` antes de usar a API de adoção.
+O painel da ONG cadastra, edita, altera o status e exclui seus próprios animais. As fotos JPG ou PNG (até 4, de 3 MB cada) são convertidas para WebP e armazenadas no PostgreSQL.
+O mural público consulta `/api/adocao`, exclui os adotados e mostra os animais de urgência alta primeiro.
