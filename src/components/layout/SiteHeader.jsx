@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Container, Dropdown, Nav, Navbar } from 'react-bootstrap';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { FiBell, FiGrid, FiHeart, FiLogOut, FiUser } from 'react-icons/fi';
 import { LuPawPrint } from 'react-icons/lu';
 import logo from '@/assets/logo-patasphere.svg';
 import { readTutorData, tutorAnimalsPath } from '@/pages/tutor/tutorStorage';
 import { ongSettingsPath, readOngSettings } from '@/pages/ong-settings/ongSettingsStorage';
+import { endAccountSession, useAccountSession } from '@/app/accountSession';
 import { clearDemoRole, readDemoRole } from '@/app/demoSession';
 
 const publicLinks = [
@@ -44,12 +45,30 @@ function readIdentity(role) {
   }
 }
 
-function AccountMenu({ role, identity, closeMenu }) {
+function AccountMenu({ role, identity, closeMenu, authenticated }) {
+  const navigate = useNavigate();
+  const [signingOut, setSigningOut] = useState(false);
+  const [error, setError] = useState('');
+
+  async function signOut() {
+    setError('');
+    setSigningOut(true);
+    try {
+      if (authenticated && !(await endAccountSession()).ok) throw new Error('Falha ao sair');
+      clearDemoRole();
+      await navigate('/', { replace: true });
+    } catch {
+      setError('Não foi possível sair. Tente novamente.');
+    } finally {
+      setSigningOut(false);
+    }
+  }
+
   const { name, email, photo } = identity ?? readIdentity(role);
   const initial = Array.from(name.trim())[0]?.toLocaleUpperCase('pt-BR') || '?';
 
   return (
-    <Dropdown align="end" className="site-account" onSelect={closeMenu}>
+    <Dropdown align="end" className="site-account" onSelect={closeMenu} autoClose="outside">
       <Dropdown.Toggle id="site-account-toggle" className="site-account-toggle" aria-label={`Menu da conta de ${name}`}>
         {photo ? <img src={photo} alt="" /> : initial}
       </Dropdown.Toggle>
@@ -59,19 +78,20 @@ function AccountMenu({ role, identity, closeMenu }) {
           {email && <span>{email}</span>}
         </div>
         {accountLinks[role].map(([path, label, Icon]) => (
-          <Dropdown.Item key={path} as={NavLink} to={path} end eventKey={path}>
+          <Dropdown.Item key={path} as={NavLink} to={path} end eventKey={path} onClick={() => closeMenu()}>
             <Icon aria-hidden="true" /> {label}
           </Dropdown.Item>
         ))}
-        <Dropdown.Item as={Link} to="/" replace eventKey="sair" className="site-account-signout" onClick={clearDemoRole}>
-          <FiLogOut aria-hidden="true" /> Sair
+        <Dropdown.Item as="button" type="button" disabled={signingOut} className="site-account-signout" onClick={signOut}>
+          <FiLogOut aria-hidden="true" /> {signingOut ? 'Saindo…' : 'Sair'}
         </Dropdown.Item>
+        {error && <div className="site-account-identity" role="alert">{error}</div>}
       </Dropdown.Menu>
     </Dropdown>
   );
 }
 
-function Header({ role, identity }) {
+function Header({ role, identity, authenticated }) {
   const [expanded, setExpanded] = useState(false);
   const closeMenu = () => setExpanded(false);
 
@@ -88,7 +108,7 @@ function Header({ role, identity }) {
               <Nav.Link key={path} as={NavLink} to={path} end={path === '/'} onClick={closeMenu}>{label}</Nav.Link>
             ))}
           </Nav>
-          {role ? <AccountMenu role={role} identity={identity} closeMenu={closeMenu} /> : (
+          {role ? <AccountMenu role={role} identity={identity} closeMenu={closeMenu} authenticated={authenticated} /> : (
             <div className="site-guest-actions">
               <Link className="site-login" to="/login" onClick={closeMenu}>Entrar</Link>
               <Link className="site-register" to="/cadastro" onClick={closeMenu}>Cadastrar</Link>
@@ -102,5 +122,8 @@ function Header({ role, identity }) {
 
 export default function SiteHeader({ role, identity }) {
   const { pathname } = useLocation();
-  return <Header key={pathname} role={role ?? readDemoRole()} identity={identity} />;
+  const account = useAccountSession();
+  const currentRole = account?.role ?? role ?? readDemoRole();
+  const currentIdentity = currentRole === role ? identity ?? account : account;
+  return <Header key={pathname} role={currentRole} identity={currentIdentity} authenticated={Boolean(account)} />;
 }

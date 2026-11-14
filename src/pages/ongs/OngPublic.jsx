@@ -3,6 +3,7 @@ import { FiCalendar, FiChevronRight, FiCopy, FiFacebook, FiGlobe, FiHeart, FiIns
 import { FaWhatsapp } from 'react-icons/fa';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
 import { AdoptionFooter } from '@/pages/adoption/AdoptionNavigation';
+import { useOngSession } from '@/app/accountSession';
 import SiteHeader from '@/components/layout/SiteHeader';
 import { adoptionAnimals, adoptionPath } from '@/pages/adoption/adoptionData';
 import NotFound from '@/pages/NotFound';
@@ -140,10 +141,11 @@ export function OngProfile() {
 }
 
 export function OngProfilePreview() {
-  const { profile, images, privacy, donations } = readOngSettings();
+  const account = useOngSession();
+  const { profile, images, privacy, donations } = readOngSettings(account);
   const socialLink = (domain, username) => username && domain + '/' + encodeURIComponent(username.replace(/^@/, ''));
   const ong = {
-    ...ongProfiles[0],
+    ...(account ? { privatePreview: true } : ongProfiles[0]),
     preview: true,
     name: profile.name,
     tagline: profile.tagline,
@@ -173,8 +175,8 @@ function Description({ text }) {
 
 function OngProfileView({ ong }) {
   const [donationOpen, setDonationOpen] = useState(false);
-  const organization = ong.preview ? ongProfiles[0] : ong;
-  const animals = adoptionAnimals.filter((animal) => animal.organization === organization.name);
+  const organization = ong.preview && !ong.privatePreview ? ongProfiles[0] : ong;
+  const animals = ong.privatePreview ? [] : adoptionAnimals.filter((animal) => animal.organization === organization.name);
   const featured = ong.featured
     ? ong.featured.map((name) => animals.find((animal) => animal.name === name)).filter(Boolean)
     : animals.slice(0, 4);

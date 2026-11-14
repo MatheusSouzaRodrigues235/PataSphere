@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { AdoptionFooter } from './AdoptionNavigation';
+import { useTutorSession } from '@/app/accountSession';
 import SiteHeader from '@/components/layout/SiteHeader';
 import '@/styles/_adoption.scss';
 
-const favoritesKey = 'patasphere:adoption-favorites';
-
-function readFavorites() {
+function readFavorites(favoritesKey) {
   try {
     const saved = JSON.parse(localStorage.getItem(favoritesKey));
     return Array.isArray(saved) ? saved : [];
@@ -16,7 +15,13 @@ function readFavorites() {
 }
 
 export default function AdoptionLayout() {
-  const [favorites, setFavorites] = useState(readFavorites);
+  const tutor = useTutorSession();
+  return <Adoption key={tutor?.id ?? 'guest'} tutorId={tutor?.id} />;
+}
+
+function Adoption({ tutorId }) {
+  const favoritesKey = tutorId ? 'patasphere:adoption-favorites:' + tutorId : 'patasphere:adoption-favorites';
+  const [favorites, setFavorites] = useState(() => readFavorites(favoritesKey));
   const { pathname } = useLocation();
 
   useEffect(() => {
@@ -29,7 +34,7 @@ export default function AdoptionLayout() {
     } catch {
       // Favorites are still available during the current visit.
     }
-  }, [favorites]);
+  }, [favorites, favoritesKey]);
 
   function toggleFavorite(id) {
     setFavorites((current) => current.includes(id)

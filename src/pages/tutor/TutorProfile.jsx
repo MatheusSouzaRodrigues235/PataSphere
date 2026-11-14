@@ -2,11 +2,12 @@ import { useRef, useState } from 'react';
 import { Link, Navigate, NavLink, useLocation, useParams } from 'react-router-dom';
 import { FiBell, FiCamera, FiEye, FiLock, FiPlus, FiShield, FiUser, FiX } from 'react-icons/fi';
 import { LuPawPrint } from 'react-icons/lu';
+import { useTutorSession } from '@/app/accountSession';
 import SiteHeader from '@/components/layout/SiteHeader';
 import TutorProfileForm from './TutorProfileForm';
 import { TutorConfirm, TutorPhoto, TutorPreferences, TutorPreview, TutorSecurity } from './TutorSections';
 import TutorAnimals from './TutorAnimals';
-import { readTutorData, saveTutorData, tutorExampleAlerts, tutorStorageKey } from './tutorStorage';
+import { readTutorData, resetTutorData, saveTutorData, tutorExampleAlerts } from './tutorStorage';
 import { lostAnimalsPath } from '@/pages/lost-animals/lostAnimalsData';
 import '@/styles/_tutor-profile.scss';
 
@@ -44,21 +45,26 @@ const privacyOptions = [
   ['contact', 'Contato', 'Mostrar e-mail e WhatsApp no perfil público.'],
 ];
 
-function readData() {
+function readData(tutor) {
+  const defaults = tutor ? {
+    ...initialData,
+    profile: {
+      ...initialData.profile, firstName: tutor.firstName, lastName: tutor.lastName,
+      email: tutor.email, phone: tutor.phone, city: tutor.city, state: tutor.state,
+    },
+    alerts: [],
+  } : initialData;
   try {
-    const stored = readTutorData();
-    if (stored) {
-      return {
-        ...initialData, ...stored,
-        profile: { ...initialData.profile, ...stored.profile },
-        notifications: { ...initialData.notifications, ...stored.notifications },
-        privacy: { ...initialData.privacy, ...stored.privacy },
-      };
-    }
+    const stored = readTutorData(tutor?.id);
+    return {
+      ...defaults, ...stored,
+      profile: { ...defaults.profile, ...stored.profile },
+      notifications: { ...defaults.notifications, ...stored.notifications },
+      privacy: { ...defaults.privacy, ...stored.privacy },
+    };
   } catch {
-    return initialData;
+    return defaults;
   }
-  return initialData;
 }
 
 function Avatar({ photo, initials }) {
@@ -72,7 +78,8 @@ function Avatar({ photo, initials }) {
 export default function TutorProfile() {
   const { secao = 'perfil' } = useParams();
   const { state } = useLocation();
-  const [data, setData] = useState(readData);
+  const tutor = useTutorSession();
+  const [data, setData] = useState(() => readData(tutor));
   const currentData = useRef(data);
   const [revision, setRevision] = useState(0);
   const [confirm, setConfirm] = useState(false);
@@ -82,14 +89,14 @@ export default function TutorProfile() {
 
   const { profile, photo } = data;
   const firstSurname = profile.lastName.split(/\s+/)[0];
-  const initials = (profile.firstName[0] + firstSurname[0]).toLocaleUpperCase('pt-BR');
+  const initials = [profile.firstName[0], firstSurname[0]].join('').toLocaleUpperCase('pt-BR');
   const avatar = <Avatar photo={photo} initials={initials} />;
   const [, title, subtitle] = sections[secao];
 
   function save(changes, message = 'Perfil salvo neste navegador.') {
     const next = { ...currentData.current, ...changes };
     try {
-      saveTutorData(changes);
+      saveTutorData(changes, tutor?.id);
       currentData.current = next;
       setData(next);
       setFeedback({ section: secao, message });
@@ -102,9 +109,9 @@ export default function TutorProfile() {
 
   function reset() {
     try {
-      localStorage.removeItem(tutorStorageKey);
-      currentData.current = initialData;
-      setData(initialData);
+      resetTutorData(tutor?.id);
+      currentData.current = readData(tutor);
+      setData(currentData.current);
       setRevision((current) => current + 1);
       setConfirm(false);
       setFeedback({ section: secao, message: 'Os dados locais do perfil foram apagados.' });

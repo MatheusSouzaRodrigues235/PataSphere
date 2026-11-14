@@ -1,6 +1,8 @@
 import { exampleAlerts } from '@/pages/lost-animals/lostAnimalsData';
 
-export const tutorStorageKey = 'patasphere-tutor-profile';
+function tutorStorageKey(tutorId) {
+  return tutorId ? 'patasphere-tutor-profile:' + tutorId : 'patasphere-tutor-profile';
+}
 export const tutorAnimalsPath = '/perfil/tutor/animais';
 
 export const tutorExampleAlerts = [
@@ -12,18 +14,23 @@ export const tutorExampleAlerts = [
   id: 'tutor-' + id, kind, neighborhood, date, closed,
 }));
 
-export function readTutorData() {
-  return JSON.parse(localStorage.getItem(tutorStorageKey)) ?? {};
+export function readTutorData(tutorId) {
+  return JSON.parse(localStorage.getItem(tutorStorageKey(tutorId))) ?? {};
 }
 
-export function readTutorAlerts() {
+export function readTutorAlerts(tutorId) {
+  const defaults = tutorId ? [] : tutorExampleAlerts;
   try {
-    return readTutorData().alerts ?? tutorExampleAlerts;
+    return readTutorData(tutorId).alerts ?? defaults;
   } catch {
-    return tutorExampleAlerts;
+    return defaults;
   }
 }
 
-export function saveTutorData(changes) {
-  localStorage.setItem(tutorStorageKey, JSON.stringify({ ...readTutorData(), ...changes }));
+export function saveTutorData(changes, tutorId) {
+  localStorage.setItem(tutorStorageKey(tutorId), JSON.stringify({ ...readTutorData(tutorId), ...changes }));
+}
+
+export function resetTutorData(tutorId) {
+  localStorage.removeItem(tutorStorageKey(tutorId));
 }

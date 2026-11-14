@@ -81,7 +81,17 @@
     height: 2.75rem;
     border-radius: .875rem;
     background: var(--pata-rosa);
+    flex-shrink: 0;
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
   }
+
+  overflow-wrap: anywhere;
 }
 
 .ong-topbar {

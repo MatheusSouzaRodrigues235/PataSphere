@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useOngSession } from '@/app/accountSession';
 import SiteHeader from '@/components/layout/SiteHeader';
 import { NavLink, useMatch } from 'react-router-dom';
 import { FiBell, FiGrid, FiHeart, FiMoon, FiSearch, FiSun, FiUser } from 'react-icons/fi';
@@ -12,16 +13,16 @@ import { initialAlerts } from './lostAnimalData';
 import OngOverview from './OngOverview';
 import { ongSettingsPath } from '@/pages/ong-settings/ongSettingsStorage';
 
-const organization = 'Amor de Pet';
-
 export default function OngDashboard() {
+  const ong = useOngSession();
+  const organization = ong?.name ?? 'Amor de Pet';
   const donations = Boolean(useMatch('/dashboard/ong/doacoes'));
   const management = Boolean(useMatch('/dashboard/ong/animais'));
   const lostAnimals = Boolean(useMatch('/dashboard/ong/animais-perdidos'));
   const overview = !donations && !management && !lostAnimals;
-  const [alerts, setAlerts] = useState(initialAlerts);
-  const [animals, setAnimals] = useState(initialAnimals);
-  const [records, setRecords] = useState(initialDonations);
+  const [alerts, setAlerts] = useState(() => ong ? [] : initialAlerts);
+  const [animals, setAnimals] = useState(() => ong ? [] : initialAnimals);
+  const [records, setRecords] = useState(() => ong ? [] : initialDonations);
   const [dark, setDark] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
@@ -30,7 +31,9 @@ export default function OngDashboard() {
       <SiteHeader role="ong" />
       <div className="ong-dashboard" data-bs-theme={dark ? 'dark' : 'light'}>
         <aside className="ong-sidebar">
-          <div className="ong-brand"><span aria-hidden="true">A</span> {organization}</div>
+          <div className="ong-brand"><span aria-hidden="true">
+            {ong?.photo ? <img src={ong.photo} alt="" /> : Array.from(organization)[0]?.toLocaleUpperCase('pt-BR')}
+          </span> {organization}</div>
           <nav aria-label="Páginas do dashboard">
             <p>Páginas</p>
             <ul>
@@ -68,7 +71,7 @@ export default function OngDashboard() {
           <div hidden={!donations}><Donations records={records} setRecords={setRecords} dark={dark} /></div>
           {management && <AnimalManagement animals={animals} setAnimals={setAnimals} dark={dark} />}
           {lostAnimals && <LostAnimals alerts={alerts} setAlerts={setAlerts} dark={dark} />}
-          {overview && <OngOverview organization={organization} animals={animals} records={records} dark={dark} />}
+          {overview && <OngOverview demo={!ong} organization={organization} animals={animals} records={records} dark={dark} />}
         </div>
       </div>
     </div>

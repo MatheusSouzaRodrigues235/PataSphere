@@ -28,7 +28,7 @@ function AnimalThumbnail({ animal }) {
   );
 }
 
-export default function OngOverview({ organization, animals, records, dark }) {
+export default function OngOverview({ demo, organization, animals, records, dark }) {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const urgent = animals.filter((animal) => animal.urgency === 'Alta');
   const recentDonations = records.toSorted((first, second) => second.date.localeCompare(first.date));
@@ -36,7 +36,7 @@ export default function OngOverview({ organization, animals, records, dark }) {
   const monthName = monthFormatter.format(new Date(`${month}-01T00:00:00Z`));
   const monthlyTotal = records.reduce((total, record) =>
     record.type === 'money' && record.date.startsWith(month) ? total + record.amount : total, 0);
-  const recentRequests = requests.flatMap((request) => {
+  const recentRequests = (demo ? requests : []).flatMap((request) => {
     const animal = animals.find(({ id }) => id === request.animalId);
     return animal ? [{ ...request, animal }] : [];
   });
@@ -44,7 +44,7 @@ export default function OngOverview({ organization, animals, records, dark }) {
     ['Animais disponíveis', animals.filter(({ status }) => status === statuses[0].label).length],
     ['Urgência alta', urgent.length],
     ['Em processo de adoção', animals.filter(({ status }) => status === statuses[2].label).length],
-    [`Doações em ${monthName} (exemplo)`, monthlyCurrency.format(monthlyTotal / 100)],
+    [`Doações em ${monthName}${demo ? ' (exemplo)' : ''}`, monthlyCurrency.format(monthlyTotal / 100)],
   ];
 
   return (

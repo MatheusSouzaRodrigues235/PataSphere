@@ -1,4 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom';
+import AccountAccess from './AccountAccess';
+import { loadAccountSession } from './accountSession';
 import PublicLayout from '@/layouts/PublicLayout';
 import Home from '@/pages/home/Home';
 import AdoptionBoard from '@/pages/adoption/AdoptionBoard';
@@ -19,23 +21,29 @@ import OngDirectory from '@/pages/ongs/OngDirectory';
 import TutorProfile from '@/pages/tutor/TutorProfile';
 import NotFound from '@/pages/NotFound';
 
-export const router = createBrowserRouter([
+const routes = [
   {
     path: '/ongs',
     element: <OngPublicLayout />,
     children: [
       { index: true, element: <OngDirectory /> },
-      { path: 'amor-de-pet/previa', element: <OngProfilePreview /> },
+      { element: <AccountAccess role="ong" />, children: [{ path: 'amor-de-pet/previa', element: <OngProfilePreview /> }] },
       { path: ':ongSlug', element: <OngProfile /> },
     ],
   },
   {
-    path: '/dashboard/ong',
-    element: <OngDashboard />,
+    element: <AccountAccess role="ong" />,
     children: [
-      { path: 'doacoes', element: null },
-      { path: 'animais', element: null },
-      { path: 'animais-perdidos', element: null },
+      {
+        path: '/dashboard/ong',
+        element: <OngDashboard />,
+        children: [
+          { path: 'doacoes', element: null },
+          { path: 'animais', element: null },
+          { path: 'animais-perdidos', element: null },
+        ],
+      },
+      { path: '/perfil/ong/:secao?', element: <OngSettings /> },
     ],
   },
   {
@@ -55,8 +63,7 @@ export const router = createBrowserRouter([
       { path: ':animalId', element: <LostAnimalPage /> },
     ],
   },
-  { path: '/perfil/tutor/:secao?', element: <TutorProfile /> },
-  { path: '/perfil/ong/:secao?', element: <OngSettings /> },
+  { element: <AccountAccess role="tutor" />, children: [{ path: '/perfil/tutor/:secao?', element: <TutorProfile /> }] },
   { path: '/login', element: <Login /> },
   { path: '/cadastro', element: <ChooseProfile /> },
   { path: '/cadastro/tutor', element: <RegisterTutor /> },
@@ -69,4 +76,12 @@ export const router = createBrowserRouter([
       { path: '*', element: <NotFound /> },
     ],
   },
-]);
+];
+
+export const router = createBrowserRouter([{
+  id: 'account-session',
+  loader: loadAccountSession,
+  hydrateFallbackElement: <p role="status">Carregando…</p>,
+  shouldRevalidate: () => true,
+  children: routes,
+}]);
