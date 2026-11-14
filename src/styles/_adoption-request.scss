@@ -106,8 +106,9 @@
   background: $pata-verde;
   color: white;
   font-weight: 750;
+  text-decoration: none;
 
-  &:hover:not(:disabled) { background: #16542e; }
+  &:hover:not(:disabled) { background: #16542e; color: white; }
   &:disabled { background: #537b62; cursor: not-allowed; }
 }
 

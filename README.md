@@ -49,3 +49,7 @@ Em uma publicação, encaminhe `/api` ao Express no mesmo domínio do frontend e
 Em um banco existente, aplique `database/migrations/004_publicacao_adocao.sql` antes de usar a API de adoção.
 O painel da ONG cadastra, edita, altera o status e exclui seus próprios animais. As fotos JPG ou PNG (até 4, de 3 MB cada) são convertidas para WebP e armazenadas no PostgreSQL.
 O mural público consulta `/api/adocao`, exclui os adotados e mostra os animais de urgência alta primeiro.
+
+### Interesse em adoção
+
+Um tutor autenticado pode revisar as respostas e abrir o WhatsApp da ONG responsável, com uma mensagem pronta. O tutor confirma o envio no WhatsApp. Para o destino, a API usa o WhatsApp público da ONG ou o telefone informado no cadastro, conforme a configuração de exibição de contato.

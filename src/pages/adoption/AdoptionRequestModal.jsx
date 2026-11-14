@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Modal from 'react-bootstrap/Modal';
+import { useAdoptionAnimals } from './adoptionApi';
 import { FiMessageCircle, FiShield, FiX } from 'react-icons/fi';
 import '@/styles/_adoption-request.scss';
 
@@ -16,6 +17,16 @@ export default function AdoptionRequestModal({ animal, animalCode, onClose }) {
   const bodyRef = useRef(null);
   const animalName = (animal.sex === 'Fêmea' ? 'a ' : 'o ') + animal.name;
   const title = reviewing ? 'Tudo pronto para falar com a ONG' : 'Quero adotar ' + animalName;
+
+  const { data, loading, error, reload } = useAdoptionAnimals(reviewing ? '/' + animal.id + '/contato' : null);
+  const message = draft ? [
+    'Olá! Tenho interesse em adotar ' + animalName + ' (ID ' + animalCode + ').',
+    ...fields.map(({ name, label }) => label.replace(/\?$/, '') + ': ' + draft[name]),
+    'Li e aceito o termo de adoção responsável.',
+  ] : [];
+  const whatsappUrl = data?.whatsapp
+    ? 'https://wa.me/' + data.whatsapp + '?text=' + encodeURIComponent(message.join('\n'))
+    : null;
 
   useEffect(() => {
     if (!draft) return;
@@ -56,16 +67,26 @@ export default function AdoptionRequestModal({ animal, animalCode, onClose }) {
         {reviewing ? (
           <div className="adoption-request-content">
             <div className="adoption-request-preview">
-              <p>Olá! Tenho interesse em adotar {animalName} (ID {animalCode}).</p>
-              <p>Tipo de residência: {draft.residence}. Outros pets: {draft.pets}. Espaço disponível: {draft.space}.</p>
-              <p>Li e aceito o termo de adoção responsável.</p>
+              {message.map((line) => <p key={line}>{line}</p>)}
             </div>
-            <p id="adoption-whatsapp-status" className="adoption-request-note">
-              <FiShield aria-hidden="true" /> O envio pelo WhatsApp ficará disponível quando o contato da ONG estiver integrado.
-            </p>
-            <button type="button" className="adoption-request-primary" disabled aria-describedby="adoption-whatsapp-status">
-              <FiMessageCircle aria-hidden="true" /> Abrir WhatsApp
-            </button>
+            {loading && <p role="status" className="adoption-request-note">Consultando o WhatsApp da ONG…</p>}
+            {error && (
+              <>
+                <p role="alert" className="adoption-request-note">{error}</p>
+                <button type="button" className="adoption-control adoption-request-back" onClick={reload}>Tentar novamente</button>
+              </>
+            )}
+            {!loading && !error && !whatsappUrl && (
+              <p role="status" className="adoption-request-note">A ONG está sem WhatsApp disponível para este anúncio.</p>
+            )}
+            {whatsappUrl && (
+              <>
+                <a className="adoption-request-primary" href={whatsappUrl} target="_blank" rel="noreferrer">
+                  <FiMessageCircle aria-hidden="true" /> Abrir WhatsApp
+                </a>
+                <p className="adoption-request-note">Confirme o envio da mensagem no WhatsApp.</p>
+              </>
+            )}
             <button type="button" className="adoption-control adoption-request-back" onClick={() => setReviewing(false)}>
               Voltar e editar
             </button>

@@ -238,6 +238,32 @@ export function adoptionRoutes(prisma, sessionAccountId) {
     return res.type('image/webp').send(Buffer.from(photo.url.slice(photoPrefix.length), 'base64'));
   });
 
+  router.get('/:id/contato', async (req, res) => {
+    const accountId = sessionAccountId(req);
+    if (!accountId) return res.status(401).json({ message: 'Entre com uma conta de tutor para continuar.' });
+    const tutor = await prisma.tutor.findUnique({ where: { usuarioId: accountId }, select: { usuarioId: true } });
+    if (!tutor) return res.status(403).json({ message: 'Apenas tutores podem manifestar interesse em adotar.' });
+
+    const id = parseId(req.params.id);
+    if (!id) return missing(res);
+    const [contact] = await prisma.$queryRaw`
+      SELECT o.exibir_contato, o.whatsapp_publico, u.telefone
+      FROM public.animal a
+      JOIN public.ong o ON o.usuario_id = a.ong_id
+      JOIN public.usuario u ON u.id = o.usuario_id
+      WHERE a.id = ${id} AND ${publicAnimal}
+    `;
+    if (!contact) return missing(res);
+
+    const phone = contact.exibir_contato
+      ? (contact.whatsapp_publico?.trim() || contact.telefone).replace(/[\s()+.-]/g, '')
+      : '';
+    const nationalNumber = /^[1-9]{2}\d{8,9}$/;
+    const whatsapp = nationalNumber.test(phone) ? '55' + phone
+      : phone.startsWith('55') && nationalNumber.test(phone.slice(2)) ? phone : null;
+    return res.json({ whatsapp });
+  });
+
   router.get('/:id', async (req, res) => {
     const id = parseId(req.params.id);
     if (!id) return missing(res);

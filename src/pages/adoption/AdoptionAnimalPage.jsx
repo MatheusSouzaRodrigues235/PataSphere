@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { FiChevronRight, FiFacebook, FiHeart, FiLink, FiMapPin } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Link, useLocation, useOutletContext, useParams } from 'react-router-dom';
+import { useAccountSession } from '@/app/accountSession';
 import AnimalGallery from './AnimalGallery';
 import AdoptionDetailModal from './AdoptionDetailModal';
 import AdoptionRequestModal from './AdoptionRequestModal';
@@ -18,6 +19,7 @@ const adoptionSteps = [
 
 function AnimalProfile({ animal, animals, boardSearch }) {
   const { favorites, toggleFavorite } = useOutletContext();
+  const account = useAccountSession();
   const [modal, setModal] = useState(null);
   const [copied, setCopied] = useState(false);
   const animalCode = animal.id;
@@ -69,7 +71,15 @@ function AnimalProfile({ animal, animals, boardSearch }) {
             ))}
           </dl>
           <div className="adoption-profile-actions">
-            <button type="button" className="adoption-action" onClick={() => setModal('request')}>Quero adotar</button>
+            {account?.role === 'tutor' ? (
+              <button type="button" className="adoption-action" onClick={() => setModal('request')}>Quero adotar</button>
+            ) : account ? (
+              <p>Entre com uma conta de tutor para manifestar interesse.</p>
+            ) : (
+              <Link className="adoption-action" to="/login" state={{ returnTo: adoptionPath(animal) }}>
+                Entrar para adotar
+              </Link>
+            )}
             <button type="button" className="adoption-favorite" aria-pressed={favorites.includes(animal.id)} aria-label={'Favoritar ' + animal.name} onClick={() => toggleFavorite(animal.id)}>
               <FiHeart aria-hidden="true" />
             </button>
@@ -132,7 +142,7 @@ function AnimalProfile({ animal, animals, boardSearch }) {
           ))}
         </div>
       </section>}
-      {modal === 'request' && <AdoptionRequestModal animal={animal} animalCode={animalCode} onClose={() => setModal(null)} />}
+      {modal === 'request' && account?.role === 'tutor' && <AdoptionRequestModal animal={animal} animalCode={animalCode} onClose={() => setModal(null)} />}
       {modal === 'share' && <AdoptionDetailModal shareUrl={shareUrl} onClose={() => setModal(null)} />}
     </div>
   );

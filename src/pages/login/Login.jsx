@@ -45,6 +45,8 @@ export default function Login() {
       const dashboardPath = /^\/dashboard\/ong(?:[/?]|$)/.test(returnTo) ? returnTo : '/dashboard/ong';
       if (returnTo === '/animais-perdidos/cadastro') {
         await navigate(returnTo, { replace: true, state: state?.lostAnimalForm });
+      } else if (role === 'tutor' && /^\/adocao\/[1-9]\d*$/.test(returnTo)) {
+        await navigate(returnTo, { replace: true });
       } else {
         await navigate(role === 'tutor' ? '/adocao' : dashboardPath, { replace: true });
       }
