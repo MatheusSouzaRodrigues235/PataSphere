@@ -53,12 +53,10 @@ export function useLostAnimals(path, { live = false } = {}) {
       if (!document.hidden) refresh();
     }, 15_000) : null;
     if (live) window.addEventListener('focus', refresh);
-    if (path === '/avistamentos/nao-lidos') window.addEventListener('patasphere:sightings-changed', refresh);
     return () => {
       controller.abort();
       window.clearInterval(timer);
       window.removeEventListener('focus', refresh);
-      window.removeEventListener('patasphere:sightings-changed', refresh);
     };
   }, [path, live, attempt]);
 

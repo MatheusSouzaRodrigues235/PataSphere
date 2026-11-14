@@ -13,7 +13,7 @@ import AnimalManagement from './management/AnimalManagement';
 import LostAnimals from './LostAnimals';
 import { initialAlerts } from './lostAnimalData';
 import OngOverview from './OngOverview';
-import { sightingsInboxPath } from '@/pages/lost-animals/lostAnimalsApi';
+import { notificationsPath } from '@/pages/notifications/notificationApi';
 import { ongSettingsPath } from '@/pages/ong-settings/ongSettingsStorage';
 
 export default function OngDashboard() {
@@ -60,7 +60,7 @@ export default function OngDashboard() {
               Dashboards <span aria-hidden="true">/</span> <strong>{lostAnimals ? 'Animais perdidos' : management ? 'Animais' : donations ? 'Doações' : 'Visão geral'}</strong>
             </div>
             <div className="ong-tools">
-              {ong && <Link className="ong-icon" to={sightingsInboxPath} aria-label="Avistamentos recebidos">
+              {ong && <Link className="ong-icon" to={notificationsPath} aria-label="Notificações">
                 <FiBell aria-hidden="true" />
               </Link>}
               {!overview && (

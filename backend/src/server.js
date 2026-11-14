@@ -1,4 +1,5 @@
 import express from 'express';
+import { notificationRoutes } from './notifications.js';
 import { organizationRoutes } from './organizations.js';
 import { donationRoutes } from './donations.js';
 import multer from 'multer';
@@ -28,6 +29,7 @@ app.use('/api/perfis', profileRoutes(prisma, auth.sessionAccountId));
 app.use(express.json({ limit: '16kb' }));
 app.use('/api/uploads/logos', express.static(logoDirectory, { index: false }));
 app.use('/api/auth', auth.router);
+app.use('/api/notificacoes', notificationRoutes(prisma, auth.sessionAccountId));
 app.use('/api/ongs', organizationRoutes(prisma));
 app.use('/api/cadastros', registrationRoutes(prisma));
 app.use((_req, res) => res.status(404).json({ message: 'Rota não encontrada.' }));

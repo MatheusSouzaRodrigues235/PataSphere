@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAccountSession } from '@/app/accountSession';
 import SiteHeader from '@/components/layout/SiteHeader';
 import { requestLostAnimals, useLostAnimals } from './lostAnimalsApi';
+import { useRefreshNotifications } from '@/pages/notifications/notificationApi';
 import { lostAnimalsPath } from './lostAnimalsData';
 import '@/styles/_adoption.scss';
 
@@ -20,6 +21,7 @@ function Inbox() {
   const before = params.get('antes');
   const path = '/avistamentos' + (before ? '?' + new URLSearchParams({ antes: before }) : '');
   const { data, loading, error, reload } = useLostAnimals(path, { live: !before });
+  const refreshNotifications = useRefreshNotifications();
   const [marking, setMarking] = useState(null);
   const [read, setRead] = useState({});
   const [writeError, setWriteError] = useState('');
@@ -31,7 +33,7 @@ function Inbox() {
     try {
       await requestLostAnimals('/avistamentos/' + id + '/lido', { method: 'PATCH' });
       setRead((previous) => ({ ...previous, [id]: true }));
-      window.dispatchEvent(new Event('patasphere:sightings-changed'));
+      void refreshNotifications();
     } catch (requestError) {
       setWriteError(requestError.message);
     } finally {

@@ -22,6 +22,8 @@ import { OngProfile, OngProfilePreview, OngPublicLayout } from '@/pages/ongs/Ong
 import OngSettings from '@/pages/ong-settings/OngSettings';
 import OngDirectory from '@/pages/ongs/OngDirectory';
 import TutorProfile from '@/pages/tutor/TutorProfile';
+import NotificationsInbox from '@/pages/notifications/NotificationsInbox';
+import { notificationsPath } from '@/pages/notifications/notificationApi';
 import NotFound from '@/pages/NotFound';
 
 const routes = [
@@ -70,6 +72,7 @@ const routes = [
     ],
   },
   { element: <AccountAccess role="tutor" />, children: [{ path: '/perfil/tutor/:secao?', element: <TutorProfile />, loader: profileLoader('tutor') }] },
+  { path: notificationsPath, element: <NotificationsInbox /> },
   { path: sightingsInboxPath, element: <SightingsInbox /> },
   { path: '/login', element: <Login /> },
   { path: '/cadastro', element: <ChooseProfile /> },

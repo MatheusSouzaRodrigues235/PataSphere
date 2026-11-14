@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Modal from 'react-bootstrap/Modal';
-import { useAdoptionAnimals } from './adoptionApi';
+import { requestAdoption, useAdoptionAnimals } from './adoptionApi';
 import { FiMessageCircle, FiShield, FiX } from 'react-icons/fi';
 import '@/styles/_adoption-request.scss';
 
@@ -13,6 +13,18 @@ const fields = [
 export default function AdoptionRequestModal({ animal, animalCode, onClose }) {
   const [draft, setDraft] = useState(null);
   const [reviewing, setReviewing] = useState(false);
+  const [interest, setInterest] = useState({});
+  async function registerInterest() {
+    if (interest.saving) return;
+    setInterest({ saving: true });
+    try {
+      await requestAdoption('/' + animal.id + '/interesse', { method: 'POST', body: { confirmed: true } });
+      setInterest({ saved: true });
+    } catch (error) {
+      setInterest({ error: error.message });
+    }
+  }
+
   const titleRef = useRef(null);
   const bodyRef = useRef(null);
   const animalName = (animal.sex === 'Fêmea' ? 'a ' : 'o ') + animal.name;
@@ -87,6 +99,12 @@ export default function AdoptionRequestModal({ animal, animalCode, onClose }) {
                 <p className="adoption-request-note">Confirme o envio da mensagem no WhatsApp.</p>
               </>
             )}
+            {interest.saved ? <p role="status">Interesse registrado. Você pode receber atualizações sobre este animal nas notificações.</p> : (
+              <button type="button" className="adoption-control" disabled={interest.saving} onClick={registerInterest}>
+                {interest.saving ? 'Registrando…' : 'Registrar interesse e acompanhar'}
+              </button>
+            )}
+            {interest.error && <p role="alert" className="adoption-request-note">{interest.error}</p>}
             <button type="button" className="adoption-control adoption-request-back" onClick={() => setReviewing(false)}>
               Voltar e editar
             </button>

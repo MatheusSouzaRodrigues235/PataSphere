@@ -73,4 +73,12 @@ Alterações de perfil feitas antes dessa versão podem ser recuperadas nas resp
 
 Em um banco existente, aplique `database/migrations/007_avistamentos.sql` com a conta proprietária do schema e da tabela de ocorrências. Conceda à conta da API acesso de leitura, inserção e atualização em `public.avistamento_pet` e acesso à sequência se essas permissões não forem herdadas.
 
-Qualquer visitante pode registrar um avistamento em um anúncio aberto de animal perdido. O responsável recebe o aviso em Avistamentos recebidos, no menu da conta, e pode marcar o aviso como lido ou conversar com quem o enviou pelo WhatsApp. O menu mostra a quantidade de avisos não lidos.
+Qualquer visitante pode registrar um avistamento em um anúncio aberto de animal perdido. O responsável recebe o aviso em Avistamentos recebidos, no menu da conta, e pode marcar o aviso como lido ou conversar com quem o enviou pelo WhatsApp. O menu mostra a quantidade de notificações não lidas.
+
+### Notificações
+
+Aplique `database/migrations/008_notificacoes.sql` após as migrações 006 e 007. A conta da API precisa de acesso de leitura e inserção em `public.interesse_adocao`, leitura, inserção e atualização em `public.notificacao` e acesso à sequência `public.notificacao_id_seq`.
+
+A caixa Notificações exibe avisos para ONGs e tutores conforme as preferências de cada conta. O tutor pode registrar interesse no formulário de adoção para acompanhar mudanças de status. Esse registro também pode gerar um aviso para a ONG. O WhatsApp continua disponível para enviar a mensagem com as respostas. Avistamentos que não geram notificação continuam na caixa de avistamentos do responsável.
+
+Para publicar um comunicado para as contas que ativaram Novidades, execute `npm run noticias:publicar -- "Título" "Mensagem"` em `backend/`, com acesso ao banco do ambiente que receberá o comunicado.

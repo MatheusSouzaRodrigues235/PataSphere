@@ -185,7 +185,7 @@ export function lostAnimalRoutes(prisma, sessionAccountId) {
     const [row] = await prisma.$queryRaw`
       SELECT count(*) AS total
       FROM public.avistamento_pet a JOIN public.ocorrencia_pet o ON o.id = a.ocorrencia_id
-      WHERE o.autor_id = ${req.accountId} AND a.lido_em IS NULL
+      WHERE o.autor_id = ${req.accountId} AND a.notificar AND a.lido_em IS NULL
     `;
     res.json({ unread: Number(row.total) });
   });
@@ -244,8 +244,13 @@ export function lostAnimalRoutes(prisma, sessionAccountId) {
       if (alert.status !== 'aberta') return 'missing';
 
       const inserted = await tx.$executeRaw`
-        INSERT INTO public.avistamento_pet (ocorrencia_id, chave_envio, nome, whatsapp, local_avistamento)
-        VALUES (${id}, ${key}::uuid, ${name}, ${phone}, ${place})
+        INSERT INTO public.avistamento_pet (ocorrencia_id, chave_envio, nome, whatsapp, local_avistamento, notificar)
+        SELECT o.id, ${key}::uuid, ${name}, ${phone}, ${place},
+          COALESCE(g.notificacoes -> 'sightings', t.perfil -> 'notifications' -> 'sightings', 'true'::jsonb) = 'true'::jsonb
+        FROM public.ocorrencia_pet o
+        LEFT JOIN public.ong g ON g.usuario_id = o.autor_id
+        LEFT JOIN public.tutor t ON t.usuario_id = o.autor_id
+        WHERE o.id = ${id}
         ON CONFLICT (ocorrencia_id, chave_envio) DO NOTHING
       `;
       return inserted ? 'created' : 'duplicate';

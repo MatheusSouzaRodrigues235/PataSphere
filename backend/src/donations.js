@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { notify } from './notifications.js';
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import multer from 'multer';
@@ -136,7 +137,13 @@ export function donationRoutes(prisma, sessionAccountId) {
         )
         ON CONFLICT (ong_id, chave_registro) DO NOTHING RETURNING id
       `;
-      if (created) await addAttachments(db, created.id, data.attachments);
+      if (created) {
+        await addAttachments(db, created.id, data.attachments);
+        await notify(db, {
+          userId: req.ongId, category: 'donations', title: 'Doação registrada',
+          message: 'Uma nova doação foi registrada no histórico da ONG.', destination: '/dashboard/ong/doacoes',
+        });
+      }
       const [saved] = await loadRecords(db, req.ongId, Prisma.sql`AND d.chave_registro = ${data.key}::uuid`);
       return saved;
     });

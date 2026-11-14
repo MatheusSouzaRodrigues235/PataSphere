@@ -1,3 +1,4 @@
+import { notify } from './notifications.js';
 import express, { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import sharp from 'sharp';
@@ -171,12 +172,26 @@ export function adoptionRoutes(prisma, sessionAccountId) {
     const data = input.data;
     const own = Prisma.sql`a.id = ${id} AND a.ong_id = ${req.ongId}`;
     if ('status' in data) {
-      const [updated] = await prisma.$queryRaw`
-        UPDATE public.animal a SET status_adocao = ${code('status', data.status)}, atualizado_em = NOW()
-        WHERE ${own} RETURNING id
-      `;
-      if (!updated) return missing(res);
-      const [animal] = await loadAnimals(prisma, own);
+      const status = code('status', data.status);
+      const animal = await prisma.$transaction(async (db) => {
+        const [updated] = await db.$queryRaw`
+          UPDATE public.animal a SET status_adocao = ${status}, atualizado_em = NOW()
+          WHERE ${own} AND a.status_adocao <> ${status} RETURNING a.nome
+        `;
+        if (updated) {
+          await db.$executeRaw`
+            INSERT INTO public.notificacao (usuario_id, categoria, titulo, mensagem, destino)
+            SELECT i.tutor_id, 'adoption', 'Atualização de adoção',
+              ${updated.nome + ' agora está com o status “' + data.status + '”.'},
+              ${status === 'adotado' ? null : '/adocao/' + req.params.id}
+            FROM public.interesse_adocao i JOIN public.tutor t ON t.usuario_id = i.tutor_id
+            WHERE i.animal_id = ${id}
+              AND COALESCE(t.perfil -> 'notifications' -> 'adoption', 'true'::jsonb) = 'true'::jsonb
+          `;
+        }
+        const [saved] = await loadAnimals(db, own);
+        return saved;
+      });
       return animal ? res.json({ animal }) : missing(res);
     }
 
@@ -236,6 +251,40 @@ export function adoptionRoutes(prisma, sessionAccountId) {
     `;
     if (!photo?.url.startsWith(photoPrefix)) return missing(res);
     return res.type('image/webp').send(Buffer.from(photo.url.slice(photoPrefix.length), 'base64'));
+  });
+
+  router.post('/:id/interesse', ...json, async (req, res) => {
+    const userId = sessionAccountId(req);
+    if (!userId) return res.status(401).json({ message: 'Entre com uma conta de tutor para continuar.' });
+    if (req.body?.confirmed !== true) return res.status(400).json({ message: 'Confirme seu interesse para continuar.' });
+    const id = parseId(req.params.id);
+    if (!id) return missing(res);
+    const tutor = await prisma.tutor.findUnique({
+      where: { usuarioId: userId }, select: { nome: true },
+    });
+    if (!tutor) return res.status(403).json({ message: 'Apenas tutores podem registrar interesse em adotar.' });
+
+    const available = await prisma.$transaction(async (db) => {
+      const [animal] = await db.$queryRaw`
+        SELECT a.nome, a.ong_id FROM public.animal a
+        WHERE a.id = ${id} AND ${publicAnimal} FOR SHARE
+      `;
+      if (!animal) return false;
+      const inserted = await db.$executeRaw`
+        INSERT INTO public.interesse_adocao (animal_id, tutor_id)
+        VALUES (${id}, ${userId}) ON CONFLICT DO NOTHING
+      `;
+      if (inserted) {
+        await notify(db, {
+          userId: animal.ong_id, category: 'adoption', title: 'Novo interesse em adoção',
+          message: tutor.nome + ' registrou interesse em adotar ' + animal.nome + '.',
+          destination: '/adocao/' + req.params.id,
+        });
+      }
+      return true;
+    });
+    if (!available) return missing(res);
+    res.sendStatus(204);
   });
 
   router.get('/:id/contato', async (req, res) => {

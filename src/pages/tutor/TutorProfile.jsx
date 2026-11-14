@@ -31,13 +31,13 @@ const sections = {
   foto: ['Foto', 'Foto do perfil', 'Atualize a imagem que aparece no seu perfil.', FiCamera],
   seguranca: ['Segurança da conta', 'Segurança da conta', 'Gerencie a senha da sua conta.', FiLock],
   animais: ['Meus animais', 'Meus animais', 'Animais perdidos e encontrados que você cadastrou', LuPawPrint],
-  notificacoes: ['Preferências de notificação', 'Preferências de notificação', 'Escolha os avisos que deseja receber quando o envio estiver disponível.', FiBell],
+  notificacoes: ['Preferências de notificação', 'Preferências de notificação', 'Escolha os avisos que deseja receber no PataSphere.', FiBell],
   privacidade: ['Privacidade', 'Privacidade', 'Escolha quais informações aparecem na prévia do perfil público.', FiShield],
 };
 
 const notificationOptions = [
   ['sightings', 'Avistamentos', 'Avisos sobre animais perdidos que você cadastrou.'],
-  ['adoption', 'Adoção', 'Atualizações sobre suas solicitações de adoção.'],
+  ['adoption', 'Adoção', 'Mudanças de status dos animais que você quer acompanhar.'],
   ['news', 'Novidades', 'Comunicados do PataSphere.'],
 ];
 

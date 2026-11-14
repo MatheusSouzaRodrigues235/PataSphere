@@ -21,9 +21,9 @@ const sections = {
 };
 
 const notificationOptions = [
-  ['adoption', 'Adoção', 'Novas solicitações e atualizações sobre adoções.'],
-  ['sightings', 'Animais perdidos', 'Atualizações e avistamentos.'],
-  ['donations', 'Doações', 'Novidades sobre o recebimento de doações.'],
+  ['adoption', 'Adoção', 'Novos interesses em adoção registrados por tutores.'],
+  ['sightings', 'Animais perdidos', 'Novos avistamentos em anúncios da ONG.'],
+  ['donations', 'Doações', 'Novos registros no histórico de doações.'],
   ['news', 'Novidades', 'Comunicados do PataSphere.'],
 ];
 
