@@ -118,6 +118,7 @@ export default function OngProfileForm({ profile, save }) {
             <label htmlFor="ong-state">Estado</label>
             <select id="ong-state" name="state" value={draft.state} onChange={change} autoComplete="address-level1">
               <option value="">Selecione</option>
+              {draft.state && !states.includes(draft.state) && <option>{draft.state}</option>}
               {states.map((state) => <option key={state}>{state}</option>)}
             </select>
           </div>

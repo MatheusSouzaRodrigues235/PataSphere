@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FiArrowRight } from 'react-icons/fi';
-import { Link } from 'react-router-dom';
-import { startDemoRole } from '@/app/demoSession';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { clearDemoRole, startDemoRole } from '@/app/demoSession';
 import AuthLayout from '@/layouts/AuthLayout';
 import AuthPasswordInput from '@/components/layout/AuthPasswordInput';
 
@@ -14,9 +14,36 @@ const benefits = [
 export default function Login() {
   const [feedback, setFeedback] = useState('');
 
-  function handleSubmit(event) {
+  const [pending, setPending] = useState(false);
+  const navigate = useNavigate();
+  const { state } = useLocation();
+
+  async function handleSubmit(event) {
     event.preventDefault();
-    setFeedback('A autenticação ainda não está disponível.');
+    if (pending) return;
+    const fields = Object.fromEntries(new FormData(event.currentTarget));
+    setPending(true);
+    setFeedback('');
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fields),
+      });
+      if (!response.ok) {
+        setFeedback((await response.json()).message);
+        return;
+      }
+      clearDemoRole();
+      const returnTo = state?.returnTo;
+      const dashboardPath = /^\/dashboard\/ong(?:[/?]|$)/.test(returnTo) ? returnTo : '/dashboard/ong';
+      await navigate(dashboardPath, { replace: true });
+    } catch {
+      setFeedback('Não foi possível acessar o serviço de login. Tente novamente.');
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
@@ -29,7 +56,7 @@ export default function Login() {
       <div className="login-content">
         <h1 id="auth-title">Entrar</h1>
         <p className="auth-description">
-          Use o e-mail e a senha do seu cadastro. Você será levado ao painel do seu perfil (tutor ou ONG).
+          Use o e-mail e a senha do cadastro da sua ONG para acessar o painel.
         </p>
 
         <form className="login-form" onSubmit={handleSubmit}>
@@ -65,8 +92,8 @@ export default function Login() {
             Esqueci minha senha
           </button>
 
-          <button className="auth-submit" type="submit">
-            Entrar <FiArrowRight aria-hidden="true" />
+          <button className="auth-submit" type="submit" disabled={pending}>
+            {pending ? 'Entrando…' : 'Entrar'} <FiArrowRight aria-hidden="true" />
           </button>
         </form>
 

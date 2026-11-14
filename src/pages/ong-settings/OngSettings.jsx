@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react';
 import { Link, Navigate, NavLink, useParams } from 'react-router-dom';
 import { FiBell, FiCamera, FiEye, FiHeart, FiLock, FiShield, FiUser, FiX } from 'react-icons/fi';
+import { useOngSession } from '@/app/ongSession';
 import SiteHeader from '@/components/layout/SiteHeader';
 import { TutorConfirm, TutorPreferences, TutorSecurity } from '@/pages/tutor/TutorSections';
 import OngProfileForm from './OngProfileForm';
 import { OngImages, OngReceiving } from './OngSettingsSections';
-import { initialSettings, ongPreviewPath, ongSettingsPath, readOngSettings, writeOngSettings } from './ongSettingsStorage';
+import { ongPreviewPath, ongSettingsPath, readOngSettings, writeOngSettings } from './ongSettingsStorage';
 import '@/styles/_tutor-profile.scss';
 import '@/styles/_ong-settings.scss';
 
@@ -40,7 +41,8 @@ function Avatar({ images, name }) {
 
 export default function OngSettings() {
   const { secao = 'perfil' } = useParams();
-  const [data, setData] = useState(readOngSettings);
+  const ong = useOngSession();
+  const [data, setData] = useState(() => readOngSettings(ong));
   const current = useRef(data);
   const [revision, setRevision] = useState(0);
   const [confirm, setConfirm] = useState(false);
@@ -53,7 +55,7 @@ export default function OngSettings() {
   function save(changes, message = 'Perfil salvo neste navegador.') {
     const next = { ...current.current, ...(typeof changes === 'function' ? changes(current.current) : changes) };
     try {
-      writeOngSettings(next);
+      writeOngSettings(next, ong);
       current.current = next;
       setData(next);
       setFeedback({ section: secao, message });
@@ -66,9 +68,9 @@ export default function OngSettings() {
 
   function reset() {
     try {
-      writeOngSettings();
-      current.current = initialSettings;
-      setData(initialSettings);
+      writeOngSettings(null, ong);
+      current.current = readOngSettings(ong);
+      setData(current.current);
       setRevision((value) => value + 1);
       setFeedback({ section: secao, message: 'Os dados locais da ONG foram apagados.' });
     } catch {

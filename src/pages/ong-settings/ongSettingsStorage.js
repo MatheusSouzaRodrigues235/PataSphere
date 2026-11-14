@@ -13,18 +13,28 @@ export const initialSettings = {
   privacy: { contact: true, location: true },
 };
 
-export function readOngSettings() {
+export function readOngSettings(ong) {
+  const key = ong ? storageKey + ':' + ong.id : storageKey;
+  const defaults = ong ? {
+    ...initialSettings,
+    profile: {
+      ...initialSettings.profile, name: ong.name, cnpj: ong.cnpj, email: ong.email,
+      whatsapp: ong.phone, cep: ong.cep, city: ong.city, state: ong.state,
+    },
+    images: { ...initialSettings.images, logo: ong.photo ?? '' },
+  } : initialSettings;
   try {
-    const stored = JSON.parse(localStorage.getItem(storageKey));
-    return Object.fromEntries(Object.entries(initialSettings).map(([key, defaults]) => [
-      key, { ...defaults, ...stored?.[key] },
+    const stored = JSON.parse(localStorage.getItem(key));
+    return Object.fromEntries(Object.entries(defaults).map(([section, values]) => [
+      section, { ...values, ...stored?.[section] },
     ]));
   } catch {
-    return initialSettings;
+    return defaults;
   }
 }
 
-export function writeOngSettings(settings) {
-  if (settings) localStorage.setItem(storageKey, JSON.stringify(settings));
-  else localStorage.removeItem(storageKey);
+export function writeOngSettings(settings, ong) {
+  const key = ong ? storageKey + ':' + ong.id : storageKey;
+  if (settings) localStorage.setItem(key, JSON.stringify(settings));
+  else localStorage.removeItem(key);
 }
