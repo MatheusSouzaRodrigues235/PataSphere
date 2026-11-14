@@ -68,3 +68,9 @@ Em um banco existente, aplique `database/migrations/006_perfis.sql` com a conta 
 Os perfis autenticados salvam dados, imagens, privacidade e preferências pelo endpoint `/api/perfis/ong` ou `/api/perfis/tutor`. O diretório e as páginas públicas consultam `/api/ongs`. A ONG escolhe o e-mail e o WhatsApp públicos em Perfil da ONG e cadastra os itens e as orientações em Formas de recebimento.
 
 Alterações de perfil feitas antes dessa versão podem ser recuperadas nas respectivas seções, ao entrar na mesma conta pelo navegador em que foram salvas. Revise os dados antes de salvá-los.
+
+### Avistamentos de animais
+
+Em um banco existente, aplique `database/migrations/007_avistamentos.sql` com a conta proprietária do schema e da tabela de ocorrências. Conceda à conta da API acesso de leitura, inserção e atualização em `public.avistamento_pet` e acesso à sequência se essas permissões não forem herdadas.
+
+Qualquer visitante pode registrar um avistamento em um anúncio aberto de animal perdido. O responsável recebe o aviso em Avistamentos recebidos, no menu da conta, e pode marcar o aviso como lido ou conversar com quem o enviou pelo WhatsApp. O menu mostra a quantidade de avisos não lidos.

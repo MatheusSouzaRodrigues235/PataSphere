@@ -10,6 +10,8 @@ import AdoptionLayout from '@/pages/adoption/AdoptionLayout';
 import LostAnimalsLayout from '@/pages/lost-animals/LostAnimalsLayout';
 import LostAnimalsBoard from '@/pages/lost-animals/LostAnimalsBoard';
 import LostAnimalForm from '@/pages/lost-animals/LostAnimalForm';
+import SightingsInbox from '@/pages/lost-animals/SightingsInbox';
+import { sightingsInboxPath } from '@/pages/lost-animals/lostAnimalsApi';
 import LostAnimalPage from '@/pages/lost-animals/LostAnimalPage';
 import Login from '@/pages/login/Login';
 import ChooseProfile from '@/pages/register/ChooseProfile';
@@ -68,6 +70,7 @@ const routes = [
     ],
   },
   { element: <AccountAccess role="tutor" />, children: [{ path: '/perfil/tutor/:secao?', element: <TutorProfile />, loader: profileLoader('tutor') }] },
+  { path: sightingsInboxPath, element: <SightingsInbox /> },
   { path: '/login', element: <Login /> },
   { path: '/cadastro', element: <ChooseProfile /> },
   { path: '/cadastro/tutor', element: <RegisterTutor /> },

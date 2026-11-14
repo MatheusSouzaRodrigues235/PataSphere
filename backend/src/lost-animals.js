@@ -44,6 +44,17 @@ const publication = z.object({
   photos: z.array(z.string().max(3_000_000).regex(/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/)).min(1).max(4),
 }).refine((input) => input.kind === 'found' || !!input.name);
 
+const sighting = z.strictObject({
+  key: z.uuid(),
+  name: required(80),
+  phone: z.string().trim().regex(/^(?:[1-9]{2}\d{8,9}|\([1-9]{2}\) \d{4,5}-\d{4})$/)
+    .transform((value) => value.replace(/\D/g, '')),
+  place: required(160),
+});
+const sightingPageSize = 20;
+const parseNumberId = (value) => /^[1-9]\d{0,18}$/.test(value) && BigInt(value) <= 9_223_372_036_854_775_807n
+  ? BigInt(value) : null;
+
 const photoPrefix = 'data:image/webp;base64,';
 const endpoint = '/api/animais-perdidos';
 const parseId = (value) => /^ocorrencia-[1-9]\d{0,18}$/.test(value) && BigInt(value.slice(11)) <= 9_223_372_036_854_775_807n
@@ -170,6 +181,80 @@ export function lostAnimalRoutes(prisma, sessionAccountId) {
   `;
   const missing = (res) => res.status(404).json({ message: 'Anúncio indisponível.' });
 
+  router.get('/avistamentos/nao-lidos', requireAccount, async (req, res) => {
+    const [row] = await prisma.$queryRaw`
+      SELECT count(*) AS total
+      FROM public.avistamento_pet a JOIN public.ocorrencia_pet o ON o.id = a.ocorrencia_id
+      WHERE o.autor_id = ${req.accountId} AND a.lido_em IS NULL
+    `;
+    res.json({ unread: Number(row.total) });
+  });
+
+  router.get('/avistamentos', requireAccount, async (req, res) => {
+    const cursor = req.query.antes;
+    const before = typeof cursor === 'string' ? parseNumberId(cursor) : null;
+    if (cursor !== undefined && before === null) return res.status(400).json({ message: 'Página inválida.' });
+
+    const rows = await prisma.$queryRaw`
+      SELECT a.id, a.ocorrencia_id, o.nome_animal, a.nome, a.whatsapp, a.local_avistamento, a.criado_em, a.lido_em
+      FROM public.avistamento_pet a JOIN public.ocorrencia_pet o ON o.id = a.ocorrencia_id
+      WHERE o.autor_id = ${req.accountId} AND (${before}::bigint IS NULL OR a.id < ${before})
+      ORDER BY a.id DESC
+      LIMIT ${sightingPageSize + 1}
+    `;
+    const page = rows.slice(0, sightingPageSize);
+    res.json({
+      sightings: page.map((row) => ({
+        id: String(row.id), alertId: 'ocorrencia-' + row.ocorrencia_id, animalName: row.nome_animal,
+        name: row.nome, phone: row.whatsapp, place: row.local_avistamento,
+        createdAt: row.criado_em, read: row.lido_em !== null,
+      })),
+      next: rows.length > sightingPageSize ? String(page.at(-1).id) : null,
+    });
+  });
+
+  router.patch('/avistamentos/:id/lido', requireAccount, async (req, res) => {
+    const id = parseNumberId(req.params.id);
+    const updated = id && await prisma.$executeRaw`
+      UPDATE public.avistamento_pet a SET lido_em = COALESCE(a.lido_em, NOW())
+      FROM public.ocorrencia_pet o
+      WHERE a.id = ${id} AND o.id = a.ocorrencia_id AND o.autor_id = ${req.accountId}
+    `;
+    if (!updated) return res.status(404).json({ message: 'Avistamento indisponível.' });
+    res.sendStatus(204);
+  });
+
+  router.post('/:id/avistamentos', ...json('4kb'), async (req, res) => {
+    const id = parseId(req.params.id);
+    if (!id) return missing(res);
+    const input = sighting.safeParse(req.body);
+    if (!input.success) return res.status(400).json({ message: 'Confira seu nome, o WhatsApp com DDD e o local do avistamento.' });
+
+    const { key, name, phone, place } = input.data;
+    const result = await prisma.$transaction(async (tx) => {
+      const [alert] = await tx.$queryRaw`
+        SELECT status, tipo FROM public.ocorrencia_pet WHERE id = ${id} FOR SHARE
+      `;
+      if (!alert || alert.tipo !== 'perdido') return 'missing';
+
+      const [existing] = await tx.$queryRaw`
+        SELECT 1 FROM public.avistamento_pet WHERE ocorrencia_id = ${id} AND chave_envio = ${key}::uuid
+      `;
+      if (existing) return 'duplicate';
+      if (alert.status !== 'aberta') return 'missing';
+
+      const inserted = await tx.$executeRaw`
+        INSERT INTO public.avistamento_pet (ocorrencia_id, chave_envio, nome, whatsapp, local_avistamento)
+        VALUES (${id}, ${key}::uuid, ${name}, ${phone}, ${place})
+        ON CONFLICT (ocorrencia_id, chave_envio) DO NOTHING
+      `;
+      return inserted ? 'created' : 'duplicate';
+    });
+    if (result === 'missing') return res.status(404).json({ message: 'Este anúncio já não aceita avisos de avistamento.' });
+    if (result === 'duplicate') return res.sendStatus(204);
+    res.status(201).json({ message: 'Avistamento registrado.' });
+  });
+
   router.get('/:id', async (req, res) => {
     const id = parseId(req.params.id);
     if (!id) return missing(res);
@@ -218,7 +303,7 @@ export function lostAnimalRoutes(prisma, sessionAccountId) {
   });
 
   router.use((error, _req, res, next) => {
-    if (error.status === 413) return res.status(413).json({ message: 'As fotos excedem o tamanho permitido.' });
+    if (error.status === 413) return res.status(413).json({ message: 'Os dados enviados excedem o tamanho permitido.' });
     next(error);
   });
 

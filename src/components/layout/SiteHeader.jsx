@@ -7,6 +7,7 @@ import logo from '@/assets/logo-patasphere.svg';
 import { readTutorData, tutorAnimalsPath } from '@/pages/tutor/tutorStorage';
 import { ongSettingsPath, readOngSettings } from '@/pages/ong-settings/ongSettingsStorage';
 import { endAccountSession, useAccountSession } from '@/app/accountSession';
+import { sightingsInboxPath, useLostAnimals } from '@/pages/lost-animals/lostAnimalsApi';
 import { clearDemoRole, readDemoRole } from '@/app/demoSession';
 
 const publicLinks = [
@@ -47,6 +48,8 @@ function readIdentity(role) {
 
 function AccountMenu({ role, identity, closeMenu, authenticated }) {
   const navigate = useNavigate();
+  const { data } = useLostAnimals(authenticated ? '/avistamentos/nao-lidos' : null, { live: true });
+  const unread = data?.unread ?? 0;
   const [signingOut, setSigningOut] = useState(false);
   const [error, setError] = useState('');
 
@@ -69,9 +72,10 @@ function AccountMenu({ role, identity, closeMenu, authenticated }) {
 
   return (
     <Dropdown align="end" className="site-account" onSelect={closeMenu} autoClose="outside">
-      <Dropdown.Toggle id="site-account-toggle" className="site-account-toggle" aria-label={`Menu da conta de ${name}`}>
+      <Dropdown.Toggle id="site-account-toggle" className="site-account-toggle" aria-label={`Menu da conta de ${name}${unread ? ', avistamentos não lidos: ' + unread : ''}`}>
         {photo ? <img src={photo} alt="" /> : initial}
       </Dropdown.Toggle>
+      {unread > 0 && <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger pe-none" aria-hidden="true">{unread > 99 ? '99+' : unread}</span>}
       <Dropdown.Menu aria-labelledby="site-account-toggle">
         <div className="site-account-identity">
           <strong>{name}</strong>
@@ -82,6 +86,9 @@ function AccountMenu({ role, identity, closeMenu, authenticated }) {
             <Icon aria-hidden="true" /> {label}
           </Dropdown.Item>
         ))}
+        {authenticated && <Dropdown.Item as={NavLink} to={sightingsInboxPath} eventKey={sightingsInboxPath}>
+          <FiBell aria-hidden="true" /> Avistamentos recebidos{unread > 0 && ' (' + unread + ')'}
+        </Dropdown.Item>}
         <Dropdown.Item as="button" type="button" disabled={signingOut} className="site-account-signout" onClick={signOut}>
           <FiLogOut aria-hidden="true" /> {signingOut ? 'Saindo…' : 'Sair'}
         </Dropdown.Item>

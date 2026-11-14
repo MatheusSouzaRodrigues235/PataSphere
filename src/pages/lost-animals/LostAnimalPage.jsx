@@ -55,7 +55,7 @@ function LostAnimalProfile({ animal, boardUrl, published, returnToTutor }) {
               {animal.breed && <div><dt>Raça</dt><dd>{animal.breed}</dd></div>}
               <div><dt>{found ? 'Data do encontro' : 'Data do desaparecimento'}</dt><dd><time dateTime={animal.date}>{formatAlertDate(animal.date)}</time></dd></div>
             </dl>
-            {!found && !animal.closed && <div className="adoption-profile-actions">
+            {!found && !animal.closed && isPublishedAlert(animal.id) && <div className="adoption-profile-actions">
               <button type="button" className="adoption-action" onClick={() => setModal('sighting')}>
                 <FiEye aria-hidden="true" /> Você viu este animal?
               </button>
@@ -97,7 +97,7 @@ function LostAnimalProfile({ animal, boardUrl, published, returnToTutor }) {
         {!animal.closed && <section className="adoption-detail-panel">
           <h2>Contato do responsável pelo anúncio</h2>
           {animal.example ? (
-            <p>Alerta de exemplo. Use o botão “Você viu este animal?” para testar o formulário.</p>
+            <p>Alerta de exemplo.</p>
           ) : (
             <>
               <dl className="adoption-profile-facts lost-contact-facts">
@@ -114,7 +114,7 @@ function LostAnimalProfile({ animal, boardUrl, published, returnToTutor }) {
           </nav>
         </section>}
       </article>
-      {modal === 'sighting' && <SightingModal name={animal.name} onClose={() => setModal(null)} />}
+      {modal === 'sighting' && <SightingModal animal={animal} onClose={() => setModal(null)} />}
       {modal === 'share' && (
         <Modal show centered onHide={() => setModal(null)} className="adoption-modal" aria-labelledby="lost-share-title">
           <Modal.Header closeButton closeLabel="Fechar"><Modal.Title as="h2" id="lost-share-title">Compartilhar alerta</Modal.Title></Modal.Header>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useOngSession } from '@/app/accountSession';
 import SiteHeader from '@/components/layout/SiteHeader';
-import { NavLink, useMatch } from 'react-router-dom';
+import { Link, NavLink, useMatch } from 'react-router-dom';
 import { FiBell, FiGrid, FiHeart, FiMoon, FiSearch, FiSun, FiUser } from 'react-icons/fi';
 import { LuPawPrint } from 'react-icons/lu';
 import { useAdoptionAnimals } from '@/pages/adoption/adoptionApi';
@@ -13,6 +13,7 @@ import AnimalManagement from './management/AnimalManagement';
 import LostAnimals from './LostAnimals';
 import { initialAlerts } from './lostAnimalData';
 import OngOverview from './OngOverview';
+import { sightingsInboxPath } from '@/pages/lost-animals/lostAnimalsApi';
 import { ongSettingsPath } from '@/pages/ong-settings/ongSettingsStorage';
 
 export default function OngDashboard() {
@@ -32,7 +33,6 @@ export default function OngDashboard() {
   const records = ong ? donationHistory.records ?? [] : demoRecords;
   const setRecords = ong ? donationHistory.updateRecords : setDemoRecords;
   const [dark, setDark] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
 
   return (
     <div className="ong-dashboard-page">
@@ -60,13 +60,9 @@ export default function OngDashboard() {
               Dashboards <span aria-hidden="true">/</span> <strong>{lostAnimals ? 'Animais perdidos' : management ? 'Animais' : donations ? 'Doações' : 'Visão geral'}</strong>
             </div>
             <div className="ong-tools">
-              <div className="ong-notifications">
-                <button type="button" className="ong-icon" aria-label="Notificações" aria-expanded={showNotifications}
-                  onClick={() => setShowNotifications((current) => !current)}>
-                  <FiBell aria-hidden="true" />
-                </button>
-                {showNotifications && <p role="status">Nenhuma notificação.</p>}
-              </div>
+              {ong && <Link className="ong-icon" to={sightingsInboxPath} aria-label="Avistamentos recebidos">
+                <FiBell aria-hidden="true" />
+              </Link>}
               {!overview && (
                 <button type="button" className="ong-icon" aria-label={dark ? 'Ativar tema claro' : 'Ativar tema escuro'}
                   onClick={() => setDark((current) => !current)}>

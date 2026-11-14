@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
+export const sightingsInboxPath = '/avistamentos';
+
 export const isPublishedAlert = (id) => /^ocorrencia-[1-9]\d*$/.test(id);
 
 export async function requestLostAnimals(path, { body, ...options } = {}) {
@@ -51,10 +53,12 @@ export function useLostAnimals(path, { live = false } = {}) {
       if (!document.hidden) refresh();
     }, 15_000) : null;
     if (live) window.addEventListener('focus', refresh);
+    if (path === '/avistamentos/nao-lidos') window.addEventListener('patasphere:sightings-changed', refresh);
     return () => {
       controller.abort();
       window.clearInterval(timer);
       window.removeEventListener('focus', refresh);
+      window.removeEventListener('patasphere:sightings-changed', refresh);
     };
   }, [path, live, attempt]);
 
