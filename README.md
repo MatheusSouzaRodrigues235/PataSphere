@@ -102,3 +102,9 @@ Tutores e ONGs podem trocar a senha em Segurança da conta ou encerrar a conta n
 Aplique `database/migrations/011_favoritos_adocao.sql` e conceda leitura, inserção e exclusão em `public.favorito_adocao` à conta da API.
 
 Ao entrar como tutor, os favoritos ficam vinculados à conta e aparecem em outros dispositivos. O filtro Favoritos fica no mural de adoção. Visitantes podem continuar salvando animais neste navegador e importar a lista ao entrar como tutor. Os animais adotados ficam fora do mural e os removidos perdem o vínculo de favorito.
+
+### Sessões persistentes
+
+Antes de iniciar a API atualizada, aplique `database/migrations/012_sessoes_persistentes.sql` e conceda `SELECT`, `INSERT`, `UPDATE` e `DELETE` em `public.sessao_usuario` à conta da API (`UPDATE` permite a leitura com bloqueio durante alterações da conta).
+
+O login grava no PostgreSQL somente o hash do identificador da sessão. A sessão expira oito horas após o login e funciona após reinícios da API. Sair invalida a sessão atual. Trocar ou redefinir a senha e encerrar a conta invalidam todas as sessões da conta. Na primeira atualização, quem ainda tinha uma sessão em memória precisa entrar novamente.

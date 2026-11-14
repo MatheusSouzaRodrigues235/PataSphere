@@ -42,14 +42,12 @@ export default function Login() {
       if (role !== 'tutor' && role !== 'ong') throw new Error('Perfil da conta indisponível');
       clearDemoRole();
       const returnTo = state?.returnTo;
-      const dashboardPath = /^\/dashboard\/ong(?:[/?]|$)/.test(returnTo) ? returnTo : '/dashboard/ong';
-      if (returnTo === '/animais-perdidos/cadastro') {
-        await navigate(returnTo, { replace: true, state: state?.lostAnimalForm });
-      } else if (role === 'tutor' && /^\/adocao\/[1-9]\d*$/.test(returnTo)) {
-        await navigate(returnTo, { replace: true });
-      } else {
-        await navigate(role === 'tutor' ? '/adocao' : dashboardPath, { replace: true });
-      }
+      const commonDestination = /^\/(?:animais-perdidos\/cadastro|notificacoes|avistamentos)(?:\?[^#]*)?$/.test(returnTo);
+      const roleDestination = role === 'tutor'
+        ? /^\/(?:perfil\/tutor(?:\/[a-z-]+)?|adocao\/[1-9]\d*)(?:\?[^#]*)?$/.test(returnTo)
+        : /^\/(?:dashboard\/ong(?:\/(?:doacoes|animais|animais-perdidos))?|perfil\/ong(?:\/[a-z-]+)?|ongs\/(?:previa|amor-de-pet\/previa))(?:\?[^#]*)?$/.test(returnTo);
+      const destination = commonDestination || roleDestination ? returnTo : role === 'tutor' ? '/adocao' : '/dashboard/ong';
+      await navigate(destination, { replace: true, state: state?.lostAnimalForm });
     } catch {
       setFeedback('Não foi possível acessar o serviço de login. Tente novamente.');
     } finally {

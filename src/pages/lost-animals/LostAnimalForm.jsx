@@ -101,13 +101,13 @@ function PhotoPicker({ photos, onChange, loading, setLoading }) {
 export default function LostAnimalForm() {
   const account = useAccountSession();
   const { lookup, message: cepMessage, reset: resetCepLookup } = useCepLookup(occurrenceAddress);
-  const { state } = useLocation();
+  const { state, search } = useLocation();
   const navigate = useNavigate();
   const heading = useRef(null);
   const publicationKey = useRef(null);
   const submitting = useRef(false);
   const [step, setStep] = useState(0);
-  const [kind, setKind] = useState(state?.boardSearch && new URLSearchParams(state.boardSearch).get('tipo') === 'encontrados' ? 'found' : 'lost');
+  const [kind, setKind] = useState(() => new URLSearchParams(search || state?.boardSearch).get('tipo') === 'encontrados' ? 'found' : 'lost');
   const [draft, setDraft] = useState({});
   const [photos, setPhotos] = useState([]);
   const [point, setPoint] = useState(null);
@@ -176,7 +176,7 @@ export default function LostAnimalForm() {
     });
   }
 
-  if (!account) return <Navigate to="/login" replace state={{ returnTo: lostAnimalsPath + '/cadastro', lostAnimalForm: state }} />;
+  if (!account) return <Navigate to="/login" replace state={{ returnTo: lostAnimalsPath + '/cadastro' + (found ? '?tipo=encontrados' : ''), lostAnimalForm: state }} />;
 
   const field = (props) => <Field {...props} value={draft[props.name]} />;
   const title = step === 0 ? (found ? 'Cadastrar animal encontrado' : 'Cadastrar animal perdido') : steps[step];

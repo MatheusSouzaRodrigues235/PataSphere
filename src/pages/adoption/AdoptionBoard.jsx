@@ -110,7 +110,7 @@ export default function AdoptionBoard() {
     const nextParams = new URLSearchParams(Object.entries(next));
 
     if (currentOrganization) nextParams.set('ong', currentOrganization);
-    if (currentOrganization && organizationId) nextParams.set('ongId', organizationId);
+    if (organizationId && currentOrganization !== null) nextParams.set('ongId', organizationId);
     if (query) nextParams.set('busca', query);
     if (favoritesOnly) nextParams.set('favoritos', '1');
     setParams(nextParams, { preventScrollReset: true });

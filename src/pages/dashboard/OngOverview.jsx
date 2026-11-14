@@ -33,7 +33,7 @@ function AnimalThumbnail({ animal }) {
   );
 }
 
-export default function OngOverview({ accountId, demo, organization, animals, records, dark }) {
+export default function OngOverview({ accountId, demo, organization, animals, records, animalsReady, donationsReady, dark }) {
   const { hash } = useLocation();
   useEffect(() => {
     if (hash === '#ong-overview-requests') document.getElementById('ong-overview-requests')?.focus();
@@ -56,10 +56,10 @@ export default function OngOverview({ accountId, demo, organization, animals, re
     return animal ? [{ ...request, id: request.animalId, animal }] : [];
   }) : requestsQuery.data?.requests ?? [];
   const metrics = [
-    ['Animais disponíveis', animals.filter(({ status }) => status === statuses[0].label).length],
-    ['Urgência alta', urgent.length],
-    ['Em processo de adoção', animals.filter(({ status }) => status === statuses[2].label).length],
-    [`Doações em ${monthName}${demo ? ' (exemplo)' : ''}`, monthlyCurrency.format(monthlyTotal / 100)],
+    ['Animais disponíveis', animals.filter(({ status }) => status === statuses[0].label).length, animalsReady],
+    ['Urgência alta', urgent.length, animalsReady],
+    ['Em processo de adoção', animals.filter(({ status }) => status === statuses[2].label).length, animalsReady],
+    [`Doações em ${monthName}${demo ? ' (exemplo)' : ''}`, monthlyCurrency.format(monthlyTotal / 100), donationsReady],
   ];
 
   return (
@@ -75,8 +75,8 @@ export default function OngOverview({ accountId, demo, organization, animals, re
       </div>
 
       <dl className="ong-overview-metrics">
-        {metrics.map(([label, value]) => (
-          <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+        {metrics.map(([label, value, ready]) => (
+          <div key={label}><dt>{label}</dt><dd>{ready ? value : '—'}</dd></div>
         ))}
       </dl>
 
@@ -103,7 +103,7 @@ export default function OngOverview({ accountId, demo, organization, animals, re
                 </li>
               ))}
             </ul>
-          ) : <p className="ong-overview-empty">Nenhum animal com urgência alta.</p>}
+          ) : animalsReady && <p className="ong-overview-empty">Nenhum animal com urgência alta.</p>}
         </section>
 
         <section className="ong-overview-panel" aria-labelledby="ong-overview-donations">
@@ -129,7 +129,7 @@ export default function OngOverview({ accountId, demo, organization, animals, re
                 );
               })}
             </ul>
-          ) : <p className="ong-overview-empty">Nenhuma doação cadastrada.</p>}
+          ) : donationsReady && <p className="ong-overview-empty">Nenhuma doação cadastrada.</p>}
         </section>
       </div>
 

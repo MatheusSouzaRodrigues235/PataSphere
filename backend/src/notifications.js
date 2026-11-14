@@ -20,9 +20,9 @@ const parseId = (value) => /^[1-9]\d{0,18}$/.test(value) && BigInt(value) <= max
 
 export function notificationRoutes(prisma, sessionAccountId) {
   const router = Router();
-  router.use((req, res, next) => {
+  router.use(async (req, res, next) => {
     res.set('Cache-Control', 'no-store');
-    req.accountId = sessionAccountId(req);
+    req.accountId = await sessionAccountId(req);
     if (!req.accountId) return res.status(401).json({ message: 'Entre na sua conta para continuar.' });
     next();
   });

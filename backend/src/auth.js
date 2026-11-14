@@ -58,7 +58,6 @@ function currentKey(req) {
 
 export function authRoutes(prisma, { sendPasswordEmail = passwordEmail() } = {}) {
   const router = Router();
-  const sessions = new Map();
   const attempts = new Map();
   const fallbackHash = bcrypt.hash(randomBytes(32).toString('hex'), 12);
   const cookieOptions = {
@@ -67,9 +66,18 @@ export function authRoutes(prisma, { sendPasswordEmail = passwordEmail() } = {})
 
   setInterval(() => {
     const now = Date.now();
-    for (const [key, entry] of sessions) if (entry.expires <= now) sessions.delete(key);
     for (const [key, entry] of attempts) if (entry.expires <= now) attempts.delete(key);
   }, 60_000).unref();
+
+  async function pruneExpiredSessions() {
+    try {
+      await prisma.$executeRaw`DELETE FROM public.sessao_usuario WHERE expira_em <= NOW()`;
+    } catch (error) {
+      console.error('Falha ao limpar sessões expiradas:', error.code ?? error.name);
+    }
+  }
+
+  setInterval(pruneExpiredSessions, 60 * 60_000).unref();
 
   router.use((req, res, next) => {
     res.set('Cache-Control', 'no-store');
@@ -92,10 +100,22 @@ export function authRoutes(prisma, { sendPasswordEmail = passwordEmail() } = {})
     return true;
   }
 
-  function invalidateSessions(id) {
-    for (const [key, session] of sessions) {
-      if (session.accountId === id) sessions.delete(key);
-    }
+  async function revokeSession(db, req) {
+    const key = currentKey(req);
+    if (key) await db.$executeRaw`DELETE FROM public.sessao_usuario WHERE token_hash = ${key}`;
+  }
+
+  function revokeAccountSessions(db, id) {
+    return db.$executeRaw`DELETE FROM public.sessao_usuario WHERE usuario_id = ${id}`;
+  }
+
+  async function lockActiveSession(db, req, id) {
+    const [row] = await db.$queryRaw`
+      SELECT 1 FROM public.sessao_usuario
+      WHERE token_hash = ${currentKey(req)} AND usuario_id = ${id} AND expira_em > NOW()
+      FOR UPDATE
+    `;
+    return Boolean(row);
   }
 
   const tooMany = (res) => res.status(429).json({ message: 'Muitas tentativas. Aguarde alguns minutos e tente novamente.' });
@@ -124,32 +144,32 @@ export function authRoutes(prisma, { sendPasswordEmail = passwordEmail() } = {})
     if (!profile) return res.status(401).json({ message: 'E-mail ou senha inválidos.' });
 
     const token = randomBytes(32).toString('hex');
-    const key = sessionKey(token);
-    try {
-      const issued = await prisma.$transaction(async (db) => {
-        const locked = await lockAccount(db, account.id);
-        if (locked?.senha_hash !== account.senhaHash) return false;
-        sessions.set(key, { accountId: account.id, expires: Date.now() + sessionDuration });
-        return true;
-      });
-      if (!issued || !sessions.has(key)) return res.status(401).json({ message: 'E-mail ou senha inválidos.' });
-    } catch (error) {
-      sessions.delete(key);
-      throw error;
-    }
-    sessions.delete(currentKey(req));
+    const issued = await prisma.$transaction(async (db) => {
+      const locked = await lockAccount(db, account.id);
+      if (locked?.senha_hash !== account.senhaHash) return false;
+      await revokeSession(db, req);
+      await db.$executeRaw`
+        INSERT INTO public.sessao_usuario (token_hash, usuario_id, expira_em)
+        VALUES (${sessionKey(token)}, ${account.id}, NOW() + ${sessionDuration}::bigint * interval '1 millisecond')
+      `;
+      return true;
+    });
+    if (!issued) return res.status(401).json({ message: 'E-mail ou senha inválidos.' });
     res.cookie(cookieName, token, { ...cookieOptions, maxAge: sessionDuration });
     return res.json({ account: profile });
   });
 
-  function sessionAccountId(req) {
-    const session = sessions.get(currentKey(req));
-    return session?.expires > Date.now() ? session.accountId : null;
+  async function sessionAccountId(req) {
+    const key = currentKey(req);
+    if (!key) return null;
+    const [session] = await prisma.$queryRaw`
+      SELECT usuario_id FROM public.sessao_usuario WHERE token_hash = ${key} AND expira_em > NOW()
+    `;
+    return session?.usuario_id ?? null;
   }
 
   router.get('/sessao', async (req, res) => {
-    const key = currentKey(req);
-    const accountId = sessionAccountId(req);
+    const accountId = await sessionAccountId(req);
     if (accountId) {
       const account = await prisma.usuario.findUnique({
         where: { id: accountId }, select: accountFields,
@@ -158,8 +178,7 @@ export function authRoutes(prisma, { sendPasswordEmail = passwordEmail() } = {})
       if (profile) return res.json({ account: profile });
     }
 
-    sessions.delete(key);
-    return res.status(401).json({ message: 'Entre na sua conta.' });
+    return deny(res);
   });
 
   router.post('/recuperar-senha', async (req, res) => {
@@ -216,21 +235,16 @@ export function authRoutes(prisma, { sendPasswordEmail = passwordEmail() } = {})
       `;
       if (!consumed) return false;
       await db.usuario.update({ where: { id }, data: { senhaHash } });
-      invalidateSessions(id);
+      await revokeAccountSessions(db, id);
       return true;
     });
     if (!updated) return invalidLink(res);
-    sessions.delete(currentKey(req));
+    await revokeSession(prisma, req);
     res.clearCookie(cookieName, cookieOptions);
     return res.sendStatus(204);
   });
 
-  async function verifyCurrentPassword(req, res, currentPassword) {
-    const id = sessionAccountId(req);
-    if (!id) {
-      deny(res);
-      return null;
-    }
+  async function verifyCurrentPassword(id, res, currentPassword) {
     if (!limit('account:' + id, 12, res)) {
       tooMany(res);
       return null;
@@ -240,23 +254,24 @@ export function authRoutes(prisma, { sendPasswordEmail = passwordEmail() } = {})
       res.status(400).json({ message: 'Senha atual incorreta.' });
       return null;
     }
-    return { id, hash: account.senhaHash };
+    return { hash: account.senhaHash };
   }
 
   router.post('/senha', async (req, res) => {
-    if (!sessionAccountId(req)) return deny(res);
+    const id = await sessionAccountId(req);
+    if (!id) return deny(res);
     const input = changePassword.safeParse(req.body);
     if (!input.success) return res.status(400).json({ message: 'Confira os dados. A nova senha precisa ter pelo menos 8 caracteres, com letras e números.' });
-    const account = await verifyCurrentPassword(req, res, input.data.currentPassword);
+    const account = await verifyCurrentPassword(id, res, input.data.currentPassword);
     if (!account) return;
     const senhaHash = await bcrypt.hash(input.data.password, 12);
-    const { id, hash } = account;
+    const { hash } = account;
     const updated = await prisma.$transaction(async (db) => {
       const locked = await lockAccount(db, id);
-      if (locked?.senha_hash !== hash || sessionAccountId(req) !== id) return false;
+      if (locked?.senha_hash !== hash || !await lockActiveSession(db, req, id)) return false;
       await db.usuario.update({ where: { id }, data: { senhaHash } });
       await db.$executeRaw`DELETE FROM public.recuperacao_senha WHERE usuario_id = ${id}`;
-      invalidateSessions(id);
+      await revokeAccountSessions(db, id);
       return true;
     });
     if (!updated) return deny(res);
@@ -265,24 +280,25 @@ export function authRoutes(prisma, { sendPasswordEmail = passwordEmail() } = {})
   });
 
   router.post('/encerrar-conta', async (req, res) => {
-    if (!sessionAccountId(req)) return deny(res);
+    const id = await sessionAccountId(req);
+    if (!id) return deny(res);
     const input = closeAccount.safeParse(req.body);
     if (!input.success) return res.status(400).json({ message: 'Confirme o encerramento e informe sua senha atual.' });
-    const account = await verifyCurrentPassword(req, res, input.data.password);
+    const account = await verifyCurrentPassword(id, res, input.data.password);
     if (!account) return;
-    const { id, hash } = account;
+    const { hash } = account;
     const deleted = await prisma.$transaction(async (db) => {
       const locked = await lockAccount(db, id);
-      if (locked?.senha_hash !== hash || sessionAccountId(req) !== id) return null;
+      if (locked?.senha_hash !== hash || !await lockActiveSession(db, req, id)) return null;
       const ong = await db.ong.findUnique({ where: { usuarioId: id }, select: { logoUrl: true } });
       await db.$executeRaw`DELETE FROM public.ocorrencia_pet WHERE autor_id = ${id}`;
       if (ong) {
         await db.$executeRaw`DELETE FROM public.animal WHERE ong_id = ${id}`;
         await db.$executeRaw`DELETE FROM public.doacao WHERE ong_id = ${id}`;
       }
+      // A chave estrangeira remove também todas as sessões da conta.
       await db.usuario.delete({ where: { id } });
       if (locked.endereco_id) await db.endereco.delete({ where: { id: locked.endereco_id } });
-      invalidateSessions(id);
       return { logo: ong?.logoUrl };
     });
     if (!deleted) return deny(res);
@@ -297,8 +313,8 @@ export function authRoutes(prisma, { sendPasswordEmail = passwordEmail() } = {})
     return res.sendStatus(204);
   });
 
-  router.post('/sair', (req, res) => {
-    sessions.delete(currentKey(req));
+  router.post('/sair', async (req, res) => {
+    await revokeSession(prisma, req);
     res.clearCookie(cookieName, cookieOptions);
     return res.sendStatus(204);
   });

@@ -110,7 +110,7 @@ export function donationRoutes(prisma, sessionAccountId) {
 
   router.use(async (req, res, next) => {
     res.set('Cache-Control', 'no-store');
-    const id = sessionAccountId(req);
+    const id = await sessionAccountId(req);
     if (!id) return res.status(401).json({ message: 'Entre na sua conta para continuar.' });
     const ong = await prisma.ong.findUnique({ where: { usuarioId: id }, select: { usuarioId: true } });
     if (!ong) return res.status(403).json({ message: 'Apenas ONGs podem acessar o histórico de doações.' });

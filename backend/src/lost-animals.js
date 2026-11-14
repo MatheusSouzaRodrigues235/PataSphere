@@ -104,8 +104,8 @@ export function lostAnimalRoutes(prisma, sessionAccountId) {
     next();
   });
 
-  function requireAccount(req, res, next) {
-    req.accountId = sessionAccountId(req);
+  async function requireAccount(req, res, next) {
+    req.accountId = await sessionAccountId(req);
     if (!req.accountId) return res.status(401).json({ message: 'Entre na sua conta para continuar.' });
     next();
   }
@@ -176,8 +176,8 @@ export function lostAnimalRoutes(prisma, sessionAccountId) {
     res.status(201).json({ alert });
   });
 
-  const visible = (id, req) => Prisma.sql`
-    o.id = ${id} AND (o.status = 'aberta' OR o.autor_id = ${sessionAccountId(req)})
+  const visible = async (id, req) => Prisma.sql`
+    o.id = ${id} AND (o.status = 'aberta' OR o.autor_id = ${await sessionAccountId(req)})
   `;
   const missing = (res) => res.status(404).json({ message: 'Anúncio indisponível.' });
 
@@ -263,7 +263,7 @@ export function lostAnimalRoutes(prisma, sessionAccountId) {
   router.get('/:id', async (req, res) => {
     const id = parseId(req.params.id);
     if (!id) return missing(res);
-    const [alert] = await loadAlerts(prisma, visible(id, req));
+    const [alert] = await loadAlerts(prisma, await visible(id, req));
     if (!alert) return missing(res);
     res.json({ alert });
   });
@@ -273,7 +273,7 @@ export function lostAnimalRoutes(prisma, sessionAccountId) {
     if (!id || !/^[1-4]$/.test(req.params.order)) return missing(res);
     const [photo] = await prisma.$queryRaw`
       SELECT f.url FROM public.foto_ocorrencia f JOIN public.ocorrencia_pet o ON o.id = f.ocorrencia_id
-      WHERE ${visible(id, req)} AND f.ordem = ${Number(req.params.order)}
+      WHERE ${await visible(id, req)} AND f.ordem = ${Number(req.params.order)}
     `;
     if (!photo?.url.startsWith(photoPrefix)) return missing(res);
     res.type('image/webp').send(Buffer.from(photo.url.slice(photoPrefix.length), 'base64'));

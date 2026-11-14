@@ -121,7 +121,7 @@ export function adoptionRoutes(prisma, sessionAccountId) {
   const json = [requireJson, express.json({ limit: '17mb' })];
 
   async function requireOng(req, res, next) {
-    const id = sessionAccountId(req);
+    const id = await sessionAccountId(req);
     if (!id) return res.status(401).json({ message: 'Entre na sua conta para continuar.' });
     const ong = await prisma.ong.findUnique({ where: { usuarioId: id }, select: { usuarioId: true } });
     if (!ong) return res.status(403).json({ message: 'Apenas ONGs podem gerenciar animais para adoção.' });
@@ -141,7 +141,7 @@ export function adoptionRoutes(prisma, sessionAccountId) {
   const favorites = Router();
   router.use('/favoritos', favorites);
   favorites.use(async (req, res, next) => {
-    const tutorId = sessionAccountId(req);
+    const tutorId = await sessionAccountId(req);
     if (!tutorId) return res.status(401).json({ message: 'Entre como tutor para acessar seus favoritos.' });
     const tutor = await prisma.tutor.findUnique({
       where: { usuarioId: tutorId }, select: { usuarioId: true },
@@ -163,7 +163,7 @@ export function adoptionRoutes(prisma, sessionAccountId) {
   async function saveFavorites(tutorId, ids) {
     return prisma.$queryRaw`
       WITH available AS (
-        SELECT a.id FROM public.animal a WHERE a.id IN (${Prisma.join(ids)}) AND ${publicAnimal} FOR SHARE
+        SELECT a.id FROM public.animal a WHERE a.id IN (${Prisma.join(ids)}) AND ${publicAnimal} ORDER BY a.id FOR SHARE
       ), saved AS (
         INSERT INTO public.favorito_adocao (tutor_id, animal_id)
         SELECT ${tutorId}, id FROM available ORDER BY id
@@ -339,14 +339,14 @@ export function adoptionRoutes(prisma, sessionAccountId) {
     const [photo] = await prisma.$queryRaw`
       SELECT f.url FROM public.foto_animal f JOIN public.animal a ON a.id = f.animal_id
       WHERE a.id = ${id} AND f.id = ${photoId}
-        AND (${publicAnimal} OR a.ong_id = ${sessionAccountId(req)})
+        AND (${publicAnimal} OR a.ong_id = ${await sessionAccountId(req)})
     `;
     if (!photo?.url.startsWith(photoPrefix)) return missing(res);
     return res.type('image/webp').send(Buffer.from(photo.url.slice(photoPrefix.length), 'base64'));
   });
 
   router.post('/:id/interesse', ...json, async (req, res) => {
-    const userId = sessionAccountId(req);
+    const userId = await sessionAccountId(req);
     if (!userId) return res.status(401).json({ message: 'Entre com uma conta de tutor para continuar.' });
     const input = adoptionInterest.safeParse(req.body);
     if (!input.success) return res.status(400).json({ message: 'Confira as respostas e aceite o termo para enviar a solicitação.' });
@@ -390,7 +390,7 @@ export function adoptionRoutes(prisma, sessionAccountId) {
   });
 
   router.get('/:id/contato', async (req, res) => {
-    const accountId = sessionAccountId(req);
+    const accountId = await sessionAccountId(req);
     if (!accountId) return res.status(401).json({ message: 'Entre com uma conta de tutor para continuar.' });
     const tutor = await prisma.tutor.findUnique({ where: { usuarioId: accountId }, select: { usuarioId: true } });
     if (!tutor) return res.status(403).json({ message: 'Apenas tutores podem manifestar interesse em adotar.' });

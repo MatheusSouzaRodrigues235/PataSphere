@@ -87,10 +87,17 @@ async function saveTutor(db, id, current, changes) {
   });
 }
 
-async function saveOng(db, id, changes) {
+async function saveOng(db, id, currentAddress, changes) {
   const { profile, privacy, notifications, donations, images } = changes;
   if (profile) {
-    const address = { cidade: profile.city || null, uf: states.get(profile.state) ?? null, cep: profile.cep.replace('-', '') || null };
+    const cep = profile.cep.replace('-', '') || null;
+    const nextLocation = { cidade: profile.city || null, uf: states.get(profile.state) ?? null, cep };
+    const locationChanged = currentAddress && Object.entries(nextLocation).some(([key, value]) =>
+      currentAddress[key] !== value,
+    );
+    const address = {
+      ...nextLocation, ...(locationChanged && { bairro: null, logradouro: null, numero: null }),
+    };
     await db.usuario.update({
       where: { id }, data: { endereco: { upsert: { create: address, update: address } } },
     });
@@ -115,15 +122,15 @@ async function saveOng(db, id, changes) {
 }
 
 const configurations = {
-  ong: { schema: ongSettings, read: readOng, save: (db, id, _current, changes) => saveOng(db, id, changes) },
-  tutor: { schema: tutorSettings, read: readTutor, save: saveTutor },
+  ong: { schema: ongSettings, read: readOng, save: (db, id, account, changes) => saveOng(db, id, account.endereco, changes) },
+  tutor: { schema: tutorSettings, read: readTutor, save: (db, id, account, changes) => saveTutor(db, id, account.tutor, changes) },
 };
 
 export function profileRoutes(prisma, sessionAccountId) {
   const router = Router();
-  router.use((req, res, next) => {
+  router.use(async (req, res, next) => {
     res.set('Cache-Control', 'no-store');
-    res.locals.accountId = sessionAccountId(req);
+    res.locals.accountId = await sessionAccountId(req);
     if (!res.locals.accountId) return res.status(401).json({ message: 'Entre na sua conta.' });
     next();
   });
@@ -152,7 +159,7 @@ export function profileRoutes(prisma, sessionAccountId) {
           await db.$queryRaw`SELECT id FROM public.usuario WHERE id = ${id} FOR UPDATE`;
           const account = await db.usuario.findUnique({ where: { id }, select });
           if (!account?.[role]) return null;
-          await save(db, id, account[role], changes.data);
+          await save(db, id, account, changes.data);
           return db.usuario.findUnique({ where: { id }, select });
         });
         return updated ? res.json({ settings: read(updated) }) : forbidden(res);

@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react';
 import { FiChevronLeft, FiChevronRight, FiChevronsLeft, FiChevronsRight, FiFilter, FiMapPin, FiPlus, FiSearch } from 'react-icons/fi';
-import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import AdoptionFilterModal from '@/pages/adoption/AdoptionFilterModal';
 import { useLostAnimals } from './lostAnimalsApi';
-import { animalFields, exampleAlerts, lostAnimalsPath, timeSince, todayDate } from './lostAnimalsData';
+import { animalFields, lostAnimalsPath, timeSince, todayDate } from './lostAnimalsData';
 
 const pageSize = 8;
 const quickFilters = [
@@ -43,10 +43,8 @@ function LostAnimalCard({ animal, boardSearch }) {
 }
 
 export default function LostAnimalsBoard() {
-  const { tutorAlerts } = useOutletContext();
   const { data, loading, error, reload } = useLostAnimals('', { live: true });
-  const allAlerts = [...(data?.alerts ?? []), ...tutorAlerts, ...exampleAlerts];
-  const alerts = allAlerts.filter((animal) => !animal.closed && !animal.id.startsWith('tutor-'));
+  const alerts = data?.alerts ?? [];
   const [params, setParams] = useSearchParams();
   const [modal, setModal] = useState(null);
   const heading = useRef(null);

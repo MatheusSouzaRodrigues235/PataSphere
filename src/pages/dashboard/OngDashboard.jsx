@@ -79,10 +79,8 @@ export default function OngDashboard() {
               <button type="button" className="ong-button" onClick={donationHistory.reload}>Tentar novamente</button>
             </div>
           )}
-          {!donationHistory.loading && !donationHistory.error && (
-            <div hidden={!donations}>
-              <Donations records={records} setRecords={setRecords} dark={dark} connected={Boolean(ong)} />
-            </div>
+          {donations && !donationHistory.loading && !donationHistory.error && (
+            <Donations records={records} setRecords={setRecords} dark={dark} connected={Boolean(ong)} />
           )}
           {(management || overview) && loading && <p role="status">Carregando animais…</p>}
           {(management || overview) && error && (
@@ -94,7 +92,7 @@ export default function OngDashboard() {
           {management && !loading && !error &&
             <AnimalManagement animals={animals} setAnimals={setAnimals} dark={dark} connected={Boolean(ong)} />}
           {lostAnimals && <LostAnimals alerts={alerts} setAlerts={setAlerts} dark={dark} connected={Boolean(ong)} />}
-          {overview && !loading && !error && !donationHistory.loading && !donationHistory.error && <OngOverview key={ong?.id ?? 'demo'} accountId={ong?.id} demo={!ong} organization={organization} animals={animals} records={records} dark={dark} />}
+          {overview && <OngOverview key={ong?.id ?? 'demo'} accountId={ong?.id} demo={!ong} organization={organization} animals={animals} records={records} animalsReady={!loading && !error} donationsReady={!donationHistory.loading && !donationHistory.error} dark={dark} />}
         </div>
       </div>
     </div>
